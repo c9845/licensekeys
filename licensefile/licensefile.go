@@ -142,7 +142,7 @@ func (f *File) Sign(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) 
 	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
 		err = f.SignRSA(privateKey, keyPairAlgo)
 	case KeyPairAlgoED25519:
-		err = f.SignED25519(privateKey, keyPairAlgo)
+		err = f.SignED25519(privateKey)
 	}
 
 	return
@@ -166,7 +166,7 @@ func (f *File) Verify(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error)
 	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
 		err = f.VerifyRSA(publicKey, keyPairAlgo)
 	case KeyPairAlgoED25519:
-		err = f.VerifyED25519(publicKey, keyPairAlgo)
+		err = f.VerifyED25519(publicKey)
 	}
 
 	//If verification was successful, save the public key info to the license file

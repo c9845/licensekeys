@@ -68,6 +68,12 @@ func GenerateKeyPairECDSA(k KeyPairAlgoType) (private, public []byte, err error)
 //after this func completes to return/serve the license key file. The private key
 //must be decrypted, if needed, prior to being provided.
 func (f *File) SignECDSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	//Make sure a valid ECDSA algo type was provided.
+	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {
+		err = fmt.Errorf("invalid key pair algorithm, should be one of '%s', got '%s'", keyPairECDSATypes, keyPairAlgo)
+		return
+	}
+
 	//Hash.
 	h, err := f.hash(keyPairAlgo)
 	if err != nil {
@@ -104,6 +110,12 @@ func (f *File) SignECDSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err er
 //to hashing and verification but we don't want to modify the original File so it can
 //be used as it was parsed/unmarshalled.
 func (f File) VerifyECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	//Make sure a valid ECDSA algo type was provided.
+	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {
+		err = fmt.Errorf("invalid key pair algorithm, should be one of '%s', got '%s'", keyPairECDSATypes, keyPairAlgo)
+		return
+	}
+
 	//Get the decoded signature and remove the signature from the File.
 	decodedSig, err := f.decodeSignature()
 	if err != nil {

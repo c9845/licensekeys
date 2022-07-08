@@ -39,7 +39,7 @@ func TestSignED25519(t *testing.T) {
 	}
 
 	//sign
-	err = f.SignED25519(private, KeyPairAlgoED25519)
+	err = f.SignED25519(private)
 	if err != nil {
 		t.Fatal("Error with signing", err)
 		return
@@ -71,7 +71,7 @@ func TestVerifyED25519(t *testing.T) {
 	}
 
 	//sign
-	err = f.SignED25519(private, KeyPairAlgoED25519)
+	err = f.SignED25519(private)
 	if err != nil {
 		t.Fatal("Error with signing", err)
 		return
@@ -82,7 +82,7 @@ func TestVerifyED25519(t *testing.T) {
 	}
 
 	//verify
-	err = f.VerifyED25519(public, KeyPairAlgoED25519)
+	err = f.VerifyED25519(public)
 	if err != nil {
 		//This error gets kicked out intermittently when multiple tests are run at
 		//the same time (i.e.: file-level test or package-level tests). This error
@@ -95,7 +95,7 @@ func TestVerifyED25519(t *testing.T) {
 
 	//set invalid signature and try verifying
 	f.Signature = ""
-	err = f.VerifyED25519(public, KeyPairAlgoED25519)
+	err = f.VerifyED25519(public)
 	if err != ErrBadSignature {
 		t.Fatal("Error about invalid signature should have been returned.")
 		return

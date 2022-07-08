@@ -59,6 +59,13 @@ func TestSignECDSA(t *testing.T) {
 		t.Fatal("Signature not populated")
 		return
 	}
+
+	//try signing with a bad key pair algo.
+	err = f.SignECDSA(private, KeyPairAlgoRSA2048)
+	if err == nil {
+		t.Fatal("Error about wrong key pair algo should have occured.")
+		return
+	}
 }
 
 func TestVerifyECDSA(t *testing.T) {
@@ -101,6 +108,13 @@ func TestVerifyECDSA(t *testing.T) {
 		//to do with cyrpto/rand rand.Reader when generating the key pair? Or maybe
 		//with memory reuse when verifying? I really don't know...
 		t.Fatal("Error with verify (see code comments!).", err)
+		return
+	}
+
+	//try verifying with an incorrect algo type.
+	err = f.VerifyECDSA(public, KeyPairAlgoRSA2048)
+	if err == nil {
+		t.Fatal("Error about wrong key pair algo should have occured.")
 		return
 	}
 

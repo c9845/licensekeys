@@ -44,9 +44,12 @@ func GenerateKeyPairED25519() (private, public []byte, err error) {
 //will be set in the Signature field of File. You would need to call File.Marshal()
 //after this func completes to return/serve the license key file. The private key
 //must be decrypted, if needed, prior to being provided.
-func (f *File) SignED25519(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+//
+//A KeyPairAlgoType is not needed since there is only one version of ED25519 that can
+//be used whereas with ECDSA or RSA there are multiple versions (curve, bitsize).
+func (f *File) SignED25519(privateKey []byte) (err error) {
 	//Hash.
-	h, err := f.hash(keyPairAlgo)
+	h, err := f.hash(KeyPairAlgoED25519)
 	if err != nil {
 		return
 	}
@@ -80,7 +83,10 @@ func (f *File) SignED25519(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err 
 //This uses a copy of the File since we are going to remove the Signature field prior
 //to hashing and verification but we don't want to modify the original File so it can
 //be used as it was parsed/unmarshalled.
-func (f File) VerifyED25519(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+//
+//A KeyPairAlgoType is not needed since there is only one version of ED25519 that can
+//be used whereas with ECDSA or RSA there are multiple versions (curve, bitsize).
+func (f File) VerifyED25519(publicKey []byte) (err error) {
 	//Get the decoded signature and remove the signature from the File.
 	decodedSig, err := f.decodeSignature()
 	if err != nil {
@@ -89,7 +95,7 @@ func (f File) VerifyED25519(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err 
 	f.Signature = ""
 
 	//Hash.
-	h, err := f.hash(keyPairAlgo)
+	h, err := f.hash(KeyPairAlgoED25519)
 	if err != nil {
 		return
 	}
