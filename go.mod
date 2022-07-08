@@ -1,4 +1,4 @@
-module github.com/c9845/licensekeys
+module github.com/c9845/licensekeys/v2
 
 go 1.18
 
