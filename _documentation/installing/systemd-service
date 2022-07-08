@@ -1,0 +1,38 @@
+# This file handles running the licensekeys executable when the server starts.
+# This file should be renamed to "licensekeys.service" and should be copied
+# to "/etc/systemd/user". After copying, you will need to to run 
+# `systemctl enable /etc/systemd/user/licensekeys.service` and then restart the 
+# server to make sure the system starts automatically on boot.
+
+# To start the service manually, run `systemctl start licensekeys.service`.
+# To stop the service manually, run `systemctl stop licensekeys.service`.
+# To check the service's status, run `systemctl status licensekeys.service`.
+
+# Logging will be output to the systemd journal.  You can view the
+# logs by typing `journalctl -u licensekeys` (optionally `-f` to "tail").  This
+# causes no *.log file to be written elsewhere on the system; systemd
+# takes care of all logging and therefore logrotate isn't required.
+
+# Note that the systemd/journalctl logs will store potential sensitive
+# information. Make sure that only authorized users can access the logs
+# and that logs are cleared or rotated often if not needed.
+
+# Things to modify:
+# - ExecStart: path to the license keys executable & configuration file.
+# - User: the name of the user running this app.
+
+
+[Unit]
+Description=Run the License Keys app.
+After=mariadb.service nginx.service
+
+[Service]
+Type=simple
+ExecStart=/home/user/licensekeys --config=/home/user/licensekeys.conf
+Restart=on-failure
+RestartSec=2
+StartLimitBurst=2
+User=manager
+
+[Install]
+WantedBy=mariadb.service nginx.service

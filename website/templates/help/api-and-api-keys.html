@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Help - API and API Keys</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		<!-- HEADER -->
+		{{template "header-without-btns"}}	
+
+		<main>
+			<div class="container">
+				<div class="row justify-content-center">
+                    <div class="col-12 col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>API and API Keys</h5>
+                            </div>
+                            <div class="card-body">
+                                <section>
+                                    <h5>Intro:</h5>
+                                    <p>The License Key Server application provides a publically accessible API to access some of the GUI functionality to integration with other software tools. To use the API, you must enable the <code>AllowAPIAccess</code> App Setting and create an API Key.</p>
+
+                                    <h5>Standardized Responses:</h5>
+                                    <p>All API calls, except when a license file is returned, respond with a consistently formatted JSON object for ease of parsing. See the example, and format, below.</p>
+<pre>
+    {
+        "OK":true, //false on an internal server error.
+        "Type":"insertOK", //the action completed, error when ErrorData is populated.
+        "Data":10004, //an ID or some other data, only populated when Type is not "error".
+        "ErrorData":{}, //contains a low-level error and a human friendly error message.
+        "Datetime":"2022-05-30T16:20:50.004Z" //a timestamp of the response for diagnostics.
+    }
+</pre>
+                                </section>
+                                <hr class="divider">
+
+                                <section>
+                                    <h5>Create a License:</h5>
+                                    <dl class="row mb-0 ml-2">
+                                        <dt class="col-sm-3">Method:</dt>
+                                        <dd class="col-sm-9 mb-0">POST</dd>
+                                        
+                                        <dt class="col-sm-3">URL:</dt>
+                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/add/</dd>
+                                        
+                                        <dt class="col-sm-3">Content Type:</dt>
+                                        <dd class="col-sm-9 mb-0">application/x-www-form-urlencoded</dd>
+                                        
+                                        <dt class="col-sm-3">Required Data:</dt>
+                                        <dd class="col-sm-9 mb-0">
+                                            <ul>
+                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
+                                                <li><code>appID</code> or <code>keyPairID</code> - If you provide an appID, the default key pair will be used.</li>
+                                                <li><code>companyName</code></li>
+                                                <li><code>contactName</code></li>
+                                                <li><code>phoneNumber</code></li>
+                                                <li><code>email</code></li>
+                                                <li><code>expireDate</code> - A YYYY-MM-DD formatted date in the future.</li>
+                                                <li><code>fields</code> - A URL encoded JSON object containing the custom fields for the app this license is for. Each key in the object must exactly match a custom field's name with each value a valid value for the field.</li>
+                                            </ul>
+                                        </dd>
+
+                                        <dt class="col-sm-3">Optional Data:</dt>
+                                        <dd class="col-sm-9 mb-0">
+                                            <ul>
+                                                <li><code>returnLicenseFile</code> - If true, bytes representing a file are returned. If false, or not provided, a simple success message with the new licenses' ID is returned.</li>
+                                            </ul>
+                                        </dd>
+
+                                        <dt class="col-sm-3">Returns:</dt>
+                                        <dd class="col-sm-9 mb-0">A license ID or a license file in bytes. See the <code>X-Download-As-Filename</code> response header for the suggested filename.</dd>
+
+                                        <dt class="col-sm-3">Example:</dt>
+                                        <dd class="col-sm-9 mb-0"><span class="text-secondary"><i>An example cURL command is shown when creating a license in the GUI.</i></span></dd>
+                                    </dl>
+                                </section>
+                                <hr class="divider">
+
+                                <section>
+                                    <h5>Download a License:</h5>
+                                    <dl class="row mb-0 ml-2">
+                                        <dt class="col-sm-3">Method:</dt>
+                                        <dd class="col-sm-9 mb-0">GET</dd>
+                                        
+                                        <dt class="col-sm-3">URL:</dt>
+                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/download/</dd>
+
+                                        <dt class="col-sm-3">Content Type:</dt>
+                                        <dd class="col-sm-9 mb-0">application/x-www-form-urlencoded</dd>
+
+                                        <dt class="col-sm-3">Required Parameters:</dt>
+                                        <dd class="col-sm-9 mb-0">
+                                            <ul>
+                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
+                                                <li><code>id</code> - A license's ID.</li>
+                                            </ul>
+                                        </dd>
+
+                                        <dt class="col-sm-3">Returns:</dt>
+                                        <dd class="col-sm-9 mb-0">A license file in bytes. See the <code>X-Download-As-Filename</code> response header for the suggested filename.</dd>
+                                        
+                                        <dt class="col-sm-3">Example:</dt>
+                                        <dd class="col-sm-9 mb-0"><code>curl 'http://localhost:8007/api/v1/licenses/download/?apiKey=lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD&id=100001'</code></dd>
+                                    </dl>
+                                </section>
+                                <hr class="divider">
+
+                                <section>
+                                    <h5>Renew a License:</h5>
+                                    <dl class="row mb-0 ml-2">
+                                        <dt class="col-sm-3">Method:</dt>
+                                        <dd class="col-sm-9 mb-0">POST</dd>
+                                        
+                                        <dt class="col-sm-3">URL:</dt>
+                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/renew/</dd>
+
+                                        <dt class="col-sm-3">Required Parameters:</dt>
+                                        <dd class="col-sm-9 mb-0">
+                                            <ul>
+                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
+                                                <li><code>id</code> - A license's ID.</li>
+                                                <li><code>newExpireDate</code> -  A YYYY-MM-DD formatted date in the future.</li>
+                                            </ul>
+                                        </dd>
+
+                                        <dt class="col-sm-3">Optional Data:</dt>
+                                        <dd class="col-sm-9 mb-0">
+                                            <ul>
+                                                <li><code>returnLicenseFile</code> - If true, bytes representing a file are returned. If false, or not provided, a simple success message with the new licenses' ID is returned.</li>
+                                            </ul>
+                                        </dd>
+
+                                        <dt class="col-sm-3">Returns:</dt>
+                                        <dd class="col-sm-9 mb-0">A license ID or a license file in bytes. See the <code>X-Download-As-Filename</code> response header for the suggested filename.</dd>
+
+                                        <dt class="col-sm-3">Example:</dt>
+                                        <dd class="col-sm-9 mb-0"><code>curl 'http://localhost:8007/api/v1/licenses/renew/' -X POST -H 'Content-type: application/x-www-form-urlencoded' -d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' -d id='10001' -d newExpireDate='2025-01-01'</code></dd>
+                                    </dl>
+                                </section>
+                                <hr class="divider">
+
+                                <section>
+                                    <h5>Disable a License:</h5>
+                                    <dl class="row mb-0 ml-2">
+                                        <dt class="col-sm-3">Method:</dt>
+                                        <dd class="col-sm-9 mb-0">POST</dd>
+                                        
+                                        <dt class="col-sm-3">URL:</dt>
+                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/disable/</dd>
+
+                                        <dt class="col-sm-3">Required Parameters:</dt>
+                                        <dd class="col-sm-9 mb-0">
+                                            <ul>
+                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
+                                                <li><code>id</code> - A license's ID.</li>
+                                                <li><code>note</code> - A short description about why the license is being disabled.</li>
+                                            </ul>
+                                        </dd>
+
+                                        <dt class="col-sm-3">Returns:</dt>
+                                        <dd class="col-sm-9 mb-0">A success message.</dd>
+
+                                        <dt class="col-sm-3">Example:</dt>
+                                        <dd class="col-sm-9 mb-0"><code>curl 'http://localhost:8007/api/v1/licenses/disable/' -X POST -H 'Content-type: application/x-www-form-urlencoded' -d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' -d id='10001'</code></dd>
+                                    </dl>
+                                </section>
+                            </div> <!-- end .card-body -->
+                        </div> <!-- end .card -->
+                    </div>
+                </div> <!-- end .row -->
+            </div> 
+        </main>
+    </body>
+</html>
+                        

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Help - Activity Logging</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		<!-- HEADER -->
+		{{template "header-without-btns"}}	
+
+		<main>
+			<div class="container">
+				<div class="row justify-content-center">
+                    <div class="col-12 col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Activity Logging</h5>
+                            </div>
+                            <div class="card-body">
+                                <section>
+                                    <p>Tracks user activity and actions performed within the app for diagnostics and auditing purposes.</p>
+                                </section>
+                                <hr class="divider">
+                                    
+                                <section>
+                                    <p>Logging is enabled via the App Setting <span class="app-setting-description">EnableActivityLogging</span>.  When enabled, this tracks each page a user visits and the actions a user performs. This also tracks actions performed via the API.</p>
+                                        
+                                    <p>The Activity Log shows very raw data about what a user was viewing or doing. You will need to inspect the log carefully to identify what occured. However, the data can be used for quickly identifying who did what.</p>
+                                        
+                                    <p>The Activity Log is only accesible to users with the <code>Administrator</code> permission.</p>
+
+                                </section>
+                                
+                            </div> <!-- end .card-body -->
+                        </div> <!-- end .card -->
+                    </div>
+                </div> <!-- end .row -->
+            </div> 
+        </main>
+    </body>
+</html>
+                        

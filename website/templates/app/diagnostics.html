@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Diagnostics</title>
+
+        {{template "html_head" .}}
+
+        <!-- custom styling used just for this page. -->
+        <style>
+            body {
+                font-size: 14px;
+            }
+            .section-title, .section-divider {
+                font-weight: bold;
+            }
+            dd {
+                margin-bottom: 0;
+            }
+        </style>
+	</head>
+	<body>
+        <main>
+            {{$diagLines := .InjectedData.Data}}
+            {{$order := $diagLines.Order}}
+            {{$lines := $diagLines.Lines}}
+
+            <dl class="row">
+                <!-- stuff from app, retrieved on server -->
+                {{range $order}}
+                    {{$key := .}}
+                    {{$value := index $lines .}}
+                    
+                    {{/*different alignment for section headers*/}}    
+                    {{/*need (printf "%s"...) to handle values that aren't strings.  if can only compare same types and "****" is a string*/}}
+                    {{if eq (printf "%s" $value) "******************************"}}
+                        <dt class="col-sm-3 section-title">{{$key}}</dt>
+                        <dd class="col-sm-9 section-divider">{{$value}}</dd>
+                    {{else}}
+                        <dt class="col-sm-3">{{$key}}:</dt>
+                        <dd class="col-sm-9">{{$value}}</dd>
+                    {{end}}
+                {{end}}
+                
+                <!-- other misc stuff -->
+                <dt class="col-sm-3 section-title">**UIDATA**</dt>
+                <dd class="col-sm-9 section-divider">******************************</dd>
+                
+                <dt class="col-sm-3">JSVersion:</dt>
+                <dd class="col-sm-9"><span id="js-version"></dd>
+
+                <dt class="col-sm-3">CSSVersion:</dt>
+                <dd class="col-sm-9"><span id="css-version"></dd>
+                    
+                <dt class="col-sm-3">CacheBustFiles:</dt>
+                <dd class="col-sm-9">{{range .CacheBustFiles}}{{.}}, {{end}}</dd>
+            </dl>
+
+            
+        </main>
+        
+        {{template "html_scripts" .}}
+        
+        <script>
+            //get js version
+            document.getElementById("js-version").innerText = version;
+
+            //get css version from css variable
+            //remove quotes since no other strings in diagnostics have quotes.
+            let cssVersion = getComputedStyle(document.documentElement).getPropertyValue("--version");
+            cssVersion = cssVersion.replace(/['"]+/g, '');
+            document.getElementById("css-version").innerText = cssVersion;
+        </script>
+	</body>
+</html>

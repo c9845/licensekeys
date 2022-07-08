@@ -1,0 +1,27 @@
+# This file handles automating the renewal of the https certificate.
+
+# This file should copied to "/etc/systemd/user" and renamed something
+# like auto-renew-certbot.service.  Note that this file MUST end in 
+# ".service" when saved to the system it is to run on.  This file
+# must be enabled with `systemctl enable </path/to/file>`.
+
+# This file is run by the `auto-renew-certbot.timer` file.
+
+# ExecStart notes:
+# - use "--dry-run" after "renew" for testing.
+# - "--no-random-sleep-on-renew" can be placed after "renew" to cause 
+#   the renewal to happen exactly at the time specifed in the .timer 
+#   file.  There isn't really a con to not use a slightly more random
+#   renewal time.  It simply helps the cert authority smooth demand.
+# - "--post-hook" reload nginx so that the newest certificate is used.
+# - "--quiet" removes a lot of verbose logging.
+
+[Unit]
+Description=Auto-renew certbot https certificate.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/certbot renew --post-hook "/usr/sbin/nginx -s reload" --quiet
+
+[Install]
+WantedBy=nginx.service

@@ -1,0 +1,28 @@
+{{define "footer"}}
+<!-- footer will be, at minimum, located at the bottom of the window -->
+<footer class="sticky">
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <p class="text-center">
+                    <a href="/app/">App</a> &bull; <a href="/help/">Help</a>
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <p class="text-center">
+                    <a href="#">&copy; 2021 - <span id="footer-end-year"></span> c9845</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var d = new Date();
+        var y = d.getFullYear();
+        document.getElementById("footer-end-year").innerHTML = y;
+    
+    </script>
+</footer>
+{{end}}

@@ -1,0 +1,57 @@
+{{$showDevHeader := .Development}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Activity Log Chart, Activity Over Time of Day</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+        {{template "header-with-btns" .}}
+
+		<main>
+			<div class="container">
+				<div class="row">
+                   <div class="col">
+                        <div class="card" id="activityOverTimeOfDayChart">
+                            <div class="card-header">
+                                <h5>Activity Log Chart, Activity Over Time of Day</h5>
+                                <div class="card-header-btn">
+									<button class="btn btn-outline-primary btn-sm" v-on:click="showHelp = !showHelp"><i class="fas fa-question"></i></button>
+								</div>
+                            </div>
+                            <div class="card-body">
+                                <div v-show="showHelp" v-cloak>
+									<div class="alert alert-primary">
+                                        This chart shows user activity, in 10 minute intervals, over the course of a day. Use this chart to see when users are busy using the app. Please note the time of day is in the UTC timezone.
+									</div>
+									<br>	
+								</div>
+                                
+                                <div>
+                                    <canvas id="activity-over-time-of-day-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+				</div>                   
+			</div>
+        </main>
+        
+        <!-- loading data into js this way so that we don't need to load page and then make api call to get data to chart -->
+        <input type="hidden" id="raw" value="{{.InjectedData.Data}}">
+        <script>
+            var rawChartData = JSON.parse(document.getElementById("raw").value);
+        </script>
+
+        {{template "footer"}}
+        {{template "chart-js" .}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

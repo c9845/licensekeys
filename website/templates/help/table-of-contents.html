@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Help - Topics</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		<!-- HEADER -->
+		{{template "header-without-btns"}}	
+
+		<main>
+			<div class="container">
+				<div class="row justify-content-center">
+                    <div class="col-12 col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Help Documentation</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- <section>
+                                    <p>The links below show on how to use this app, certain design details, and other useful info.
+                                </section>
+                                <hr class="divider"> -->
+                                
+                                <section>
+                                    <ul>
+                                        <li><a href="/help/licenses/">Licenses</a></li>
+                                        <li><a href="/help/key-pairs/">Key Pairs</a></li>
+                                        <li><a href="/help/custom-fields/">Custom Fields</a></li>
+                                        <li><a href="/help/api-and-api-keys/">API & API Keys</a></li>
+                                        <li><a href="/help/activity-logging/">Activity Logging</a></li>
+                                    </ul>
+                                </section>
+                            </div> <!-- end .card-body -->
+                        </div> <!-- end .card -->
+                    </div>
+                </div> <!-- end .row -->
+            </div> 
+        </main>
+    </body>
+</html>
+                        

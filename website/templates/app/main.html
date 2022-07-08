@@ -1,0 +1,100 @@
+{{$showDevHeader := .Development}}
+{{$userData := .InjectedData.UserData}}
+{{$appSettings := .InjectedData.AppSettings}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}}</title>
+
+        {{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-with-btns" .}}	
+
+		<main>
+			<div class="container">
+                
+                <div class="row justify-content-center stretch-cards">
+                    <!-- app management (creating, updating, key pairs, signing details) -->
+                    <!-- creating, viewing, downloading licenses -->
+					<div class="col col-12 col-md-6 col-lg-4 col-after-col--up-to-md">
+						<div class="card flex-max-height">
+                            <div class="card-header">
+                                <h5>Licenses</h5>
+                            </div>
+							<div class="card-body">
+                                {{if $userData.Administrator}}
+                                <section class="menu-section">
+                                    <a class="btn btn-block btn-outline-primary" href="/apps/">Apps & License Details</a>
+                                    <hr class="divider">
+                                </section>
+                                {{end}}
+
+                                <section class="menu-section">
+                                    {{if $userData.CreateLicenses}}
+                                    <a class="btn btn-block btn-outline-primary" href="/licenses/add/">Create License</a>
+                                    {{end}}
+                                    
+                                    {{if $userData.ViewLicenses}}
+                                    <a class="btn btn-block btn-outline-primary" href="/licenses/">View Licenses</a>
+                                    {{end}}
+                                </section>    
+							</div>
+						</div>
+                    </div>
+                    <!-- end licenses .col -->
+                    
+                    <!-- users, app settings, api keys, activity logs -->
+                    {{if $userData.Administrator}}
+					<div class="col col-12 col-md-6 col-lg-4 col-after-col--up-to-md">
+						<div class="card flex-max-height">
+                            <div class="card-header">
+                                <h5>Settings</h5>
+                            </div>
+							<div class="card-body">
+                                <!-- settings -->
+                                <section class="menu-section">
+                                    <a class="btn btn-block btn-outline-primary" href="/users/">Users</a>
+                                    <a class="btn btn-block btn-outline-primary" href="/app-settings/">App Settings</a>
+                                    {{if $appSettings.AllowAPIAccess}}
+                                    <a class="btn btn-block btn-outline-primary" href="/api-keys/">API Keys</a>
+                                    {{end}}
+                                    
+                                </section>
+                                <hr class="divider">
+                                
+                                <!-- data -->
+                                <section class="menu-section">
+                                    {{if $appSettings.EnableActivityLogging}}
+                                    <a class="btn btn-block btn-outline-primary" href="/activity-log/?userID=0&searchFor=&rows=200">Activity Log</a>
+                                    {{end}}
+                                    
+                                    <a class="btn btn-block btn-outline-primary" href="/user-logins/?userID=0&rows=200">User Logins</a>
+                                    
+                                </section>
+                                <hr class="divider">
+
+                                <!-- admin tools -->
+                                <section class="menu-section">
+                                    <a class="btn btn-block btn-outline-primary" href="/diagnostics/">Diagnostics</a>
+                                    <a class="btn btn-block btn-outline-primary" href="/tools/">Admin Tools</a>
+                                </section>
+							</div>
+						</div>
+                    </div> 
+                    {{end}}
+                    <!-- end settings .col-->
+				</div>
+			</div>
+		</main>
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

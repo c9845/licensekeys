@@ -1,0 +1,547 @@
+{{$showDevHeader := .Development}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | App Settings</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-with-btns" .}}
+
+		<main>
+			<div class="container" >
+				<div class="row justify-content-center">
+                    
+                    <!-- column for choosing app and editing app (name, file format, etc.) -->
+                    <div class="col-12 col-md-5" id="manageApps">
+                        <!-- card for choosing the app you want to lookup/edit, not shown when adding a new app -->
+                        <div class="card" v-if="addingNew === false">
+                            <div class="card-header">
+                                <h5>Apps</h5>
+                                <div class="card-header-btn">
+                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setUIState">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>App:</label>
+                                    <select class="form-control" v-model.number="appSelectedID" v-on:change="showApp">
+                                        <template v-if="!appsRetrieved">
+                                            <option value="0">Loading...</option>
+                                        </template>
+                                        <template v-else-if="apps.length === 0" v-cloak>
+                                            <option value="0">No apps exist yet.</option>
+                                        </template>
+                                        <template v-else v-cloak>
+                                            <option value="0" disabled>Please choose.</option>
+                                            <option v-for="(x, index) in apps" :key="index" v-bind:value="x.ID">[[x.Name]] <span v-if="!x.Active">([[x.Active]])</span></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div class="alert" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
+                                    [[msgLoad]]
+                                </div>
+                            </div>
+                        </div> <!-- end .card for looking up -->
+
+                        <!-- card for viewing/editing an app, shown when an app is chosen or adding a new app -->
+                        <div class="card" v-if="appSelectedID > 0 || addingNew" v-cloak>
+                            <div class="card-header">
+                                <h5>[[addEditCardTitle]]</h5>
+                                <div class="card-header-btn">
+                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setUIState">
+                                        <i class="fas fa-search" v-cloak></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <fieldset v-if="appSelectedID > 0 && !addingNew" disabled v-cloak>
+                                    <div class="form-group">
+                                        <label>ID:</label>
+                                        <input type="number" class="form-control" v-model.number="appData.ID">
+                                    </div>
+                                </fieldset>
+
+                                <fieldset v-bind:disabled="submitting">
+                                    <div class="form-group">
+                                        <label>Name:</label>
+                                        <input type="text" class="form-control" v-model.trim="appData.Name" v-on:change="setDefaultDownloadFilename">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Default License Period:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" min="0" step="1" v-model.number="appData.DaysToExpiration">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">Days</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            File Format:
+                                            <span class="help-icon text-secondary" v-tooltip="'How the data will be stored inside the license file.'"><i class="fas fa-question-circle"></i></span>
+                                        </label>
+                                        <select class="form-control" v-model.trim="appData.FileFormat">
+                                            <option value="" disabled>Please choose.</option>
+                                            <option v-for="ff in fileFormats" v-bind:value="ff">[[ff.toUpperCase()]]</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            Download Filename: 
+                                            <!-- TODO: link to page explaining magic replacement code ({ext} is replaced with .json, .yaml)-->
+                                            <span class="help-icon text-secondary" v-tooltip="'The name of the file the license will be downloaded as. Note that you can use {licenseID}, {appName}, and {ext} as placeholders.'"><i class="fas fa-question-circle"></i></span>
+                                        </label>
+                                        <input type="text" class="form-control" placeholder="my-app-name.txt" v-model.trim="appData.DownloadFilename">
+                                    </div>
+                                    
+                                    <div class="form-group side-by-side">
+                                        <label>Show ID In License:</label>
+                                        <div class="btn-group btn-group-toggle" id="ShowLicenseID" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('ShowLicenseID', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('ShowLicenseID', false)">No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group side-by-side">
+                                        <label>Show App Name in License:</label>
+                                        <div class="btn-group btn-group-toggle" id="ShowAppName" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('ShowAppName', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('ShowAppName', false)">No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group side-by-side">
+                                        <label>Active:</label>
+                                        <div class="btn-group btn-group-toggle" id="Active" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('Active', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('Active', false)">No
+                                            </label>
+                                        </div>
+                                    </div>
+                                </fieldset>
+
+                                <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                                    [[msgSave]]
+                                </div>
+                            </div> <!-- end .card-body-->
+                            <div class="card-footer">
+                                <button class="btn btn-primary" type="button" v-on:click="addOrUpdate" v-bind:disabled="submitting">Save</button>
+                            </div>
+                        </div>
+                    </div> <!-- end .col for view/edit/add -->
+
+                    <!-- column for key pairs & custom fields -->
+                    <div class="col-12 col-md-7 col-after-col--up-to-sm">
+                        
+                        <!-- card for key pairs -->
+                        <div class="card" id="listKeyPairs">
+                            <div class="card-header">
+                                <h5>
+                                    <span class="collapse-clickable-area hover-pointer" v-on:click="collapseUI = !collapseUI">
+                                        <span v-if="appSelectedID > 0" class="collapse-icon text-secondary" v-tooltip="'Click to collapse/expand.'" v-cloak>
+                                            <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
+                                            <i v-else            class="fas fa-angle-double-up"></i>
+                                        </span>
+                                        <span class="title">Key Pairs</span>
+                                    </span>
+                                </h5>
+                                
+                                <div v-if="appSelectedID > 0" class="card-header-btn" v-cloak>
+                                    <div class="card-header-btn">
+                                        <button class="btn btn-outline-primary btn-sm add-btn" data-toggle="modal" data-target="#modal-keyPair" v-on:click="passToModal(undefined)"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body" v-if="collapseUI === false" v-cloak>
+                                <section>
+                                    <blockquote class="section-description section-description-secondary">
+                                        <p v-if="appSelectedID < 1">Choose an app first.</p>
+                                        <p v-else v-cloak>Key pairs are used for signing your licenses. You can define multiple key pairs for key rotation or development versus production uses.</p>
+                                    </blockquote>
+                                </section>
+                                
+                                <section v-if="appSelectedID > 0" v-cloak>
+                                    <hr class="divider">
+
+                                    <table class="table table-sm">
+                                        <thead class="no-border-top">
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Type</th> <!-- ecdsa, rsa -->
+                                                <th></th> <!-- view details in modal button -->
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-if="!keyPairsRetrieved">
+                                                <tr>
+                                                    <td colspan="10">Loading...</td>
+                                                </tr>
+                                            </template>
+                                            <template v-else-if="keyPairs.length === 0">
+                                                <tr>
+                                                    <td colspan="10">No key pairs exist yet.</td>
+                                                </tr>
+                                            </template>
+                                            <template v-else>
+                                                <tr v-for="x in keyPairs" :key="x.ID" v-bind:data-id="x.ID">
+                                                    <td>
+                                                        <span class="app-name">[[x.Name]]</span>
+                                                        <span class="default fas fa-star text-primary" v-if="x.IsDefault" v-tooltip="'Default key pair.'"></span>
+                                                        <span class="private-key-encrypted fas fa-unlock text-warning" v-if="!x.PrivateKeyEncrypted" v-tooltip="'Private key is not encrypted.'"></span>
+                                                    </td>
+                                                    <td>[[x.AlgorithmType]]</td>
+                                                    <td class="text-right"><button class="btn btn-link btn-sm btn-sm-condensed" data-toggle="modal" data-target="#modal-keyPair" v-on:click="passToModal(x)"><i class="fas fa-cog"></i></button></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                    <div class="alert" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
+                                        [[msgLoad]]
+                                    </div>
+                                </section>
+                            </div> <!-- end .card-body -->
+                        </div> <!-- end .card for key pairs-->
+                        
+                        <!-- card for custom field types -->
+                        <div class="card" id="listCustomFieldsDefined">
+                            <div class="card-header">
+                                <h5>
+                                    <span class="collapse-clickable-area hover-pointer" v-on:click="collapseUI = !collapseUI">
+                                        <span v-if="appSelectedID > 0" class="collapse-icon text-secondary" v-tooltip="'Click to collapse/expand.'" v-cloak>
+                                            <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
+                                            <i v-else            class="fas fa-angle-double-up"></i>
+                                        </span>
+                                        <span class="title">Custom Fields</span>
+                                    </span>
+                                </h5>
+                                
+                                <div v-if="appSelectedID > 0" class="card-header-btn" v-cloak>
+                                    <div class="card-header-btn">
+                                        <button class="btn btn-outline-primary btn-sm add-btn" data-toggle="modal" data-target="#modal-customFieldDefined" v-on:click="passToModal(undefined)"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body" v-if="collapseUI === false" v-cloak>
+                                <section>
+                                    <blockquote class="section-description section-description-secondary">
+                                        <p v-if="appSelectedID < 1">Choose an app first.</p>
+                                        <p v-else v-cloak>Custom fields allow you to provide arbitrary data in your licenses for enabling features, limiting user count, etc.</p>
+                                    </blockquote>
+                                </section>
+                                
+                                <section v-if="appSelectedID > 0" v-cloak>
+                                    <hr class="divider">
+
+                                    <table class="table table-sm">
+                                        <thead class="no-border-top">
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Type</th> <!-- text, bool, integer, etc. -->
+                                                <th>Default</th>
+                                                <th></th> <!-- view details in modal button -->
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-if="!fieldsRetrieved">
+                                                <tr>
+                                                    <td colspan="10">Loading...</td>
+                                                </tr>
+                                            </template>
+                                            <template v-else-if="fields.length === 0">
+                                                <tr>
+                                                    <td colspan="10">No fields exist yet.</td>
+                                                </tr>
+                                            </template>
+                                            <template v-else>
+                                                <tr v-for="x in fields" :key="x.ID" v-bind:data-id="x.ID">
+                                                    <td>[[x.Name]]</td>
+                                                    <td>[[x.Type]]</td>
+                                                    <td>
+                                                        <span v-if="x.Type === customFieldTypeInteger">[[x.IntegerDefaultValue]]</span>
+                                                        <span v-else-if="x.Type === customFieldTypeDecimal">[[x.DecimalDefaultValue.toFixed(2)]]</span>
+                                                        <span v-else-if="x.Type === customFieldTypeText">[[x.TextDefaultValue]]</span>
+                                                        <span v-else-if="x.Type === customFieldTypeBoolean">[[x.BoolDefaultValue]]</span>
+                                                        <span v-else-if="x.Type === customFieldTypeMultiChoice">[[x.MultiChoiceDefaultValue]]</span>
+                                                        <span v-else-if="x.Type === customFieldTypeDate">+[[x.DateDefaultIncrement]] days</span>
+                                                    </td>
+                                                    <td class="text-right"><button class="btn btn-link btn-sm btn-sm-condensed" data-toggle="modal" data-target="#modal-customFieldDefined" v-on:click="passToModal(x)"><i class="fas fa-cog"></i></button></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </section>
+                            </div> <!-- end .card-body -->
+                        </div> <!-- end .card for custom field types-->
+                    </div>
+
+                </div> <!-- end .row -->
+            </div> <!-- end .container -->
+        </main>
+
+        <!-- add key/view keypair modal -->
+        <div class="modal fade" id="modal-keyPair">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <span v-if="adding">Add Key Pair</span>
+                            <span v-else       >View Key Pair</span>
+                        </h5>
+                        <button 
+                            type="button" 
+                            class="btn btn-sm btn-outline-danger" 
+                            data-dismiss="modal" 
+                            v-on:click="remove"
+                            v-if="!adding"
+                        >
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="section-description section-description-secondary">
+                            <p v-if="adding">Define the key pair for signing licenses.</p>
+                            <p v-else>The public key for this key pair can be viewed/copied for use in your app's code.</p>
+                        </blockquote>
+                        <hr class="divider">
+
+                        <fieldset v-if="keyPairData.ID > 0" v-cloak>
+                            <div class="form-group">
+                                <label>ID:</label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    v-model.trim="keyPairData.ID"
+                                    disabled
+                                >
+                            </div>
+                        </fieldset>
+
+                        <fieldset v-bind:disabled="submitting || !adding">
+                            <div class="form-group">
+                                <label>Name:</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    v-model.trim="keyPairData.Name"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    Type:
+                                    <span class="help-icon text-secondary" v-tooltip="'Key generation algorithm and length.'"><i class="fas fa-question-circle"></i></span>
+                                </label>
+                                <select class="form-control" v-model="keyPairData.AlgorithmType">
+                                    <option value="" disabled selected>Please choose.</option>
+                                    <option v-for="at in algorithmTypes" v-bind:value="at">[[at]]</option>
+                                </select>
+                            </div>
+                        </fieldset>
+
+                        <fieldset v-if="!adding" v-cloak>
+                            <div class="form-group">
+                                <!-- <a class="btn btn-block btn-outline-primary" v-bind:href="'/keypairs/show-public-key/?id=' + keyPairData.ID" target="_blank">Show Public Key</a> -->
+                                <button class="btn btn-block btn-outline-primary" v-on:click="showPublicKey = !showPublicKey">Show Public Key</a>
+                            </div>
+    
+                            <div class="form-group" v-show="showPublicKey" v-cloak>
+                                <textarea 
+                                    class="form-control text-monospace" 
+                                    v-bind:value="keyPairData.PublicKey"
+                                    v-bind:rows="publicKeyNumLines"
+                                    wrap="off"
+                                    disabled 
+                                ></textarea>
+                            </div>
+
+                            <div class="alert alert-warning" v-if="!keyPairData.PrivateKeyEncrypted">
+                                <b>Warning!</b> The private key for this key pair is not encrypted.
+                            </div>
+                        </fieldset>
+
+                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                            [[msgSave]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-if="adding"                      v-on:click="add"        v-bind:disabled="submitting">Save</button>
+                            <button class="btn btn-primary" v-else-if="!keyPairData.IsDefault" v-on:click="setDefault" v-bind:disabled="submitting">Set as Default</button>
+
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- end modal to add/view key pair -->
+
+        <!-- add/view/edit custom field modal -->
+        <div class="modal fade" id="modal-customFieldDefined">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <span v-if="adding">Add Custom Field</span>
+                            <span v-else       >Edit Custom Field</span>
+                        </h5>
+                        <button 
+                            type="button" 
+                            class="btn btn-sm btn-outline-danger" 
+                            data-dismiss="modal" 
+                            v-on:click="remove"
+                            v-if="!adding"
+                        >
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="section-description section-description-secondary">
+                            <p>Define fields to store data in your license file. You can use a custom field for setting the max user count, enabling features, setting support levels, etc.</p>
+                        </blockquote>
+                        <hr class="divider">
+                        <fieldset v-bind:disabled="submitting">
+                            <!-- basic, common stuff -->
+                            <div class="form-group">
+                                <label>Name:</label>
+                                <input type="text" class="form-control" v-model.trim="fieldData.Name">
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    Instructions:
+                                    <span class="help-icon text-secondary" v-tooltip="'Hint about what value should be provided when creating a license.'"><i class="fas fa-question-circle"></i></span>
+                                </label>
+                                <textarea rows="3" class="form-control" v-model.trim="fieldData.Instructions"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <!-- you can only set type when adding, not updating, so we don't have messy data in db -->
+                                <label>Type:</label>
+                                <select 
+                                    class="form-control" 
+                                    v-model="fieldData.Type" 
+                                    v-on:change="setToggleDefaultIfBool"
+                                    v-bind:disabled="!adding"
+                                >
+                                    <option value="" disabled selected>Please choose.</option>
+                                    <option v-for="cft in customFieldTypes" v-bind:value="cft">[[cft]]</option>
+                                </select>
+                            </div>
+
+                            <!-- based on field type chosen -->
+                            <section v-show="fieldData.Type === customFieldTypeInteger">
+                                <div class="form-group">
+                                    <label>Range:</label>
+                                    <div class="input-group">
+                                        <input type="number" step="1" class="form-control" v-model.number="fieldData.NumberMinValue">
+                                        <input type="number" step="1" class="form-control" v-model.number="fieldData.NumberMaxValue">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Default:</label>
+                                    <input 
+                                        type="number" 
+                                        step="1" 
+                                        class="form-control" 
+                                        v-model.number="fieldData.IntegerDefaultValue"
+                                        v-bind:min="fieldData.NumberMinValue"
+                                        v-bind:max="fieldData.NumberMaxValue"
+                                    >
+                                </div>
+                            </section>
+                            <section v-show="fieldData.Type === customFieldTypeDecimal">
+                                <div class="form-group">
+                                    <label>Range:</label>
+                                    <div class="input-group">
+                                        <!-- step is set to match .toFixed(2) in table of fields -->
+                                        <input type="number" step="0.01" class="form-control" v-model.number="fieldData.NumberMinValue">
+                                        <input type="number" step="0.01" class="form-control" v-model.number="fieldData.NumberMaxValue">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Default:</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        class="form-control" 
+                                        v-model.number="fieldData.DecimalDefaultValue"
+                                        v-bind:min="fieldData.NumberMinValue"
+                                        v-bind:max="fieldData.NumberMaxValue"
+                                    >
+                                </div>
+                            </section>
+                            <section v-show="fieldData.Type === customFieldTypeText">
+                                <div class="form-group">
+                                    <label>Default:</label>
+                                    <input type="text" class="form-control" v-model.trim="fieldData.TextDefaultValue">
+                                </div>
+                            </section>
+                            <section v-show="fieldData.Type === customFieldTypeBoolean">
+                                <div class="form-group side-by-side">
+                                    <!-- not using yes/no here since we are going to encode the data as true/false in license anyway -->
+                                    <label>Default:</label>
+                                    <div class="btn-group btn-group-toggle" id="BoolDefaultValue" data-toggle="buttons">
+                                        <label class="btn btn-secondary" data-switch="true">
+                                            <input type="radio" v-on:click="setField('BoolDefaultValue', true)">True
+                                        </label>
+                                        <label class="btn btn-secondary" data-switch="false">
+                                            <input type="radio" v-on:click="setField('BoolDefaultValue', false)">False
+                                        </label>
+                                    </div>
+                                </div>
+                            </section>
+                            <div v-show="fieldData.Type === customFieldTypeMultiChoice">
+                                <div class="form-group">
+                                    <label>Options:</label>
+                                    <textarea class="form-control" rows="3" placeholder="Seperate options with a semicolon." v-model.trim="fieldData.MultiChoiceOptions"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Default:</label>
+                                    <select class="form-control" v-model.trim="fieldData.MultiChoiceDefaultValue" v-bind:disabled="multiChoiceOptions.length === 0">
+                                        <option value="" disabled selected>Please choose.</option>
+                                        <option v-for="op in multiChoiceOptions" v-bind:value="op">[[op]]</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <section v-show="fieldData.Type === customFieldTypeDate">
+                                <div class="form-group">
+                                    <label>Days From License Creation:</label>
+                                    <input type="number" step="1" class="form-control" v-model.trim="fieldData.DateDefaultIncrement">
+                                </div>
+                            </section>
+                        </fieldset>
+
+                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                            [[msgSave]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-on:click="addOrUpdate" v-bind:disabled="submitting">Save</button>
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- end modal to add/view/edit custom field-->
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

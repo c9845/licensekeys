@@ -1,0 +1,45 @@
+{{/*USED ON NON-LOGGED IN PAGES (LOGIN PAGE)*/}}
+{{define "header-without-btns"}}
+<header>
+	<div class="container">
+		<div class="row align-items-center">
+			<div class="col">
+				<h4 id="header-title">
+					{{template "html_title_app_name"}}
+				</h4>
+			</div>
+		</div>
+	</div>
+</header>
+{{end}}
+
+{{/*USED ON LOGGED IN PAGES*/}}
+{{define "header-with-btns"}}
+
+{{$userData := .InjectedData.UserData}}
+
+<header id="headerWithBtns">
+	<div class="container">
+		<div class="row align-items-center">
+			<div class="col">
+				<h4 id="header-title">{{template "html_title_app_name" .}}</h4>
+            </div>
+            <div class="col">
+				<div class="float-right">
+					<div class="btn-group navbar-btn" id="headerBtns">
+						<!-- go back to main app page-->
+						<a class="btn btn-outline-secondary btn-sm" href="/app/"><i class="fa fa-home"></i></a>
+
+						<!-- show logout and username of logged in user -->
+						<a class="btn btn-outline-secondary btn-sm text-left" id="btn-logout" href="/logout/" v-on:mouseover="usernameHovered = true" v-on:mouseleave="usernameHovered = false">
+							<i class="fas fa-sign-out-alt"></i> 
+							<span v-if="usernameHovered === false">{{$userData.Username}}</span>
+							<span v-else v-cloak>Logout</span>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</header>
+{{end}}

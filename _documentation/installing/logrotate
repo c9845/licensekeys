@@ -1,0 +1,29 @@
+# This file handles the NGINX log files from running this app, specifically
+# the acccess.log and error.log files (see nginx site configuration file).
+# To stop log files from getting huge, the log files are handled by logrotate.
+# This rotates/trims the logs daily and saves the logs for 14 days.
+# This file should be renamed and moved to "/etc/logrotate.d/licensekeys".
+# Test with 'sudo logrotate -d licensekeys'
+#
+# Things to modify:
+# - "/home/my-user/logs/access.log" (set this to the matching path in your nginx config file).
+# - "rotate 14" (how many days you want to keep logs for).
+# - "manager" is the name of your user account.
+#
+
+# The below files are templates for rotating the NGINX logs.  Use as needed.
+/home/my-user/logs/access.log {
+    daily
+    copytruncate
+    rotate 14
+    create 777 manager manager
+    su root
+}
+
+/home/my-user/logs/error.log {
+    daily
+    copytruncate
+    rotate 14
+    create 777 manager manager
+    su root
+}

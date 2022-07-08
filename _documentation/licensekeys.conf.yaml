@@ -1,0 +1,42 @@
+#This file provides a template configuration file for running the license key server app.
+#You will need to copy this file, modify it to your needs, and pass it to the licence key
+#server with the --config flag (or name this file licensekeys.conf and place it in the
+#same directory as the binary). Please note the default values and description of acceptable
+#values for each field.
+
+################################################################################
+
+#DATABASE SETTINGS.
+#DBPath: (string) -        The absolute path to the SQLite database file. Default: directory of the executable + licensekeys.db.
+#DBJournalMode: (string) - Use SQlite in rollback journal (delete) or write-ahead log (wal) mode. Default: WAL.
+DBPath: "/path/to/directory/licensekeys.db"
+DBJournalMode: "WAL"
+
+#WEBAPP SETTINGS.
+#WebFilesStore: (string) -        The source of the HTML, CSS, JS, etc. files used to display the GUI. Default: embedded.
+#WebFilesPath: (string) -         The absolute path to the "/website" directory. Default: "" (since files are embedded).
+#FQDN: (string) -                 The domain this app is served on. Ex.: licensekeys.example.com. Default: ".".
+#Port: (integer) -                The port this app will serve on, between 1024 and 65535. Default: 8007.
+#UseLocalFiles: (boolean) -       The app will use locally hosted CSS and JS files instead of accessing these files from the internet. Default: false.
+#StaticFileCacheDays: (integer) - The number of days a user's browser will cache CSS and JS files, greater than 0. Default: 7. 
+WebFilesStore: "embedded"
+WebFilesPath: "/"
+FQDN: "."
+Port: 8007
+UseLocalFiles: false
+StaticFileCacheDays: 7
+
+#SESSION SETTINGS.
+#LoginLifetimeHours: (decimal) -        The length of time of inactivity after which a user will need to log back into the app, greater than 0. Default: 1. 
+#TwoFactorAuthLifetimeDays: (integer) - The maximum length of time between when a user will be required to provide a 2 Factor Authentication token, greater than 0, -1 forces 2FA at each login. Default: 14.
+LoginLifetimeHours: 1
+TwoFactorAuthLifetimeDays: 14
+
+#MISC.
+#Timezone: (string) -                The timezone to use for displaying dates and times in the app, in IANA Timezone format (i.e.: "America/New_York"). Default: "UTC".
+#MinPasswordLength: (integer) -      The shortest password you allow for users, greater than or equal to 10. Default: 10.
+#PrivateKeyEncryptionKey: (string) - A 32 character long string used to encrypt the private keys used to sign licenses. Default: "" (encryption disabled).
+#                                  - If this value is ever changed, any previously created private keys will become unusable since they will not be able to be decrypted!
+Timezone: "UTC"
+MinPasswordLength: 10
+PrivateKeyEncryptionKey: ""

@@ -1,0 +1,336 @@
+{{$showDevHeader := .Development}}
+{{$appSettings := .InjectedData.AppSettings}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Create License</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-with-btns" .}}
+
+		<main>
+			<div class="container" id="createLicense">
+				<div class="row justify-content-center">
+                    
+                    <!-- inputs for creating license -->
+                    <div class="col col-md-5">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Create License</h5>
+                                {{if $appSettings.AllowAPIAccess}}
+                                <div class="card-header-btn">
+                                    <button 
+                                        class="btn btn-outline-primary btn-sm" 
+                                        v-on:click="(showAPIBuilder = !showAPIBuilder); getAPIKeys()"
+                                        v-tooltip="'Show API example.'"
+                                    >
+                                        <i class="fas fa-wrench"></i>
+                                    </button>
+                                </div>
+                                {{end}}
+                            </div>
+                            <div class="card-body">
+                                <!-- choose app and keypair -->
+                                <section>
+                                    <div class="form-group">
+                                        <label>App:</label>
+                                        <select class="form-control" v-model.number="appSelectedID" v-on:change="getKeyPairs(), getCustomFields(), setExpireDate()">
+                                            <template v-if="!appsRetrieved">
+                                                <option value="0">Loading...</option>
+                                            </template>
+                                            <template v-else-if="apps.length === 0" v-cloak>
+                                                <option value="0">No apps exist yet.</option>
+                                            </template>
+                                            <template v-else v-cloak>
+                                                <option value="0" disabled>Please choose.</option>
+                                                <option v-for="(x, index) in apps" :key="index" v-bind:value="x.ID">[[x.Name]]</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Key Pair:</label>
+                                        <select class="form-control" v-model.number="licenseData.KeyPairID" v-bind:disabled="appSelectedID === 0">
+                                            <template v-if="!keyPairsRetrieved">
+                                                <option value="0">Please choose an app first.</option>
+                                            </template>
+                                            <template v-else-if="keyPairs.length === 0" v-cloak>
+                                                <option value="0">No key pairs exist yet.</option>
+                                            </template>
+                                            <template v-else v-cloak>
+                                                <option value="0" disabled>Please choose.</option>
+                                                <option v-for="(x, index) in keyPairs" :key="index" v-bind:value="x.ID">[[x.Name]] <span v-if="x.IsDefault">(Default)</span></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </section>
+                                <hr class="divider">
+
+                                <!-- common fields -->
+                                <!-- only disabled when app and keypair are chosen -->
+                                <fieldset v-bind:disabled="licenseData.KeyPairID === 0">
+                                    <div class="form-group">
+                                        <label>Company Name:</label>
+                                        <input type="text" class="form-control" v-model.trim="licenseData.CompanyName">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Contact Name:</label>
+                                        <input type="text" class="form-control" v-model.trim="licenseData.ContactName" placeholder="Who requested this license, first and last name.">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Phone Number:</label>
+                                        <input type="tel" class="form-control" v-model.trim="licenseData.PhoneNumber" placeholder="The contact's phone number.">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email:</label>
+                                        <input type="email" class="form-control" v-model.trim="licenseData.Email" placeholder="The contact's email address.">
+                                    </div>
+                                    <div class="form-group">
+                                        <!-- "today" plus the app's DaysToExpiration value. -->
+                                        <label>Expiration Date:</label>
+                                        <input type="date" class="form-control" v-model.trim="licenseData.ExpireDate" v-bind:min="todayPlusOne()">
+                                    </div>
+                                </fieldset>
+
+                                <!-- custom fields, if any -->
+                                <fieldset v-if="fields.length > 0" v-cloak>
+                                    <hr class="divider">
+
+                                    <!-- gui depends on field type -->
+                                    <!-- default for each field is set after fields are retrieved from api call -->
+                                    <template v-for="(f, idx) in fields">
+                                        <!-- integer -->
+                                        <div v-if="f.Type === customFieldTypeInteger" v-bind:data-customfielddefinedID="f.ID">
+                                            <div class="form-group">
+                                                <label>
+                                                    <span class="field-name">[[f.Name]]:</span>
+                                                    <span 
+                                                        class="field-instructions text-secondary help-icon fas fa-question-circle" 
+                                                        v-tooltip="f.Instructions"
+                                                        v-if="f.Instructions.length > 0"
+                                                        v-cloak>
+                                                    </span>
+                                                </label>
+                                                <input 
+                                                    class="form-control" 
+                                                    type="number" 
+                                                    step="1" 
+                                                    v-bind:min="f.NumberMinValue" 
+                                                    v-bind:max="f.NumberMaxValue" 
+                                                    v-model.number="fields[idx].IntegerValue" 
+                                                    v-bind:data-default="f.IntegerDefaultValue"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <!-- decimal -->
+                                        <div v-else-if="f.Type === customFieldTypeDecimal" v-bind:data-customfielddefinedID="f.ID">
+                                            <div class="form-group">
+                                                <label>
+                                                    <span class="field-name">[[f.Name]]:</span>
+                                                    <span 
+                                                        class="field-instructions text-secondary help-icon fas fa-question-circle" 
+                                                        v-tooltip="f.Instructions"
+                                                        v-if="f.Instructions.length > 0"
+                                                        v-cloak>
+                                                    </span>
+                                                </label>
+                                                <input 
+                                                    class="form-control" 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    v-bind:min="f.NumberMinValue" 
+                                                    v-bind:max="f.NumberMaxValue" 
+                                                    v-model.number="fields[idx].DecimalValue" 
+                                                    v-bind:data-default="f.DecimalDefaultValue"
+                                                >
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- text -->
+                                        <div v-else-if="f.Type === customFieldTypeText" v-bind:data-customfielddefinedID="f.ID">
+                                            <div class="form-group">
+                                                <label>
+                                                    <span class="field-name">[[f.Name]]:</span>
+                                                    <span 
+                                                        class="field-instructions text-secondary help-icon fas fa-question-circle" 
+                                                        v-tooltip="f.Instructions"
+                                                        v-if="f.Instructions.length > 0"
+                                                        v-cloak>
+                                                    </span>
+                                                </label>
+                                                <input 
+                                                    class="form-control" 
+                                                    type="text" 
+                                                    v-model.number="fields[idx].TextValue" 
+                                                    v-bind:data-default="f.TextDefaultValue"
+                                                >
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- boolean -->
+                                        <div v-else-if="f.Type === customFieldTypeBoolean" v-bind:data-customfielddefinedID="f.ID">
+                                            <div class="form-group side-by-side">
+                                                <label>
+                                                    <span class="field-name">[[f.Name]]:</span>
+                                                    <span 
+                                                        class="field-instructions text-secondary help-icon fas fa-question-circle" 
+                                                        v-tooltip="f.Instructions"
+                                                        v-if="f.Instructions.length > 0"
+                                                        v-cloak>
+                                                    </span>
+                                                </label>
+                                                <!-- add cf_bool_id_ to id value to give it some context and not be just a number. -->
+                                                <div class="btn-group btn-group-toggle" v-bind:id="'cf_bool_id_' + f.ID" data-toggle="buttons" v-bind:data-default="f.BoolDefaultValue">
+                                                    <label class="btn btn-secondary" data-switch="true">
+                                                        <input type="radio" v-on:click="setField(idx, true)">Yes
+                                                    </label>
+                                                    <label class="btn btn-secondary" data-switch="false">
+                                                        <input type="radio" v-on:click="setField(idx, false)">No
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- multi choice -->
+                                        <div v-else-if="f.Type === customFieldTypeMultiChoice" v-bind:data-customfielddefinedID="f.ID">
+                                            <div class="form-group">
+                                                <label>
+                                                    <span class="field-name">[[f.Name]]:</span>
+                                                    <span 
+                                                        class="field-instructions text-secondary help-icon fas fa-question-circle" 
+                                                        v-tooltip="f.Instructions"
+                                                        v-if="f.Instructions.length > 0"
+                                                        v-cloak>
+                                                    </span>
+                                                </label>
+                                                <select 
+                                                    class="form-control" 
+                                                    v-model.trim="fields[idx].MultiChoiceValue" 
+                                                    v-bind:data-default="f.MultiChoiceDefaultValue"
+                                                >
+                                                    <option value="" disabled selected>Please choose.</option>
+                                                    <option v-for="m in f.MultiChoiceOptions.split(';')" v-bind:value="m">[[m]]</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- date -->
+                                        <div v-else-if="f.Type === customFieldTypeDate" v-bind:data-customfielddefinedID="f.ID">
+                                            <div class="form-group">
+                                                <label>
+                                                    <span class="field-name">[[f.Name]]:</span>
+                                                    <span 
+                                                        class="field-instructions text-secondary help-icon fas fa-question-circle" 
+                                                        v-tooltip="f.Instructions"
+                                                        v-if="f.Instructions.length > 0"
+                                                        v-cloak>
+                                                    </span>
+                                                </label>
+                                                <input 
+                                                    class="form-control" 
+                                                    type="date" 
+                                                    v-model.trim="fields[idx].DateValue" 
+                                                    v-bind:min="today()" 
+                                                    v-bind:data-default="f.DateDefaultIncrement"
+                                                >
+                                            </div>
+                                        </div>
+                                    </template> <!-- end loop through custom fields -->
+                                </fieldset> <!-- end custom fields -->
+
+                                <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                    [[msg]]
+                                </div>
+                            </div> <!-- end .card-body -->
+                            <div class="card-footer">
+                                <button class="btn btn-primary" type="button" v-on:click="create" v-bind:disabled="submitting">Create</button>
+                            </div>
+                        </div> <!-- end .card-->
+                    </div> <!-- end .col-->
+
+                    <!-- api request builder. show how to make an api request -->
+                    {{if $appSettings.AllowAPIAccess}}
+                    <div class="col col-md-7" v-show="showAPIBuilder" v-cloak>
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>API Request</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- stuff not in normal create license gui -->
+                                <section>
+                                    <div class="form-group">
+                                        <label>API Key:</label>
+                                        <select class="form-control" v-model.number="apiKeySelected">
+                                            <template v-if="!apiKeysRetrieved">
+                                                <option value="">Loading...</option>
+                                            </template>
+                                            <template v-else-if="apiKeys.length === 0" v-cloak>
+                                                <option value="">No API Keys exist yet.</option>
+                                            </template>
+                                            <template v-else v-cloak>
+                                                <option value="" disabled>Please choose.</option>
+                                                <option v-for="(x, index) in apiKeys" :key="index" v-bind:value="x.K">[[x.Description]]</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </section>
+                                <hr class="divider">
+
+                                <div class="form-group side-by-side">
+                                    <label>Return License File:</label>
+                                    <div class="btn-group btn-group-toggle" id="returnLicenseFile" data-toggle="buttons">
+                                        <label class="btn btn-secondary" data-switch="true">
+                                            <input type="radio" v-on:click="returnLicenseFile = true">Yes
+                                        </label>
+                                        <label class="btn btn-secondary" data-switch="false">
+                                            <input type="radio" v-on:click="returnLicenseFile = false">No
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- display built API request -->
+                                <section>
+                                    <div class="form-group">
+                                        <textarea class="form-control text-monospace" readonly v-model="showAPIRequest" rows="15" wrap="off"></textarea>
+                                    </div>
+                                </section>
+
+                                <!-- help -->
+                                <section>
+                                    <div class="alert alert-info">
+                                        <b>Notes:</b>
+                                        <ul>
+                                            <li>
+                                                An <code>appID</code> or <code>keyPairID</code> is required to create a license. If you provide an <code>appID</code>, the default key pair for the app will be used.
+                                            </li>
+                                            <li>
+                                                The <code>fields</code> value is a URL encoded JSON object with each key exactly matching the name of each custom field defined for the app and the value being a valid value for the defined field.
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </section>
+
+                                <div class="alert" v-show="apiBuilderMsg.length > 0" v-bind:class="apiBuilderMsgType" v-cloak>
+                                    [[apiBuilderMsg]]
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+
+                </div> <!-- end .row -->
+            </div> <!-- end .container -->
+        </main>
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

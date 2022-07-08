@@ -1,0 +1,72 @@
+{{define "html_scripts"}}
+    <!-- 
+        Serve files from local disk.
+        This is useful for installs that have internet access firewalled off, internet access is 
+        slow, you want to use known good files (no auto updates), or you just want to serve files
+        locally.
+    -->
+    {{if .UseLocalFiles}}
+        <script src="/static/js/vendor/jquery-3.4.1.slim.min.js"></script>
+        <script src="/static/js/vendor/popper-1.16.1.min.js"></script>
+        <script src="/static/js/vendor/bootstrap-4.4.1.min.js"></script>
+
+        {{if .Development}}
+        <script src="/static/js/vendor/vue.js"></script>
+        {{else}}
+        <script src="/static/js/vendor/vue.min.js"></script>
+        {{end}}
+
+
+    <!--
+        Serve files from internet.
+        Good for using the latest libraries.
+    -->
+    {{else}}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.slim.min.js" integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8=" crossorigin="anonymous"></script>    
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js" integrity="sha256-/ijcOLwFf26xEYAjW75FizKVo5tnTYiQddPZoLUHHZ8=" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha256-WqU1JavFxSAMcLP2WIOI+GB2zWmShMI82mTpLDcqFUg=" crossorigin="anonymous"></script>
+
+        {{if .Development}}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.js" integrity="sha512-pSyYzOKCLD2xoGM1GwkeHbdXgMRVsSqQaaUoHskx/HF09POwvow2VfVEdARIYwdeFLbu+2FCOTRYuiyeGxXkEg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        {{else}}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js" integrity="sha512-XdUZ5nrNkVySQBnnM5vzDqHai823Spoq1W3pJoQwomQja+o4Nw0Ew1ppxo5bhF2vMug6sfibhKWcNJsG8Vj9tg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        {{end}}
+    {{end}}
+
+    <!-- our custom javascript -->
+    {{if .Development}}
+        <script src="/static/js/script.js"></script>
+    {{else}}
+        {{$minifiedFile := "script.min.js"}}
+        {{$cache := .CacheBustFiles}}
+        {{with index $cache $minifiedFile}}
+            <script src="/static/js/{{.}}"></script>
+        {{else}}
+            <script src="/static/js/{{$minifiedFile}}"></script>
+        {{end}}
+    {{end}}
+{{end}}
+
+<!-- bootstrap tooltips are only activated on pages that need them -->
+{{define "data-toggle-tooltip"}}
+    <script>
+        window.addEventListener("load", function(event) {
+            $('[data-toggle="tooltip"]').tooltip();
+            console.log("Activating tooltips (onload)...");
+        });
+    </script>
+{{end}}
+
+<!-- charting scripts -->
+<!-- this needs to be added to templates prior to html_scripts-->
+{{define "chart-js"}}
+    {{if .UseLocalFiles}}
+        <script src="/static/js/vendor/moment-2.29.1.min.js"></script>
+        <script src="/static/js/vendor/chart-3.6.0.min.js"></script>
+        <script src="/static/js/vendor/chartjs-adapter-moment-1.0.0.min.js"></script>
+    {{else}}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.min.js" integrity="sha512-GMGzUEevhWh8Tc/njS0bDpwgxdCJLQBWG3Z2Ct+JGOpVnEmjvNx6ts4v6A2XJf1HOrtOsfhv3hBKpK9kE5z8AQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.0/chartjs-adapter-moment.min.js" integrity="sha512-oh5t+CdSBsaVVAvxcZKy3XJdP7ZbYUBSRCXDTVn0ODewMDDNnELsrG9eDm8rVZAQg7RsDD/8K3MjPAFB13o6eA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    {{end}}
+{{end}}

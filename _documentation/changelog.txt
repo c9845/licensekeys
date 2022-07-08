@@ -1,0 +1,10 @@
+v2.0.0
+----------
+Notes:
+    - Complete redo of app to allow of open sourcing.
+    
+New Features:
+    - Open source-able.
+    - Database is deployed up on first run. No need to use -deploy-db flag.
+    - Default config file is created if no config file exists at path to config file.
+    - Private keys can be encrypted in the database.

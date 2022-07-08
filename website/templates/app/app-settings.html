@@ -1,0 +1,148 @@
+{{$showDevHeader := .Development}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | App Settings</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-with-btns" .}}
+
+		<main>
+			<div class="container" >
+				<div class="row justify-content-center">
+                    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+                        <div class="card" id="manageApp">
+                            <div class="card-header">
+                                <h5>App Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <blockquote class="section-description section-description-secondary">
+                                    These settings change functionality of this app.
+                                </blockquote>
+                                <hr class="divider">
+
+                                <section>
+                                    <div class="app-setting">
+                                        <div class="form-group side-by-side">
+                                            <label>EnableActivityLogging:</label>
+                                            <div class="btn-group btn-group-toggle" id="EnableActivityLogging" data-toggle="buttons">
+                                                <label class="btn btn-secondary" data-switch="true">
+                                                    <input type="radio" v-on:click="setField('EnableActivityLogging', true)">Yes
+                                                </label>
+                                                <label class="btn btn-secondary" data-switch="false">
+                                                    <input type="radio" v-on:click="setField('EnableActivityLogging', false)">No
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <span class="badge badge-secondary app-setting-default">Default: Yes</span> <a href="/help/activity-logging/"><i class="fas fa-question-circle"></i></a>
+                                            <p>Track each user interaction with the app for auditing purposes.</p>
+                                        </blockquote>
+                                    </div>
+
+                                    <div class="app-setting">
+                                        <div class="form-group side-by-side">
+                                            <label>AllowAPIAccess:</label>
+                                            <div class="btn-group btn-group-toggle" id="AllowAPIAccess" data-toggle="buttons">
+                                                <label class="btn btn-secondary" data-switch="true">
+                                                    <input type="radio" v-on:click="setField('AllowAPIAccess', true)">Yes
+                                                </label>
+                                                <label class="btn btn-secondary" data-switch="false">
+                                                    <input type="radio" v-on:click="setField('AllowAPIAccess', false)">No
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <span class="badge badge-secondary app-setting-default">Default: No</span> <a href="/help/api-and-api-keys/"><i class="fas fa-question-circle"></i></a>
+                                            <p>Enable access to a subset of this app's data and functionality via external apps. This is used for integration with other software tools you use.</p>
+                                        </blockquote>
+                                    </div>
+                                </section>
+                                <hr class="divider">
+
+                                <section>
+                                    <div class="app-setting">
+                                        <div class="form-group side-by-side">
+                                            <label>Allow2FactorAuth:</label>
+                                            <div class="btn-group btn-group-toggle" id="Allow2FactorAuth" data-toggle="buttons">
+                                                <label class="btn btn-secondary" data-switch="true">
+                                                    <input type="radio" v-on:click="setField('Allow2FactorAuth', true)">Yes
+                                                </label>
+                                                <label class="btn btn-secondary" data-switch="false">
+                                                    <input type="radio" v-on:click="setField('Allow2FactorAuth', false)">No
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <span class="badge badge-secondary app-setting-default">Default: Yes</span> <a href="/help/two-factor-authentication/"><i class="fas fa-question-circle"></i></a>
+                                            <p>Improve security by allowing users to use code-generator based one-time use codes when logging into the app.</p>
+                                        </blockquote>
+                                    </div>
+
+                                    <div class="app-setting" v-if="settings.Allow2FactorAuth">
+                                        <div class="form-group side-by-side">
+                                            <label>Force2FactorAuth:</label>
+                                            <div class="btn-group btn-group-toggle" id="Force2FactorAuth" data-toggle="buttons">
+                                                <label class="btn btn-secondary" data-switch="true">
+                                                    <input type="radio" v-on:click="setField('Force2FactorAuth', true)">Yes
+                                                </label>
+                                                <label class="btn btn-secondary" data-switch="false">
+                                                    <input type="radio" v-on:click="setField('Force2FactorAuth', false)">No
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <span class="badge badge-secondary app-setting-default">Default: No</span> <a href="/help/two-factor-authentication/"><i class="fas fa-question-circle"></i></a>
+                                            <p>Improve security by forcing users to use code-generator based one-time use code when logging into the app.</p>
+                                        </blockquote>
+                                        <div v-if="settings.Force2FactorAuth" v-cloak>
+                                            <div class="alert alert-warning mt-4">
+                                                This will automatically set Allow2FactorAuth to Yes when turned on.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="app-setting">
+                                        <div class="form-group side-by-side">
+                                            <label>ForceSingleSession:</label>
+                                            <div class="btn-group btn-group-toggle" id="ForceSingleSession" data-toggle="buttons">
+                                                <label class="btn btn-secondary" data-switch="true">
+                                                    <input type="radio" v-on:click="setField('ForceSingleSession', true)">Yes
+                                                </label>
+                                                <label class="btn btn-secondary" data-switch="false">
+                                                    <input type="radio" v-on:click="setField('ForceSingleSession', false)">No
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <span class="badge badge-secondary app-setting-default">Default: Yes</span>
+                                            <p>Improve security by allowing a user to have only one active session at any time. If a user logs into the app from another device, any existing sessions will become invalid.</p>
+                                        </blockquote>
+                                    </div>
+                                </section>
+
+                                <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                    [[msg]]
+                                </div>
+                            </div> <!-- end .card-body-->
+                            <div class="card-footer">
+                                <button class="btn btn-primary" type="button" v-on:click="save" v-bind:disabled="submitting">Save</button>
+                            </div>
+                        </div> <!-- end .card-->
+                    </div> <!-- end .col-->
+				</div>
+			</div>
+		</main>
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

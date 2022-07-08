@@ -1,0 +1,323 @@
+{{$showDevHeader := .Development}}
+{{$appSettings := .InjectedData.AppSettings}}
+{{$minPasswordLength := .InjectedData.Data.MinPasswordLength}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name"}} | Users</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-with-btns" .}}
+
+		<main>
+			<div class="container">
+				<div class="row justify-content-center">
+                    <div class="col-12 col-sm-10 col-md-8 col-lg-6" id="manageUsers">
+
+                        <!-- hidden input to relay min length into Vue for validation -->
+                        <input type="hidden" id="minPasswordLength" value="{{$minPasswordLength}}">
+                        
+                        <!-- lookup user, only shown when viewing/editing -->
+                        <div class="card" v-if="addingNew === false" v-cloak>
+                            <div class="card-header">
+                                <h5>Users</h5>
+                                <div class="card-header-btn">
+                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setUIState">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>Users:</label>
+                                    <select class="form-control" v-model.number="userSelectedID" v-on:change="showUser">
+                                        <option v-if="!usersRetrieved">Loading...</option>
+                                        <template v-else>
+                                            <option value="0" disabled>Please choose.</option>
+                                            <option v-for="(i, index) in users" :key="index" v-bind:value="i.ID">[[i.Username]] <span v-if="!i.Active">(inactive)</span></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div class="alert" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
+                                    [[msgLoad]]
+                                </div>
+                            </div>
+                        </div> <!-- end .card for looking up -->
+
+                        <!-- add/edit inputs are shown when user is viewing/editing or adding -->
+                        <div class="card" v-if="userSelectedID > 0 || addingNew" v-cloak>
+                            <div class="card-header">
+                                <h5>[[addEditCardTitle]]</h5>
+                                <div class="card-header-btn">
+                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setUIState">
+                                        <i class="fas fa-search" v-cloak></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body"> 
+                                <!-- basics -->
+                                <div class="form-group" v-if="addingNew === false">
+                                    <label>User ID:</label>
+                                    <input type="text" class="form-control" v-model="userData.ID" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Username:</label>
+                                    <input type="email" class="form-control text-lowercase" v-model="userData.Username">
+                                </div>
+
+                                <!-- password & 2 factor auth -->
+                                <fieldset v-if="addingNew">
+                                    <div class="form-group">
+                                        <label>Password: <small class="text-muted">(Min. {{$minPasswordLength}} characters.)</small></label>
+                                        <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Password, again:</label>
+                                        <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password2">
+                                    </div>
+                                </fieldset>
+                                <fieldset v-else>
+                                    <div class="form-group">
+                                        <button 
+                                            class="btn btn-outline-secondary btn-block" 
+                                            data-toggle="modal" 
+                                            data-target="#modal-changePassword"
+                                        >
+                                            Change Password
+                                        </button>
+                                    </div>
+                                    <div class="form-group">
+                                        <button 
+                                            class="btn btn-outline-secondary btn-block" 
+                                            v-on:click="forceLogout"
+                                        >
+                                            [[forceLogoutBtnText]]
+                                        </button>
+                                    </div>
+
+                                    {{if $appSettings.Allow2FactorAuth}}
+                                    <!-- show certain 2fa button/modal based on if user currently has 2fa enabled and if app setting enables 2fa -->
+                                    <div class="form-group">
+                                        <button 
+                                            v-if="userData.TwoFactorAuthEnabled" 
+                                            class="btn btn-outline-secondary btn-block" 
+                                            data-toggle="modal" 
+                                            data-target="#modal-deactivate2FA"
+                                        >
+                                            Deactivate 2 Factor Authentication
+                                        </button>
+                                        <button 
+                                            v-else 
+                                            class="btn btn-outline-secondary btn-block" 
+                                            data-toggle="modal" 
+                                            data-target="#modal-activate2FA"
+                                            v-on:click="reset2FAActivationModal"
+                                        >
+                                            Activate 2 Factor Authentication
+                                        </button>
+                                    </div>
+                                    {{end}}
+                                </fieldset>
+
+                                <!-- access permissions-->
+                                <div class="form-group side-by-side">
+                                    <label>Active:</label>
+                                    <div class="btn-group btn-group-toggle" id="Active" data-toggle="buttons">
+                                        <label class="btn btn-secondary" data-switch="true">
+                                            <input type="radio" v-on:click="setField('Active', true)">Yes
+                                        </label>
+                                        <label class="btn btn-secondary" data-switch="false">
+                                            <input type="radio" v-on:click="setField('Active', false)">No
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group side-by-side">
+                                    <label>Administrator:</label>
+                                    <div class="btn-group btn-group-toggle" id="Administrator" data-toggle="buttons">
+                                        <label class="btn btn-secondary" data-switch="true">
+                                            <input type="radio" v-on:click="setField('Administrator', true)">Yes
+                                        </label>
+                                        <label class="btn btn-secondary" data-switch="false">
+                                            <input type="radio" v-on:click="setField('Administrator', false)">No
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group side-by-side">
+                                    <label>CreateLicenses:</label>
+                                    <div class="btn-group btn-group-toggle" id="CreateLicenses" data-toggle="buttons">
+                                        <label class="btn btn-secondary" data-switch="true">
+                                            <input type="radio" v-on:click="setField('CreateLicenses', true)">Yes
+                                        </label>
+                                        <label class="btn btn-secondary" data-switch="false">
+                                            <input type="radio" v-on:click="setField('CreateLicenses', false)">No
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group side-by-side">
+                                    <label>ViewLicenses:</label>
+                                    <div class="btn-group btn-group-toggle" id="ViewLicenses" data-toggle="buttons">
+                                        <label class="btn btn-secondary" data-switch="true">
+                                            <input type="radio" v-on:click="setField('ViewLicenses', true)">Yes
+                                        </label>
+                                        <label class="btn btn-secondary" data-switch="false">
+                                            <input type="radio" v-on:click="setField('ViewLicenses', false)">No
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                                    [[msgSave]]
+                                </div>
+                            </div> <!-- end .card-body-->
+                            <div class="card-footer">
+                                <button class="btn btn-primary" type="button" v-on:click="addOrUpdate">Save</button>
+                            </div>
+                        </div> <!-- end .card for viewing/editing/adding-->
+
+                    </div>
+				</div>
+			</div>
+        </main>
+        
+        <!-- modal to change a user's password -->
+        <div class="modal fade" id="modal-changePassword">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Change Password</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label>Password: <small class="text-muted">(Min. {{$minPasswordLength}} characters.)</small></label>
+                                <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password1">
+                            </div>
+                            <div class="form-group">
+                                <label>Password, again:</label>
+                                <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password2">
+                            </div>
+                        </form>
+                    
+                        <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                            [[msg]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-on:click="save">Save</button>
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- activate 2 factor auth, show user qr code to scan and input for verification token -->
+        <div class="modal fade" id="modal-activate2FA">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Activate 2 Factor Authentication</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <section v-if="show2FAInfoOnly">
+                            <blockquote class="section-description section-description-secondary">
+                                2 Factor Authentication (2FA) provides a secondary level of login security. It requires you to provide a 1-time code during login generated via a code generator app on your phone.  You will need to provide a code each time you login to the app.
+                            </blockquote>
+                        </section>
+                        
+                        <section v-else v-cloak>
+                            <blockquote class="section-description section-description-secondary">
+                                To start using 2 Factor Authentication, open your authentication app (i.e.: Google Authenticator) and scan the barcode below.  Then provide the 6-digit code for validation.
+                            </blockquote>
+                            <hr class="divider">
+
+                            <div class="form-group">
+                                <label>Code to Scan:</label>
+                                <img 
+                                    v-if="twoFABarcode !== ''"
+                                    v-bind:src="'data:image/png;base64,' + twoFABarcode"
+                                    style="max-height:100%; max-width:100%; display:block; margin:0 auto;"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label>Verification Code:</label>
+                                <input 
+                                    class="form-control" 
+                                    id="2fa-token" 
+                                    name="2fa-token" 
+                                    type="text" 
+                                    inputmode="numeric" 
+                                    pattern="[0-9]{6}" 
+                                    maxlength="6" 
+                                    placeholder="123456"
+                                    v-model.trim="twoFAVerificationCode"
+                                    autocomplete="off"
+                                    v-bind:disabled="submitting"
+                                >
+                            </div>
+                            
+                            <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                [[msg]]
+                            </div>
+                        </section>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-if="show2FAInfoOnly" v-on:click="getBarcode">Proceed</button>
+                            <button class="btn btn-primary" v-else                 v-on:click="validate" v-bind:disabled="submitting">Validate</button>
+                            
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- deactivate 2 factor auth, just show a confirmation modal -->
+        <div class="modal fade" id="modal-deactivate2FA">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Deactivate 2 Factor Authentication</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="section-description section-description-secondary">
+                            Please confirm you want to deactivate 2FA for this user.  Having 2FA enabled increase security for user logins.
+                        </blockquote>
+                        
+                        <div class="mt-3 alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                            [[msg]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-on:click="deactivate">Deactivate</button>
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

@@ -1,0 +1,1 @@
+This directory includes in-app help documentaion.

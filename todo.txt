@@ -1,0 +1,10 @@
+License Activation?
+    - longgggg term thing.
+    - api endpoint for checking if a license is valid, active, etc.
+    - however, this does mean this license key server has to be on the WAN/public internet which is not a great idea.
+        - due to storing private keys in db (even though they might be encrypted).
+        - separate, related, server for this that is on WAN but interacts with licensekey serve on LAN (activation server acts as middleman).
+        - would need activation tooling in licensekey server anyway in some form.
+    - enabled via app setting? enabled per app?
+    - sends back activation ID to third-party app.
+    - lots of research to do on this.

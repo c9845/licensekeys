@@ -1,0 +1,78 @@
+{{$showDevHeader := .Development}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>{{template "html_title_app_name"}} | Login</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-without-btns"}}	
+
+		<main>
+			<div class="container">
+				<div class="row">
+					<div class="col-12 col-sm-8 offset-sm-2 col-md-6 offset-md-3 col-lg-4 offset-lg-4">
+						<div class="card" id="login">
+							<div class="card-header">
+								<h5>Please Log In</h5>
+							</div>
+							<div class="card-body">
+								<form>
+									<section id="first-factor" v-show="!show2FAInput">
+										<div class="form-group">
+											<label>Username:</label>
+											<input type="email" class="form-control text-lowercase" id="username" autocomplete="off" v-model="username" v-on:keyup.enter="login">
+										</div>
+										<div class="form-group">
+											<label>Password:</label>
+											<input type="password" class="form-control" autocomplete="off" v-model="password" v-on:keyup.enter="login">
+										</div>
+									</section>
+									<section id="second-factor" v-show="show2FAInput" v-cloak>
+										<blockquote class="section-description section-description-secondary">
+											<p>Please provide your 2 Factor Authentication (2FA) code from your 2FA app.  It should be a 6 character numeric code.</p>
+										</blockquote>
+
+										<hr class="divider">
+										<div class="form-group">
+											<label title="2 Factor Authentication Token">Code:</label>
+											<input 
+												class="form-control"
+												id="token"
+												name="2fa-token" 
+												type="text" 
+												inputmode="numeric" 
+												pattern="[0-9]{6}" 
+												maxlength="6" 
+												placeholder="123456" 
+												autocomplete="off"
+												v-model.trim="twoFAVerificationCode" 
+												v-on:keyup.enter="login"
+											>
+										</div>
+									</section>
+									<div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+										[[msg]]
+									</div>
+								</form>
+							</div>
+							<div class="card-footer">
+								<button type="button" class="btn btn-primary" v-on:click="login">Log In</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

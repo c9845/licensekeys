@@ -1,0 +1,32 @@
+curl 'http://localhost:8007/api/v1/licenses/add/' \
+-X POST \
+-H 'Content-type: application/x-www-form-urlencoded' \
+-d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' \
+-d appID='1' \
+-d keyPairID='1' \
+-d companyName='ACME Dynamite' \
+-d contactName='Wyle E Coyote' \
+-d phoneNumber='123-555-1212' \
+-d email='wyle@example.com' \
+-d expireDate='2023-05-30' \
+-d fields=%7B%22CF2%22%3A%222022-06-29%22%7D \
+-d returnLicenseFile=true
+
+
+curl 'http://localhost:8007/api/v1/licenses/download/?apiKey=lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD&id=100001'
+
+
+curl 'http://localhost:8007/api/v1/licenses/renew/' \
+-X POST \
+-H 'Content-type: application/x-www-form-urlencoded' \
+-d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' \
+-d id='10001' \
+-d newExpireDate='2025-01-01'
+
+
+curl 'http://localhost:8007/api/v1/licenses/renew/' \
+-X POST \
+-H 'Content-type: application/x-www-form-urlencoded' \
+-d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' \
+-d id='10001'
+-d note='note about why license is being disabled.'

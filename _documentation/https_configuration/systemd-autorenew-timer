@@ -1,0 +1,27 @@
+# This file schedules running of the systemd service that renews
+# certbot certificates. This timer file runs the similarly named
+# filed ending in .service.
+
+# This file should copied to "/etc/systemd/user" and renamed something
+# like auto-renew-certbot.timer.  Note that this file MUST end in 
+# ".timer" when saved to the system it is to run on.  This file MUST
+# also be named the same, minus the extension, to the .service file.  
+# This file must be enabled with `systemctl enable </path/to/file>`. 
+
+# You should modify the OnCalender time to be something random.
+# The default value "OnCalendar=*-*-* 03,15:14:23" means that renewal
+# should run every 3 hours starting at 15:14:23.
+
+# This file runs the `auto-renew-certbot.service` file.
+
+[Unit]
+Description=Schedule running of the certbot-auto renewal service.
+
+[Timer]
+OnCalendar=*-*-* 03,15:14:23
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+

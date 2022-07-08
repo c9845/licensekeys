@@ -1,0 +1,43 @@
+{{define "html_title_app_name" -}}
+    {{if .Development}}**DEV** {{end}}License Keys
+{{- end}}
+
+{{define "html_head"}}
+    <title>{{template "html_title_app_name"}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="github.com/c9845">
+    <meta name="description" content="Create license keys/files for software applications.">
+
+    <!-- 
+        Serve files from local disk.
+        This is useful for installs that have internet access firewalled off, internet access is 
+        slow, you want to use known good files (no auto updates), or you just want to serve files
+        locally.
+    -->
+    {{if .UseLocalFiles}}
+        <link rel="stylesheet" href="/static/css/vendor/bootstrap-4.4.1.min.css">
+        <link rel="stylesheet" href="/static/css/vendor/fontawesome-5.11.2.min.css">
+
+    <!--
+        Serve files from internet.
+        Good for using the latest libraries.
+    -->  
+    {{else}}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha256-L/W5Wfqfa0sdBNIKN9cG6QA5F2qx4qICmU2VgLruv9Y=" crossorigin="anonymous" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ=" crossorigin="anonymous" />
+    {{end}}
+
+    <!-- our custom CSS -->
+    {{if .Development}}
+        <link rel="stylesheet" href="/static/css/styles.css">
+    {{else}}
+        {{$minifiedFile := "styles.min.css"}}
+        {{$cache := .CacheBustFiles}}
+        {{with index $cache $minifiedFile}}
+            <link rel="stylesheet" href="/static/css/{{.}}">
+        {{else}}
+            <link rel="stylesheet" href="/static/css/{{$minifiedFile}}">
+        {{end}}
+    {{end}}
+{{end}}

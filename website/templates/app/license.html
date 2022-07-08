@@ -1,0 +1,415 @@
+{{$showDevHeader := .Development}}
+{{$userData := .InjectedData.UserData}}
+{{$licenseID := .InjectedData.Data}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | License - {{$licenseID}}</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+		{{template "header-with-btns" .}}
+
+		<main>
+			<div class="container" id="manageLicense">
+                <!-- alert banners -->
+                <div class="row">
+                    <div class="col">
+                        <!-- alert for expired license, to make it more apparent -->
+                        <div v-if="licenseDataRetrieved && licenseData.Expired" v-cloak>
+                            <div class="alert alert-warning">
+                                This license is expired. It can no longer be downloaded or used.
+                            </div>
+                        </div>
+
+                        <!-- alert for disabled license, to make it more apparent -->
+                        <div v-if="licenseDataRetrieved && !licenseData.Active" v-cloak>
+                            <div class="alert alert-warning">
+                                This license is disabled. It cannot be downloaded. However, previously distributed copies of this license can still be used.
+                            </div>
+                        </div>
+
+                        <!-- show alert for non-verified license -->
+                        <div v-if="licenseDataRetrieved && !licenseData.Verified" v-cloak>
+                            <div class="alert alert-danger">
+                                This license is not verified and cannot be used. This is a serious error and should be investigated by an administrator.
+                            </div>
+                        </div>
+
+                        <!-- renewal notices -->
+                        <div v-if="licenseDataRetrieved && licenseData.RenewedFromLicenseID !== null" v-cloak>
+                            <div class="alert alert-primary">
+                                This license was renewed from license <a v-bind:href="'?id=' + licenseData.RenewedFromLicenseID">[[licenseData.RenewedFromLicenseID]]</a>.
+                            </div>
+                        </div>
+                        <div v-if="licenseDataRetrieved && licenseData.RenewedToLicenseID !== null" v-cloak>
+                            <div class="alert alert-primary">
+                                This license was renewed to license <a v-bind:href="'?id=' + licenseData.RenewedToLicenseID">[[licenseData.RenewedToLicenseID]]</a>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- main page content -->
+				<div class="row justify-content-center">
+                    <input type="hidden" id="licenseID" value="{{$licenseID}}">
+
+                    <!-- column for license info; common data, custom fields -->
+                    <div class="col-12 col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>License Data</h5>
+
+                                <!-- download button is located here, not on download history card so that is 
+                                is easily accessible on smaller screens when cards are stacked. This is mostly
+                                for when page is just loaded/shown since then download button will be in view
+                                right away without having to scroll down. -->
+                                <div class="card-header-btn">
+                                    <a 
+                                        class="btn btn-outline-primary btn-sm" 
+                                        href="/api/licenses/download/?id={{$licenseID}}"
+                                        download
+                                        v-if="licenseData.Active"
+                                        v-tooltip="'Download license.'"
+                                        v-on:click="refreshDownloadHistory"
+                                        v-cloak
+                                    >
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <section>
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4 text-truncate">ID:</dt>
+                                        <dd class="col-sm-8">{{$licenseID}}</dd>
+                                        <dt class="col-sm-4 text-truncate">App:</dt>
+                                        <dd class="col-sm-8">[[licenseData.AppName]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Company:</dt>
+                                        <dd class="col-sm-8">[[licenseData.CompanyName]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Contact:</dt>
+                                        <dd class="col-sm-8">[[licenseData.ContactName]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Phone Number:</dt>
+                                        <dd class="col-sm-8">[[licenseData.PhoneNumber]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Email:</dt>
+                                        <dd class="col-sm-8">[[licenseData.Email]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Expiration Date:</dt>
+                                        <dd class="col-sm-8">[[licenseData.ExpireDate]] <small class="text-secondary">(UTC)</small></dd>
+                                        <dt class="col-sm-4 text-truncate">Issue Date:</dt>
+                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.IssueDate + ' (UTC)'">[[licenseData.IssueDateTZ]] <small class="text-secondary">([[licenseData.Timezone]])</small></dd>
+                                        <dt class="col-sm-4 text-truncate">Created By:</dt>
+                                        <dd class="col-sm-8" v-if="licenseData.CreatedByUserID > 0">[[licenseData.CreatedByUsername]]</dd>
+                                        <dd class="col-sm-8" v-else v-cloak                        >API: [[licenseData.CreatedByAPIKeyDescription]]</dd>
+                                    </dl>
+                                </section>
+
+                                <hr class="divider" v-if="customFieldResults.length > 0" v-cloak>
+                                <section>
+                                    <dl class="row mb-0">
+                                        <template v-for="(f, idx) in customFieldResults">
+                                            <!-- truncate field name since this is user provided and could be very long -->
+                                            <dt class="col-sm-4 text-truncate">[[f.CustomFieldName]]:</dt>
+                                            <dd      v-if="f.CustomFieldType === customFieldTypeInteger"     class="col-sm-8" v-bind:data-customfieldresultID="f.ID">[[f.IntegerValue]]</dd>
+                                            <dd v-else-if="f.CustomFieldType === customFieldTypeDecimal"     class="col-sm-8" v-bind:data-customfieldresultID="f.ID">[[f.DecimalValue]]</dd>
+                                            <dd v-else-if="f.CustomFieldType === customFieldTypeText"        class="col-sm-8" v-bind:data-customfieldresultID="f.ID">[[f.TextValue]]</dd>
+                                            <dd v-else-if="f.CustomFieldType === customFieldTypeBoolean"     class="col-sm-8" v-bind:data-customfieldresultID="f.ID">[[f.BoolValue]]</dd>
+                                            <dd v-else-if="f.CustomFieldType === customFieldTypeMultiChoice" class="col-sm-8" v-bind:data-customfieldresultID="f.ID">[[f.MultiChoiceValue]]</dd>
+                                            <dd v-else-if="f.CustomFieldType === customFieldTypeDate"        class="col-sm-8" v-bind:data-customfieldresultID="f.ID">[[f.DateValue]]</dd>
+                                        </template>
+                                    </dl>
+                                </section>
+
+                                {{if $userData.Administrator}}
+                                <section v-if="showAdvancedInfo" v-cloak>
+                                    <hr class="divider">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4 text-truncate">Datetime Created:</dt>
+                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.DatetimeCreated + ' (UTC)'">[[licenseData.DatetimeCreatedTZ]] <small class="text-secondary">([[licenseData.Timezone]])</small></dd>
+                                        <dt class="col-sm-4 text-truncate">File Format:</dt>
+                                        <dd class="col-sm-8">[[licenseData.FileFormat.toUpperCase()]]</dd>
+                                    </dl>
+                                </section>
+                                {{end}}
+                            </div>
+                            <div class="card-footer" v-if="licenseData.Active && licenseData.Verified && !licenseData.Expired">
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
+                                    <div class="dropdown-menu dropdown-menu-right">
+                                        {{if $userData.Administrator}}
+                                        <button class="dropdown-item" v-on:click="showAdvancedInfo = !showAdvancedInfo">
+                                            <span v-if="!showAdvancedInfo">Show Advanced Info</span>
+                                            <span v-else                  >Hide Advanced Info</span>
+                                        </button>
+                                        <div class="dropdown-divider"></div>
+                                        
+                                        <a 
+                                            class="dropdown-item" 
+                                            href="/api/licenses/download/?id={{$licenseID}}&display=true" 
+                                            target="_blank"
+                                            v-on:click="refreshDownloadHistory"
+                                        >View License File</a>
+                                        <div class="dropdown-divider"></div>
+                                        {{end}}
+
+                                        <button 
+                                            class="dropdown-item" 
+                                            data-toggle="modal" 
+                                            data-target="#modal-disableLicense"
+                                        >
+                                            Disable
+                                        </button>
+
+                                        <button 
+                                            class="dropdown-item" 
+                                            data-toggle="modal" 
+                                            data-target="#modal-renewLicense"
+                                            v-if="licenseData.RenewedToLicenseID === null"
+                                        >
+                                            Renew
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!-- end .card license data -->
+                    </div> <!-- end .col for license data -->
+
+                    <!-- column for download history & notes -->
+                    <div class="col-12 col-md-6 col-after-col--up-to-sm">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Download History <small class="text-secondary" v-if="downloadHistory.length > 0" v-cloak>([[downloadHistory.length]])</small></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="max-height-500px">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="no-border-top">
+                                            <tr>
+                                                <th>Datetime <small class="text-secondary" v-if="downloadHistory.length > 0" v-cloak>([[downloadHistory[0].Timezone]])</small></th>
+                                                <th>By</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-if="downloadHistory.length === 0">
+                                                <tr>
+                                                    <td colspan="2">No history exists.</td>
+                                                </tr>
+                                            </template>
+                                            <template v-else>
+                                                <tr v-for="h in downloadHistory" v-bind:id="h.ID">
+                                                    <td v-bind:title="h.DatetimeCreated + ' (UTC)'">[[h.DatetimeCreatedTZ]]</td>
+                                                    <td>
+                                                        <span v-if="h.CreatedByUsername">[[h.CreatedByUsername]]</span>
+                                                        <span v-else>API: [[h.CreatedByAPIKeyDescription]]</span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="alert" v-show="msgHistory.length > 0" v-bind:class="msgHistoryType" v-cloak>
+                                    [[msgHistory]]
+                                </div>
+                            </div>
+                        </div> <!-- end .card for download history -->
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Notes</h5>
+                                <div class="card-header-btn">
+                                    <button class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#modal-note" v-on:click="setNoteModal(undefined)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="max-height-500px">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="no-border-top">
+                                            <th>Note</th>
+                                        </thead>
+                                        <tbody>
+                                            <template v-if="notes.length === 0">
+                                                <tr>
+                                                    <td>No notes exists.</td>
+                                                </tr>
+                                            </template>
+                                            <template v-else>
+                                                <tr v-for="n in notes" v-bind:id="n.ID">
+                                                    <td>[[n.Note]] <a
+                                                        class="btn btn-sm text-primary btn-sm-condensed btn-link"
+                                                        data-toggle="modal" 
+                                                        data-target="#modal-note" 
+                                                        v-on:click="setNoteModal(n)"
+                                                    >
+                                                        <i class="fas fa-search"></i>
+                                                    </a>
+                                                </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="alert" v-show="msgNotes.length > 0" v-bind:class="msgNotesType" v-cloak>
+                                    [[msgNotes]]
+                                </div>
+                            </div>
+                        </div> <!-- end .card for license notes -->
+                    </div> <!-- end .col for download history -->
+
+                </div> <!-- end .row -->
+            </div> <!-- end .container -->
+        </main>
+
+        <!-- 
+            modal for disabling license. 
+            once a license is disabled, it cannot be reenabled.
+            a disabled license can also not be downloaded.
+        -->
+        <div class="modal fade" id="modal-disableLicense">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger">
+                        <h5 class="modal-title text-white">Disable License</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="section-description section-description-secondary">
+                            <!-- TODO: update text to say something like "license cannot be activated" if this app ever supports license activation. -->
+                            <p>A disabled license can no longer be downloaded. This does <i>not</i> prevent previously distributed copies of this license from being used. <span class="text-danger">This cannot be undone.</span></p>
+                        </blockquote>
+                        <hr class="divider">
+
+                        <fieldset v-bind:disabled="submitting">
+                            <div class="form-group">
+                                <label>Note:</label>
+                                <textarea class="form-control" v-model.trim="note" rows="4" placeholder="Describe why the license is being disabled."></textarea>
+                            </div>
+                        </fieldset>
+
+                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                            [[msgSave]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-danger" v-on:click="disableLicense" v-bind:disabled="submitting">Disable</button>
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- end modal to disable a license -->
+
+        <!-- modal for adding/viewing a note -->
+        <div class="modal fade" id="modal-note">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">[[modalTitle]]</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset v-bind:disabled="submitting">
+                            <div class="form-group">
+                                <label>Note:</label>
+                                <textarea class="form-control" v-model.trim="noteData.Note" rows="4" v-bind:disabled="noteData.ID > 0"></textarea>
+                            </div>
+                        </fieldset>
+                        <fieldset v-if="!addingNew" disabled>
+                            <div class="form-group">
+                                <label>Created By:</label>
+                                <input 
+                                    class="form-control" 
+                                    type="text" 
+                                    v-if="noteData.CreatedByUsername !== null && !addingNew" 
+                                    v-model.trim="noteData.CreatedByUsername"
+                                >
+                                <input 
+                                    class="form-control" 
+                                    type="text" 
+                                    v-else 
+                                    v-bind:value="'API: ' + noteData.CreatedByAPIKeyDescription"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label>Datetime <small class="text-secondary">([[noteData.Timezone]])</small>:</label>
+                                <input class="form-control" type="text" v-model.trim="noteData.DatetimeCreatedTZ">
+                            </div>
+                        </fieldset>
+
+                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                            [[msgSave]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-if="addingNew" v-on:click="add" v-bind:disabled="submitting">Add</button>
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- end modal to add a note -->
+
+        <!-- 
+            modal to renew license.
+            This will "copy" the existing licenses data but with an updated expiration
+            date. This is done since we do not want to modify the expiration data since
+            that will cause the signature to be invalid and need to be recalculated.
+            Upon success, user will be redirected to new license's page.
+        -->
+        <div class="modal fade" id="modal-renewLicense">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Renew License</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="section-description section-description-secondary">
+                            <p>Renew a license to a new expiration date.</p>
+                        </blockquote>
+                        <hr class="divider">
+
+                        <fieldset v-bind:disabled="submitting">
+                            <div class="form-group">
+                                <label>Current Expiration Date:</label>
+                                <input type="date" class="form-control" v-model.trim="currentExpireDate" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>New Expiration Date:</label>
+                                <input type="date" class="form-control" v-model.trim="newExpireDate" v-bind:min="minDate">
+                            </div>
+                        </fieldset>
+
+                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                            [[msgSave]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" v-on:click="renew" v-bind:disabled="submitting">Renew</button>
+                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- end modal to renew license -->
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

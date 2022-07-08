@@ -1,0 +1,162 @@
+{{$showDevHeader := .Development}}
+
+{{/* Data to build GUI with. */}}
+{{$activities := .InjectedData.Data.Activities}}
+{{$urls := .InjectedData.Data.URLs}}
+{{$users := .InjectedData.Data.Users}}
+
+{{/* User provided values that can be modified. */}}
+{{$userChosen := .InjectedData.Data.UserChosen}}
+{{$endpointChosen := .InjectedData.Data.EndpointChosen}}
+{{$searchFor := .InjectedData.Data.SearchFor}}
+{{$rowCount := .InjectedData.Data.RowCount}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Activity Log</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		<!-- HEADER -->
+        {{template "header-with-btns" .}}
+
+		<main>
+			<div class="container">
+				<!-- filters -->
+                <div class="row">
+                    <div class="col">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Filters</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="activityLogFilters">
+                                    <div class="row">
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-group side-by-side">
+                                                <label>User:</label>
+                                                <select class="form-control" name="userID" {{if eq (len $users) 0}}disabled{{end}}>
+                                                    <option value="0">All users.</option>
+                                                    {{range $users}}
+                                                    <option value="{{.ID}}" {{if eq .ID $userChosen}}selected{{end}}>{{.Username}}</option>
+                                                    {{end}}
+                                                </select>
+                                            </div>
+                                            <div class="form-group side-by-side">
+                                                <label>URL:</label>
+                                                <select class="form-control" name="url" {{if eq (len $urls) 0}}disabled{{end}}>
+                                                    <option value="">All URLs.</option>
+                                                    {{range $urls}}
+                                                    <option value="{{.}}" {{if eq . $endpointChosen}}selected{{end}}>{{.}}</option>
+                                                    {{end}}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-group side-by-side">
+                                                <label>
+                                                    Search For: 
+                                                    <span 
+                                                        class="help-icon text-secondary fas fa-question-circle" 
+                                                        data-toggle="tooltip" 
+                                                        title="Search for content in request data.">
+                                                    </span>
+                                                </label>
+                                                <input class="form-control" type="text" name="searchFor" value="{{$searchFor}}">
+                                            </div>
+                                            <div class="form-group side-by-side">
+                                                <label>Rows Returned:</label>
+                                                <input class="form-control" type="number" name="rows" min="0" step="1" value="{{$rowCount}}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-primary" type="submit" form="activityLogFilters">Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- results -->
+                <div class="row">
+                   <div class="col">
+                        <div class="card" id="activityLog">
+                            <div class="card-header">
+                                <h5>Activity Log</h5>
+                                <div class="card-header-btn">
+                                    <div class="btn-group">
+                                        <!-- <button class="btn btn-outline-primary btn-sm" v-on:click="showHelp = !showHelp"><i class="fas fa-question"></i></button> -->
+                                        <button class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown">Charts </button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item" href="/activity-log/charts/activity-over-time-of-day/">Activity Over Time of Day</i></a>
+                                            <a class="dropdown-item" href="/activity-log/charts/max-avg-duration-per-month/?ignorePDF=true">Max & Avg. Duration of Requests by Month</i></a>
+                                            <a class="dropdown-item" href="/activity-log/charts/duration-of-latest-requests/?ignorePDF=true">Duration of Latest Requests</i></a>
+                                        </div>
+                                    </div>
+								</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-sm table-dense-always">
+                                        <thead class="no-border-top">
+                                            <th class="whitespace-no-wrap">
+                                                Datetime 
+                                                {{if gt (len $activities) 0}}
+                                                {{with index $activities 0}}
+                                                    <small class="text-secondary">({{.Timezone}})</small>
+                                                {{end}}
+                                                {{end}}
+                                            </th>
+                                            <th>User/API Key</th>
+                                            <th title="Duration of request in milliseconds.">Method</th>
+                                            <th title="Form values provided in request.">URL (and request data)</th>
+                                        </thead>
+                                        <tbody>
+                                            {{range $activities}}
+                                            <tr data-activity-id="{{.ID}}">
+                                                <td class="datetime whitespace-no-wrap"><span title="{{.DatetimeCreated}} (UTC)">{{.DatetimeCreatedTZ}}</span></td>
+                                                <td class="user">
+                                                    {{if .Username}}
+                                                        <span title="{{.CreatedByUserID.Int64}}">{{.Username}}</span>
+                                                    {{else if .APIKeyK}}
+                                                        API - <span>{{printf "%.12s"  .APIKeyDescription}}...</span>
+                                                    {{end}}
+                                                </td>
+                                                <td class="method whitespace-no-wrap">{{.Method}} ({{.TimeDuration}}ms)</td>
+                                                <td class="data">
+                                                    <span class="url text-monospace whitespace-no-wrap">{{.URL}}</span>
+                                                    <br>
+                                                    {{/* 2 is the length of "{}" which is the blank value for PostFormValues */}}
+                                                    {{if gt (len .PostFormValues) 2}}
+                                                    <span class="formvalues text-monospace word-break-all">{{.PostFormValues}}</span>
+                                                    {{end}}
+                                                </td>
+                                            </tr>
+                                            {{else}}
+                                            <tr>
+                                                <td colspan="6">No data exists for this user id.</td>
+                                            </tr>
+                                            {{end}}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+				</div>                   
+			</div>
+		</main>
+
+		{{template "footer"}}
+		{{template "html_scripts" .}}
+        {{template "data-toggle-tooltip"}}
+	</body>
+</html>
