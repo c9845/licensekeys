@@ -5,8 +5,8 @@ package db
 import (
 	"context"
 
-	"github.com/c9845/licensekeys/config"
-	"github.com/c9845/licensekeys/timestamps"
+	"github.com/c9845/licensekeys/v2/config"
+	"github.com/c9845/licensekeys/v2/timestamps"
 	"github.com/c9845/sqldb/v2"
 )
 

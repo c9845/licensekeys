@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/c9845/licensekeys/licensefile"
-	"github.com/c9845/licensekeys/timestamps"
+	"github.com/c9845/licensekeys/v2/licensefile"
+	"github.com/c9845/licensekeys/v2/timestamps"
 	"github.com/c9845/sqldb/v2"
 )
 

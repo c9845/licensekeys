@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/config"
-	"github.com/c9845/licensekeys/db"
-	"github.com/c9845/licensekeys/utils"
+	"github.com/c9845/licensekeys/v2/config"
+	"github.com/c9845/licensekeys/v2/db"
+	"github.com/c9845/licensekeys/v2/utils"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 	"github.com/pquerna/otp"

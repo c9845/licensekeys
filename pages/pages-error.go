@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/c9845/licensekeys/db"
+	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/templates"
 )
 

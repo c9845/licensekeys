@@ -33,7 +33,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/c9845/licensekeys/config"
+	"github.com/c9845/licensekeys/v2/config"
 )
 
 //errors

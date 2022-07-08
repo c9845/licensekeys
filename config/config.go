@@ -42,8 +42,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/pwds"
-	"github.com/c9845/licensekeys/version"
+	"github.com/c9845/licensekeys/v2/pwds"
+	"github.com/c9845/licensekeys/v2/version"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 

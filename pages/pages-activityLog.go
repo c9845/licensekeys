@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/db"
+	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/sqldb/v2"
 	"github.com/c9845/templates"
 )

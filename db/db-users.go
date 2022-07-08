@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/c9845/licensekeys/pwds"
+	"github.com/c9845/licensekeys/v2/pwds"
 	"github.com/c9845/sqldb/v2"
 	"github.com/jmoiron/sqlx"
 )

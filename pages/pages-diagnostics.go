@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/c9845/licensekeys/config"
-	"github.com/c9845/licensekeys/db"
-	"github.com/c9845/licensekeys/version"
+	"github.com/c9845/licensekeys/v2/config"
+	"github.com/c9845/licensekeys/v2/db"
+	"github.com/c9845/licensekeys/v2/version"
 	"github.com/c9845/sqldb/v2"
 	"github.com/c9845/templates"
 )

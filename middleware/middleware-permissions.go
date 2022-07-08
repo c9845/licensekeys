@@ -15,9 +15,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/c9845/licensekeys/db"
-	"github.com/c9845/licensekeys/pages"
-	"github.com/c9845/licensekeys/users"
+	"github.com/c9845/licensekeys/v2/db"
+	"github.com/c9845/licensekeys/v2/pages"
+	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 	"github.com/c9845/templates"
 )

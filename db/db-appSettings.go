@@ -9,7 +9,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/c9845/licensekeys/timestamps"
+	"github.com/c9845/licensekeys/v2/timestamps"
 	"github.com/c9845/sqldb/v2"
 	"github.com/jmoiron/sqlx"
 )

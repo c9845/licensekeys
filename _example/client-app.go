@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/c9845/licensekeys/licensefile"
+	"github.com/c9845/licensekeys/v2/licensefile"
 )
 
 //publicKey is the public part of the key pair generated for your

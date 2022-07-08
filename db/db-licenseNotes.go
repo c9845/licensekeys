@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/c9845/licensekeys/config"
+	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/sqldb/v2"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v3"
