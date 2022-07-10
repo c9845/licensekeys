@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-//SecHeaders sets http headers for security purposes
+//SecHeaders sets http headers for security purposes.
 func SecHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("strict-transport-security", "max-age=60")
@@ -24,6 +24,9 @@ func SecHeaders(next http.Handler) http.Handler {
 
 		//Content Security Policy
 		//Any resources used must fit into one of these groups to be whitelisted.
+		//
+		//Try to serve all third-party stuff from the same CDN just to limit the amount
+		//of different hosts we have to list here.
 		defaultSrc := []string{
 			"'self'",
 			"https://cdnjs.cloudflare.com/", //bootstrap popper.js, chart.js, moment.js (for charts), remove this when browsers support prefetch-src
@@ -37,8 +40,7 @@ func SecHeaders(next http.Handler) http.Handler {
 			"'self'",
 			"'unsafe-inline'",               //bootstrap tooltip is only initialized when needed and is injected as a <script> tag
 			"'unsafe-eval'",                 //vue needs this for templating
-			"https://cdnjs.cloudflare.com/", //bootstrap, bootstrap popper.js, chart.js, moment.js (for charts)
-			"https://cdn.jsdelivr.net/",     //vue
+			"https://cdnjs.cloudflare.com/", //vue, bootstrap, bootstrap popper.js, chart.js, moment.js (for charts)
 			";",
 		}
 		styleSrc := []string{
@@ -54,8 +56,6 @@ func SecHeaders(next http.Handler) http.Handler {
 		}
 		imgSrc := []string{
 			"'self'",
-			"data:", //for embedding images in printable docs
-			"*",     //so users can upload printable docs that use images from outside sources
 			";",
 		}
 

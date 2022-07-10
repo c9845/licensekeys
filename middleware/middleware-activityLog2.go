@@ -25,7 +25,7 @@ import (
 )
 
 //skippedEndpoints2 are endpoints we don't need to log to the activity log since they
-//would just clog up the log
+//would just clog up the log.
 var skippedEndpoints2 = []string{}
 
 //LogActivity2 saves the activity the user performed to the database.
@@ -77,7 +77,7 @@ func LogActivity2(next http.Handler) http.Handler {
 		}
 
 		//Get IP address. App should be behind a proxy so remote IP is in a header
-		//set by proxy
+		//set by proxy.
 		ip := r.RemoteAddr
 		if v, ok := r.Header["X-Forwarded-For"]; ok {
 			ip = strings.Join(v, "")

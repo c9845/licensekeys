@@ -72,10 +72,9 @@ func ExternalAPI(next http.Handler) http.Handler {
 		}
 
 		//Make sure request is for a valid public endpoint.
-		err = apikeys.IsPublicEndpoint(r.URL.Path)
-		if err != nil {
+		if !apikeys.IsPublicEndpoint(r.URL.Path) {
 			log.Println("middleware.externalAPI, endpoint not public", r.URL.Path, keyData.Description)
-			output.Error(err, "You cannot access this endpoint via the API.", w)
+			output.Error(apikeys.ErrNonPublicEndpoint, "You cannot access this endpoint via the API.", w)
 			return
 		}
 

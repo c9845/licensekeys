@@ -26,6 +26,7 @@ import (
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
+	"golang.org/x/exp/slices"
 )
 
 //keyLength is the length of random part of each API key. This does not include the
@@ -206,17 +207,8 @@ func Revoke(w http.ResponseWriter, r *http.Request) {
 
 //IsPublicEndpoint checks if a provided URL is in the list of publically accessible
 //endpoints. If not, it returnes an error.
-//
-//An error is returned, instead of just a bool, so that we can reply with the error
-//to the request. This prevents us from just returning some generic error.
-func IsPublicEndpoint(urlPath string) error {
-	for _, v := range publicEndpoints {
-		if v == urlPath {
-			return nil
-		}
-	}
-
-	return ErrNonPublicEndpoint
+func IsPublicEndpoint(urlPath string) bool {
+	return slices.Contains(publicEndpoints, urlPath)
 }
 
 //KeyLength returns the length of API keys generated inclusive of the key's prefix

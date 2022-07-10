@@ -32,15 +32,13 @@ var errPermissionRefused = errors.New("middleware: user does not have permission
 func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u db.User) {
 	msg := "You do not have the '" + permission + "' permission. Please contact an administrator."
 
-	//determine if this request is for a page or api endpoint
-	//if so, send back error data
+	//Determine if this request is for a page or api endpoint and send back error
+	//formatted correctly for request type.
 	if strings.Contains(r.URL.Path, "api") {
 		output.Error(errPermissionRefused, msg, w)
 		return
 	}
 
-	//user was trying to access a page
-	//send back gui page with error message
 	pd := pages.PageData{
 		UserData: u,
 		Data:     msg,
@@ -48,71 +46,65 @@ func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u d
 	templates.Show(w, "app", "permission-error", pd)
 }
 
-//Administrator check if the user has this permission
+//Administrator checks if the user has this permission.
 func Administrator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "Administrator"
 
-		//get user data
+		//Get user data.
 		u, err := users.GetUserDataByRequest(r)
 		if err != nil {
 			refuseAccess(w, r, p, u)
 			return
 		}
 
-		//check if user has required permission
+		//Check if user has required permission.
 		if !u.Administrator {
 			refuseAccess(w, r, p, u)
 			return
 		}
 
-		//user has permission
+		//User has permission.
 		next.ServeHTTP(w, r)
 	})
 }
 
-//CreateLicenses check if the user has this permission
+//CreateLicenses check if the user has this permission.
 func CreateLicenses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "CreateLicenses"
 
-		//get user data
 		u, err := users.GetUserDataByRequest(r)
 		if err != nil {
 			refuseAccess(w, r, p, u)
 			return
 		}
 
-		//check if user has required permission
 		if !u.CreateLicenses {
 			refuseAccess(w, r, p, u)
 			return
 		}
 
-		//user has permission
 		next.ServeHTTP(w, r)
 	})
 }
 
-//ViewLicenses check if the user has this permission
+//ViewLicenses check if the user has this permission.
 func ViewLicenses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "ViewLicenses"
 
-		//get user data
 		u, err := users.GetUserDataByRequest(r)
 		if err != nil {
 			refuseAccess(w, r, p, u)
 			return
 		}
 
-		//check if user has required permission
 		if !u.ViewLicenses {
 			refuseAccess(w, r, p, u)
 			return
 		}
 
-		//user has permission
 		next.ServeHTTP(w, r)
 	})
 }
