@@ -270,6 +270,19 @@ func TestDaysUntilExpired(t *testing.T) {
 		t.Fatal("Date diff should be 0 but was", diff)
 		return
 	}
+
+	//handle date in the past aka an expired license
+	days = -10
+	f.ExpireDate = time.Now().AddDate(0, 0, days).Format("2006-01-02")
+	diff, err = f.DaysUntilExpired()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	if diff != days {
+		t.Fatalf("Date diff mismatch, expected %d, got %d", days, diff)
+		return
+	}
 }
 
 func TestHash(t *testing.T) {
