@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/c9845/licensekeys/v2/pwds"
+	"github.com/c9845/licensekeys/v2/timestamps"
 	"github.com/c9845/sqldb/v2"
 	"github.com/jmoiron/sqlx"
 )
@@ -325,8 +326,8 @@ func SetNewPassword(ctx context.Context, userID int64, passwordHash string) (err
 }
 
 //Save2FASecret saves the secret shared secret for 2fa to the database for a user.
-//This does not enable 2fa since the user still needs to verify a 2fa token the
-//first time a secret/qr code is shown to them.
+//This does not enable 2fa since the user still needs to verify a 2fa token the first
+//time a secret/qr code is shown to them.
 func Save2FASecret(ctx context.Context, userID int64, secret string) (err error) {
 	q := `
 		UPDATE ` + TableUsers + `
@@ -356,21 +357,31 @@ func Save2FASecret(ctx context.Context, userID int64, secret string) (err error)
 const Enable2FAForAll int64 = -132674
 
 //Enable2FA sets 2fa on or off for a user.
-//This also works for all users, but only if userID is set to -1.  Be careful!  This was added to support
-//turning 2fa on/off in testing.
+//
+//This also works for all users, but only if userID is set to Enable2FAForAll. Be
+//careful! This was added to support turning 2fa on/off in development and testing.
 func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
-	q := `
-		UPDATE ` + TableUsers + `
-		SET 
-			TwoFactorAuthEnabled = ?,
-			TwoFactorAuthBadAttempts = 0
-		WHERE ID = ?
-	`
-	b := sqldb.Bindvars{turnOn, userID}
+	cols := sqldb.Columns{
+		"DatetimeModified",
+		"TwoFactorAuthEnabled",
+		"TwoFactorAuthBadAttempts",
+	}
+	b := sqldb.Bindvars{
+		timestamps.YMDHMS(),
+		turnOn,
+		0,
+	}
+	colString, err := cols.ForUpdate()
+	if err != nil {
+		return
+	}
+
+	q := `UPDATE ` + TableUsers + ` SET ` + colString + ` WHERE ID = ?`
 
 	if userID == Enable2FAForAll {
 		q = strings.Replace(q, "WHERE ID = ?", "WHERE ID > 0", 1)
-		b = sqldb.Bindvars{turnOn}
+	} else {
+		b = append(b, userID)
 	}
 
 	c := sqldb.Connection()

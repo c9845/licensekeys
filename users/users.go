@@ -30,11 +30,10 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 //Add saves a new user.
 func Add(w http.ResponseWriter, r *http.Request) {
-	//get input data
-	//should be a json payload matching the db.User struct
+	//Get inputs.
 	raw := r.FormValue("data")
 
-	//parse into struct
+	//Parse into struct.
 	var u db.User
 	err := json.Unmarshal([]byte(raw), &u)
 	if err != nil {
@@ -42,9 +41,9 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//validate and sanitize
+	//Validate.
 	if u.ID != 0 {
-		output.ErrorInputInvalid("Could not determine if you are adding or updating a user. Please refresh and try again.", w)
+		output.ErrorInputInvalid("Could not determine if you are adding or updating a user.", w)
 		return
 	}
 
@@ -60,7 +59,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//handle password validation
+	//Handle password validation.
 	if u.PasswordInput1 != u.PasswordInput2 {
 		output.ErrorInputInvalid("The passwords you provided do not match.", w)
 		return
@@ -70,7 +69,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//generate password hash
+	//Generate password hash.
 	hashedPwd, err := pwds.Create(u.PasswordInput1)
 	if err != nil {
 		output.Error(err, "Could not add user because of a password issue.", w)
@@ -78,7 +77,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 	u.Password = hashedPwd
 
-	//get user id of logged in user
+	//Get user ID of user making this request.
 	loggedInUserID, err := GetUserIDByRequest(r)
 	if err != nil {
 		output.Error(err, "Could not determine the user making this request.", w)
@@ -86,7 +85,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 	u.CreatedByUserID = loggedInUserID
 
-	//save
+	//Save.
 	err = u.Insert(r.Context())
 	if err != nil {
 		output.Error(err, "Could not save new user.", w)
@@ -96,13 +95,13 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(u.ID, w)
 }
 
-//Update saves changes to a user
+//Update saves changes to a user. This does not handle password changes nor 2 Factor
+//Auth stuff since those actions are bit more specialized.
 func Update(w http.ResponseWriter, r *http.Request) {
-	//get input data
-	//should be a json payload matching the db.User struct
+	//Get inputs.
 	raw := r.FormValue("data")
 
-	//parse into struct
+	//Parse into struct.
 	var u db.User
 	err := json.Unmarshal([]byte(raw), &u)
 	if err != nil {
@@ -110,7 +109,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//validate and sanitize
+	//Validate.
 	if u.ID < 1 {
 		output.ErrorInputInvalid("Could not determine which user you are updating", w)
 		return
@@ -128,7 +127,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//save the user
+	//Save.
 	err = u.Update(r.Context())
 	if err != nil {
 		output.Error(err, "Could not update user.", w)
@@ -140,12 +139,12 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 //ChangePassword sets a new password for a user
 func ChangePassword(w http.ResponseWriter, r *http.Request) {
-	//get inputs
+	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
 	password1 := r.FormValue("password1")
 	password2 := r.FormValue("password2")
 
-	//validate
+	//Validate.
 	if userID <= 0 {
 		output.ErrorInputInvalid("Could not determine which user's password you are changing.", w)
 		return
@@ -159,27 +158,26 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//generate password
+	//Generate password.
 	hashedPwd, err := pwds.Create(password1)
 	if err != nil {
 		output.Error(err, "Could not add user because of a password issue.", w)
 		return
 	}
 
-	//save the new password
+	//Save.
 	err = db.SetNewPassword(r.Context(), userID, hashedPwd)
 	if err != nil {
 		output.Error(err, "Could not set new password.", w)
 		return
 	}
 
-	//inactivate all existing active user logins/sessions for security
+	//Inactivate all existing active user logins/sessions for security.
 	err = db.DisableLoginsForUser(r.Context(), userID)
 	if err != nil {
 		//not exiting on this error since it isn't a huge issue.
 		log.Println("users.ChangePassword", "could not disable logins for user", err)
 	}
 
-	//done
 	output.UpdateOK(w)
 }

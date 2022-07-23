@@ -9,9 +9,9 @@ import (
 	"github.com/c9845/output"
 )
 
-//Logout handles logging a user out. Remove the session info so users isn't
-//automatically logged back in to the app. Remove the 2FA token if config requires
-//2FA upon each login.
+//Logout handles logging a user out.
+//Remove the session info so users isn't automatically logged back in to the app.
+//Remove the 2FA token if config requires 2FA upon each login.
 func Logout(w http.ResponseWriter, r *http.Request) {
 	DeleteLoginCookie(w)
 
@@ -20,22 +20,23 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/?ref=logout", http.StatusFound)
+	return
 }
 
 //ForceLogout handles requests to force a user to log out of the app. This invalidates
-//all non-expired, active user logins causing all subsequent requests (page views or
-//api requests) to fail.
+//all non-expired, active user logins causing all subsequent requests (page views or api
+//requests) to fail.
 func ForceLogout(w http.ResponseWriter, r *http.Request) {
-	//get input
+	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
 
-	//validate
+	//Validate.
 	if userID <= 0 {
 		output.ErrorInputInvalid("Could not determine which user's password you are changing.", w)
 		return
 	}
 
-	//update db
+	//Update db.
 	err := db.DisableLoginsForUser(r.Context(), userID)
 	if err != nil {
 		output.Error(err, "Could not force user to log out.", w)

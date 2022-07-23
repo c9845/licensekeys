@@ -1,8 +1,8 @@
 /*
 Package users handles interacting with users of the app.
 
-This file handles enrolling a user in 2 Factor Authentication (TOTP) using a Google
-Authenticator type app.
+This file handles enrolling a user in 2 Factor Authentication (TOTP) using
+a Google Authenticator type app.
 */
 package users
 
@@ -48,10 +48,10 @@ const (
 )
 
 //Get2FABarcode generates a QR code for enrolling a user in 2FA. This returns the QR
-//code as a base64 string that can be embedded into an <img> tag using data attribute
+//code as a base64 string that will be embedded into an <img> tag using data: type
 //in src. This only returns a QR code if user is not currently enrolled in 2FA.
 func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
-	//Get input.
+	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
 
 	//Validate.
@@ -60,7 +60,7 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Check if 2fa is enabled for the app.
+	//Check if 2fa is allowed and exit if 2fa is not allowed.
 	as, err := db.GetAppSettings(r.Context())
 	if err != nil {
 		log.Println("pages.getPageConfigData", "Could not look up app settings.", err)
@@ -71,7 +71,7 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Check if user is enrolled in 2fa already.
+	//Check if user is enrolled in 2fa already and exit if they are.
 	cols := sqldb.Columns{
 		"TwoFactorAuthEnabled",
 		"Username",
@@ -91,17 +91,16 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Change issuer if we are developing so we don't screw up and production versus
-	//live 2fa keys since you can't have two 2fa tokens with same name in most 2fa
-	//code generator apps.
+	//Change issuer if we are in dev mode so we don't screw up dev vs production/live
+	//2fa keys since you can't have two 2fa tokens with same name in most 2fa apps.
 	issuer := defaultIssuer
 	if config.Data().Development {
 		issuer = issuer + "_dev"
 	}
 
 	//Generate the 2fa key.
-	//key is the url to be encoded in a qr code
-	//secret is generated automatically and retrieved from the key for storing in db
+	//key is the url to be encoded in a qr code.
+	//secret is generated automatically and retrieved from the key for storing in db.
 	keyOpts := totp.GenerateOpts{
 		Issuer:      issuer,
 		AccountName: user.Username,
@@ -116,7 +115,7 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Get key as an image.
+	//Get key as an image aka QR code.
 	img, err := key.Image(200, 200)
 	if err != nil {
 		output.Error(err, "Could not generate qr code.", w)
@@ -131,11 +130,11 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Get the image as bytes which is used in img tag src via data:. This way we don't
-	//need to save the img to a file and serve the file. Ee can simply just send the
-	//image data back as text that is used in img tag src attribute.
+	//need to serve an img file directly; we can simply just send the image data back
+	//as text that is used in src.
 	imgBytes := base64.StdEncoding.EncodeToString(b.Bytes())
 
-	//Save the secret for the user for validating codes in the future.
+	//Save the secret for the user.
 	err = db.Save2FASecret(r.Context(), userID, key.Secret())
 	if err != nil {
 		output.Error(err, "Could not save secret data for 2 Factor Authentication.  Investigate the logs.", w)
@@ -146,9 +145,8 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 }
 
 //Validate2FACode takes the 6 character 1-time code provided by a user and checks if
-//it is valid given the 2fa info we have saved for the user. This is used during the
-//2fa enrollment process to make sure the user scanned the QR Code right and codes
-//are being generated correctly.
+//it is valid given the 2fa info we have saved for the user. This is used to make sure
+//that enrollment in 2fa is successful.
 func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -183,7 +181,7 @@ func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Code is valid. Enabled 2fa for this user.
+	//Code is valid, set 2fa as enabled for this user.
 	err = db.Enable2FA(r.Context(), userID, true)
 	if err != nil {
 		output.Error(err, "Could not enable 2 Factor Authentication for this user.", w)
@@ -211,15 +209,14 @@ func Deactivate2FA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Turn 2fa off. Don't bother checking if it is already turned off. No need to wipe
-	//the secret since it will be regenerated anyway when 2fa is reenabled for the user.
+	//Turn 2fa off.
+	//No need to wipe the secret since it will be regenerated anyway if 2fa is re-enabled.
 	err := db.Enable2FA(r.Context(), userID, false)
 	if err != nil {
 		output.Error(err, "Could not deactivate 2 Factor Authentication for this user.", w)
 		return
 	}
 
-	//done
 	output.UpdateOK(w)
 }
 

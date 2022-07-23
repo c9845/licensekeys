@@ -23,7 +23,13 @@ import (
 	"github.com/c9845/sqldb/v2"
 )
 
-//the maximum value for calculating delay on a bad passwords
+//badPasswordAttemptsMax helps determine the maximum delay a user will experience if
+//they provide a bad password over and over. This value is multiplied against a time
+//value, i.e.: 1 second, to determine the delay between providing a bad password and
+//when the user can try again. Setting an upper limit prevents the delay from growing
+//endlessly.
+//
+//Increase this number to make brute forcing passwords more expensive.
 const badPasswordAttemptsMax = 5
 
 //Login handles authentication a user logging in to the app. This handles password
@@ -44,9 +50,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Look up user's data via username. We will use this delay login if user has
-	//provided incorrect password a few times, check if user account is active, and
-	//check if password provided is valid.
+	//Look up user's data via username.
+	//We will use this delay login if user has provided incorrect password a few
+	//times, check if user account is active, and check if password provided is valid.
 	u, err := db.GetUserByUsername(r.Context(), username, sqldb.Columns{"*"})
 	if err != nil {
 		output.Error(err, "Could not determine if a user with your username exists.", w)
@@ -66,9 +72,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Check password. If password is bad, increment login delay counter up to max. If
-	//max delay is reached, just continue to use it. Using a max delay is important
-	//so delay doesn't just grow endlessly.
+	//Check password provided.
+	//If password is bad, increment login delay counter up to max. If max delay is
+	//reached, just continue to use it. Using a max delay is important so delay doesn't
+	//just grow endlessly.
 	ok, err := pwds.IsValid(password, u.Password)
 	if err != nil && err != pwds.ErrBadPassword {
 		output.Error(err, "There was an issue verifying the provided password. Please ask an administrator to investigate in the app's logs.", w)

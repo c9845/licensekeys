@@ -28,20 +28,19 @@ type UserLogin struct {
 
 	//This is a random, long value that will be stored in a cookie set for the user to
 	//identify the login. This is used, over the ID field, since the ID field can easily
-	//be guessed and incremented to find the "next" session. We will use this value, from
-	//the cookie, to look up the logged in user's data when needed.
+	//be guessed and incremented to find the "next" session. We will use this value,
+	//from the cookie, to look up the logged in user's data when needed.
 	CookieValue string
 
-	//This is used to force a user to log out, force a users session to be
-	//marked as invalid, prior to hitting the expiration. This is useful for
-	//forcing users to log out for diagnostics, low level fixing of database,
-	//security, etc. This is also used, by setting to false, when a user's
-	//password is changed so that all currently logged in sessions need to
-	//re-provide the password, again for security.
+	//This is used to force a user to log out, force a users session to be marked as
+	//invalid, prior to hitting the expiration. This is useful for forcing users to
+	//log out for diagnostics, low level fixing of database, security, etc. This is
+	//also used, by setting to false, when a user's password is changed so that all
+	//currently logged in sessions need to re-provide the password, again for security.
 	Active bool
 
-	//when a user's session will expire. This is reset, extended,
-	//each time the user visits a new page on the app.
+	//When a user's session will expire. This is reset, extended, each time the user
+	//visits a new page on the app.
 	Expiration int64
 
 	//JOINed fields
@@ -75,7 +74,6 @@ const (
 )
 
 //Insert saves an entry to the database for a user logging in to the app.
-//you should have already performed validation.
 func (u *UserLogin) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"UserID",
@@ -133,10 +131,11 @@ func GetLoginByCookieValue(ctx context.Context, cv string) (l UserLogin, err err
 	return
 }
 
-//DisableLoginsForUser disables all sessions for a user that are active and not currently
-//expired. This is used upon logging in when single sessions is enabled to mark all other
-//currently active and non-expired sessions as inactive to enforce the single session policy.
-//UserID is required to prevent us from mistakenly disabled all sessions for all users.
+//DisableLoginsForUser disables all sessions for a user that are active and not
+//currently expired. This is used upon logging in when single sessions is enabled to
+//mark all other currently active and non-expired sessions as inactive to enforce the
+//single session policy. UserID is required to prevent us from mistakenly disabled
+//all sessions for all users.
 func DisableLoginsForUser(ctx context.Context, userID int64) (err error) {
 	c := sqldb.Connection()
 	q := `
@@ -168,9 +167,9 @@ func DisableLoginsForUser(ctx context.Context, userID int64) (err error) {
 	return
 }
 
-//ExtendLoginExpiration updates the expiration timestamp for a user's login. This is used to
-//reset the time a session will expire to keep users logged in if they are active within
-//the app.
+//ExtendLoginExpiration updates the expiration timestamp for a user's login. This is
+//used to reset the time a session will expire to keep users logged in if they are
+//active within the app.
 func (l *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int64) (err error) {
 	c := sqldb.Connection()
 	q := `
@@ -196,9 +195,9 @@ func (l *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int
 	return
 }
 
-//GetUserLogins looks up successful logins
-//This defaults to looking up the last 200 rows.  Set to 0 for 200 rows.
-//You can also filter by user.  Set to 0 for all users.
+//GetUserLogins looks up successful logins. This defaults to looking up the last 200
+//rows if not limit is provided. You can optionally filter by userID or get logins
+//for all users if userID is 0.
 func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []UserLogin, err error) {
 	const defaultMaxRows uint16 = 200
 
@@ -211,16 +210,8 @@ func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []User
 		`IFNULL(` + TableUserLogins + `.TwoFATokenProvided, false) AS TwoFATokenProvided`,
 
 		`IFNULL(` + TableUsers + `.Username, "") AS Username`, //why is this IFNULL???
-	}
 
-	//ensure datetimes are returned in same format, yyyy-mm-dd hh:mm:ss, regardless of db type.
-	//This handles the golang sqlite driver returning datetimes in yyyy-mm-ddThh:mm:ssZ.
-	//We are better off returning the same value from the db/driver rather then having to handle
-	//multiple different formats in GetDatetimeInConfigTimezone() or elsewhere.
-	if sqldb.IsMariaDB() {
-		cols = append(cols, TableUserLogins+".DatetimeCreated")
-	} else if sqldb.IsSQLite() {
-		cols = append(cols, "datetime("+TableUserLogins+".DatetimeCreated) AS DatetimeCreated")
+		"datetime(" + TableUserLogins + ".DatetimeCreated) AS DatetimeCreated",
 	}
 
 	colString, err := cols.ForSelect()
@@ -253,10 +244,7 @@ func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []User
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &uu, q, b...)
 
-	//handle converting datetimes to correct timezone
-	//This isn't handled in sql query since mariadb and sqlite differ in how they can
-	//convert a datetime to a different timezone.  Doing it in this manner ensures the
-	//same conversion method is applied so golang does the conversion.
+	//Handle converting datetimes to correct timezone.
 	for k, v := range uu {
 		uu[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
 		uu[k].Timezone = config.Data().Timezone
