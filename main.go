@@ -139,19 +139,16 @@ func init() {
 	}
 
 	//Update the database if requested by the --update-db flag.
-	//Updating the db also calls the deploy db func since sometimes an app update
-	//requires deploying new tables which is done via the deploy functionality, not
-	//the update functionality (since we are deploying new tables). This is just
-	//done as a tradeoff instead of asking users to pass both the --deploy-db flag
-	//and --update-db flag. Yes, the logging for updates is a bit messier but this
-	//if acceptable for the ease of use of updating a schema when adding new table(s).
+	//Updating does not deploy the db! We did this once but it causes issues when
+	//deploying a table index for a table that already exists but the column does not
+	//exist (if table is already defined, the CREATE TABLE query doesn't check if
+	//every column in the table exists) and the column will be added via an update
+	//query. In this case, the CREATE INDEX runs before the ADD COLUMN and thus causes
+	//an issue.
+	//This "deploy as part of updating" functionality was really done to address adding
+	//of new tables to schema. Handle this instead by adding createTable... query to
+	//the list of update queries.
 	if *dbUpdateSchema {
-		err := sqldb.DeploySchema(*dontInsertInitialData)
-		if err != nil {
-			log.Fatalln("Error during db deploy during update.", err)
-			return
-		}
-
 		err = sqldb.UpdateSchema()
 		if err != nil {
 			log.Fatalln("Error during db update.", err)
