@@ -23,10 +23,11 @@
 #  - If you want to WAL mode, you must store the .db file in a directory (ex.: ~/lks_db)
 #    and provide the directory, not the file, in the --mount call. You will also have
 #    to update your config file to set the DBPath to a directory in the container as
-#    well. See example changes below:
+#    well. See example changes below. Note!: You must deploy the database outside of
+#    the container first so the .db, .db-shm, and .db-wal files already exist!
 #    - Host system: /path/to/lbs_db/licensekeys.db
 #    - DBPath: "/lks_db/licensekeys.db"
-#    - Mount: --mount type=bind,source=/path/to/lks_db/licensekeys.db, target=/lks_db/licensekeys.db
+#    - Mount: --mount type=bind,source=/path/to/lks_db, target=/lks_db
 #Last, run the container with the correct --mount flags set (see below).
 #  - docker run \
 #       -p 8007:8007 \
@@ -81,6 +82,5 @@ COPY ./website /website
 EXPOSE 8007
 
 #Run the executable.
-#Remember to map a volume to /lks/ in the container where licensekeys.conf and licensekeys.db will be stored.
 CMD ["/licensekeys"]
 # CMD ["/licensekeys", "--config", "/licensekeys.conf"]
