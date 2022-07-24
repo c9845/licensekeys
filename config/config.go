@@ -69,10 +69,10 @@ type File struct {
 
 	WebFilesStore       string `yaml:"WebFilesStore"`       //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
 	WebFilesPath        string `yaml:"WebFilesPath"`        //The absolute path to the directory storing the app's HTML, CSS and JS files.
+	StaticFileCacheDays int    `yaml:"StaticFileCacheDays"` //The number of days a browser will cache the app's CSS and JS files for. -1 disables caching.
+	UseLocalFiles       bool   `yaml:"UseLocalFiles"`       //Serve third-party CSS and JS files from this app's files or from an internet CDN.
 	FQDN                string `yaml:"FQDN"`                //The domain/subdomain the app serves on and matches your HTTPS certificate, also used for cookies. "." is acceptable but not advised.
 	Port                int    `yaml:"Port"`                //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
-	UseLocalFiles       bool   `yaml:"UseLocalFiles"`       //Serve third-party CSS and JS files from this app's files or from an internet CDN.
-	StaticFileCacheDays int    `yaml:"StaticFileCacheDays"` //The number of days a browser will cache the app's CSS and JS files for. -1 disables caching.
 
 	LoginLifetimeHours        float64 `yaml:"LoginLifetimeHours"`        //The time a user will remain logged in for.
 	TwoFactorAuthLifetimeDays int     `yaml:"TwoFactorAuthLifetimeDays"` //The time between when a 2FA token will be required. -1 requires it upon each login.
@@ -136,10 +136,10 @@ func newDefaultConfig() (f File, err error) {
 
 		WebFilesStore:       WebFilesStoreEmbedded,
 		WebFilesPath:        "", //don't need this set since we are using embedded files!
+		StaticFileCacheDays: 7,
+		UseLocalFiles:       false,
 		FQDN:                ".",
 		Port:                8007,
-		UseLocalFiles:       false,
-		StaticFileCacheDays: 7,
 
 		LoginLifetimeHours:        1,
 		TwoFactorAuthLifetimeDays: 14,
@@ -384,6 +384,12 @@ func (conf *File) validate() (err error) {
 		}
 	}
 
+	if conf.StaticFileCacheDays < 0 {
+		log.Println("WARNING! (config) StaticFileCacheDays is invalid, caching of static files is disabled. Value should be an integer greater than 0.")
+	} else if conf.StaticFileCacheDays == 0 {
+		conf.StaticFileCacheDays = defaults.StaticFileCacheDays
+	}
+
 	conf.FQDN = strings.TrimSpace(conf.FQDN)
 	if conf.FQDN == "" {
 		conf.FQDN = defaults.FQDN
@@ -395,12 +401,6 @@ func (conf *File) validate() (err error) {
 	}
 	if conf.Port < portMin || conf.Port > portMax {
 		return errors.New("config: Port must be between " + strconv.Itoa(portMin) + " and " + strconv.Itoa(portMax))
-	}
-
-	if conf.StaticFileCacheDays < 0 {
-		log.Println("WARNING! (config) StaticFileCacheDays is invalid, caching of static files is disabled. Value should be an integer greater than 0.")
-	} else if conf.StaticFileCacheDays == 0 {
-		conf.StaticFileCacheDays = defaults.StaticFileCacheDays
 	}
 
 	//Login.

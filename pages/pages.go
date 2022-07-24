@@ -13,21 +13,23 @@ import (
 	"github.com/c9845/templates"
 )
 
-//PageData is the format of our data we inject into a template to render it or show data. This
-//struct is used so we always have a consistent format of data being injected into templates
-//for easy parsing.
+//PageData is the format of our data we inject into a template to render it or show
+//data. This struct is used so we always have a consistent format of data being
+//injected into templates for easy parsing.
+//
+//Returning interface{} instead of defined db types for ease of use.
 type PageData struct {
 	UserData    interface{} //username, permissions, etc.
 	AppSettings interface{} //whether certain features are used or enabled.
 	Data        interface{} //misc. actual data we want to show in the gui.
 }
 
-//getPageConfigData gets the common data needed to build pages. This retrieves
+//getPageConfigData gets the common data needed to build pages. This retrieves the
 //common data we use on every page, such as user data (mostly for permissions and
-//hiding/showing certain elements), app settings (for hiding/showing certain
-//elements), and other common stuff like company and license data. This is used
-//on nearly every page requested/shown to fill the PageData struct (except the
-//Data field).
+//hiding/showing certain elements), app settings (for hiding/showing certain elements
+//or functionality), and other common stuff like company and license data. This is used
+//on nearly every page requested/shown to fill the PageData struct (except the Data
+//field).
 func getPageConfigData(r *http.Request) (pd PageData, err error) {
 	//Get user data.
 	u, err := users.GetUserDataByRequest(r)
@@ -35,8 +37,8 @@ func getPageConfigData(r *http.Request) (pd PageData, err error) {
 		return
 	}
 
-	//Remove secrets! Since we are looking up all columns (*), we want to remove
-	//this data since it is sensitive for security.
+	//Remove secrets! Since GetUserDataByRequest() looks up/returns all columns (*),
+	//we want to remove some data since it is sensitive for security.
 	u.Password = ""
 	u.TwoFactorAuthSecret = ""
 

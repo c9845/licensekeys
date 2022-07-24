@@ -7,6 +7,10 @@
 //this isn't update very frequently and is really only used for debugging
 const version: string = "2.0.0";
 
+//defaultTimeout is the time used in setTimeout functions.  This is defined as a const
+//so we always use the same time throughout the app
+const defaultTimeout: number = 2000;
+
 //msgTypes are the types of alerts from bootstrap that we use in the gui
 const msgTypes: { [key: string]: string } = {
     danger:  'alert-danger',
@@ -15,10 +19,6 @@ const msgTypes: { [key: string]: string } = {
     warning: 'alert-warning',
     primary: 'alert-primary',
 };
-
-//defaultTimeout is the time used in setTimeout functions.  This is defined as a const
-//so we always use the same time throughout the app
-const defaultTimeout: number = 2000;
 
 //isEmail checks if a string could be an email address. This is just a very basic
 //regex check.
@@ -46,7 +46,7 @@ var enableSetToggleDebug = false;
  * @param {string | boolean | undefined} toggleToSetIDOn - The option to set on.  This should be set in data- attribute.
  * @param {boolean} forClass - Optional field that allows setting toggles based on class, not an ID.
  */
- function setToggle(querySelector: string, toggleToSetOn: string | boolean | undefined, forClass?: boolean) {
+function setToggle(querySelector: string, toggleToSetOn: string | boolean | undefined, forClass?: boolean) {
     //get button group element(s)
     //This is the parent div that encases multiple buttons and has the
     //.btn-group and .btn-group-toggle classes. Note that always handle

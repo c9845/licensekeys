@@ -78,10 +78,10 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 
 	d.set("WebFilesStore", cfg.WebFilesStore)
 	d.set("WebFilesPath", cfg.WebFilesPath)
+	d.set("StaticFileCacheDays", cfg.StaticFileCacheDays)
+	d.set("UseLocalFiles", cfg.UseLocalFiles)
 	d.set("FQDN", cfg.FQDN)
 	d.set("Port", cfg.Port)
-	d.set("UseLocalFiles", cfg.UseLocalFiles)
-	d.set("StaticFileCacheDays", cfg.StaticFileCacheDays)
 
 	d.set("LoginLifetimeHours", cfg.LoginLifetimeHours)
 	d.set("TwoFactorAuthLifetimeDays", cfg.TwoFactorAuthLifetimeDays)

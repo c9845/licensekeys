@@ -2,15 +2,15 @@
  * login.ts
  * The code in this file handles user login.
  * 
- * 2 factor authentication is handled like so: The user provides username
- * and password.  This is submitted to server which checks validity and if
- * 2FA is turned on.  If it is, the server checks if user has provided 2FA
- * code for this browser recently.  If yes, user is logged in.  If no, user
- * is shown 2FA code input.  The user then provided code and all info is
- * submitted again which is again checked for validity.
+ * 2 factor authentication is handled like so: The user provides username and password. 
+ * This is submitted to server which checks if both are valid and if 2FA is turned on. 
+ * If it is, the server checks if user has provided 2FA token for this browser 
+ * recently (id stored in cookie and verified in database). If yes, user is logged in. 
+ * If no, user is shown 2FA token input. The user then provides the token and all info 
+ * is submitted again which is again (username and password plus 2FA token).
  * 
- * Login with bad password or bas 2FA code adds latency to reduce brute force
- * attempts of a password or code.
+ * Login with bad password or bad 2FA code adds latency to reduce brute force attempts 
+ * of a password or code.
  */
 
 /// <reference path="common.ts" />
@@ -23,8 +23,8 @@ if (document.getElementById("login")) {
         delimiters: ['[[', ']]'],
         el: '#login',
         data: {
-            username: 'admin@example.com', //TODO: remove default, just used for quicker development
-            password: 'admin@example.com',
+            username: '',
+            password: '',
             
             //errors
             msg:        '',
@@ -43,13 +43,13 @@ if (document.getElementById("login")) {
         },
         methods: {
             login: function() {
-                //make sure user isn't already trying to log in
+                //Make sure user isn't already trying to log in.
                 if (this.submitting) {
                     console.log("already submitting...");                
                     return;
                 }
     
-                //validation
+                //Validation.
                 if (this.username.length === 0) {
                     return;
                 }
@@ -69,14 +69,14 @@ if (document.getElementById("login")) {
                     return
                 }
     
-                //validation ok
+                //Validation ok.
                 this.msg =          'Logging in...';
                 this.msgType =      msgTypes.primary;
                 this.submitting =   true;
     
-                //make request to try logging user in
-                //if this is successful, session data will be set and we will redirect
-                //user to main logged in page.
+                //Make request to try logging user in. If this is successful, session 
+                //data will be set in cookie by response and we will redirect user to 
+                //the main logged in page.
                 let data: Object = {
                     username:   this.username,
                     password:   this.password,
@@ -94,10 +94,11 @@ if (document.getElementById("login")) {
                         return;
                     }
     
-                    //check response type to check 2fa status
+                    //Check response type to check 2fa status. This handles showing
+                    //the 2fa token input if needed.
                     let resType: string = j.Type;
                     if (resType === "login2FATokenRequired") {
-                        //show user 2fa login ui
+                        //Show user 2fa token input.
                         login.show2FAInput = true;
                         login.msg = '';
                         
@@ -109,16 +110,20 @@ if (document.getElementById("login")) {
                         return;
                     }
                     else if (resType === "login2FAForced") {
-                        //show user error message that they need to have admin set up 2fa for them
-                        //2fa is required
-                        login.msg = "2 Factor Authentication (2FA) is required but you do not have it set up.  Please see an administator to set up 2FA.";
+                        //Show user error message that they need to have admin set up 
+                        //2fa for them, 2fa is required and this user does not have
+                        //2fa set up yet.
+                        login.msg =     "2 Factor Authentication (2FA) is required but you do not have it set up.  Please see an administator to set up 2FA.";
                         login.msgType = msgTypes.danger;
                         return;
                     } 
                     else if  (resType === "loginOK") {
-                        //login only required username/password and was successful
-                        //or login also required 2fa and was successful
-                        //redirect user to logged in page
+                        //Login was successful. Either user only had to provide username
+                        //and password (2fa is not enabled for this user or 2fa token
+                        //was provided recently) or user provided username, password, 
+                        //and 2fa token.
+                        //
+                        //Redirect user to main logged in page.
                         window.location.href = login.urls.mainApp;
                         return;
                     }
@@ -141,11 +146,8 @@ if (document.getElementById("login")) {
             }
         },
         mounted() {
-            if (this.$el.id !== "" && document.getElementById(this.$el.id)) {
-                //set cursor to username input on page load
-                document.getElementById('username').focus();
-            }
-    
+            //Set cursor to username input on page load.
+            document.getElementById('username').focus();
             return;
         }
     });

@@ -28,7 +28,7 @@
                         <!-- lookup user, only shown when viewing/editing -->
                         <div class="card" v-if="addingNew === false" v-cloak>
                             <div class="card-header">
-                                <h5>Users</h5>
+                                <h5>User Management</h5>
                                 <div class="card-header-btn">
                                     <button class="btn btn-outline-primary btn-sm" v-on:click="setUIState">
                                         <i class="fas fa-plus"></i>
@@ -63,115 +63,120 @@
                                 </div>
                             </div>
                             <div class="card-body"> 
-                                <!-- basics -->
-                                <div class="form-group" v-if="addingNew === false">
-                                    <label>User ID:</label>
-                                    <input type="text" class="form-control" v-model="userData.ID" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label>Username:</label>
-                                    <input type="email" class="form-control text-lowercase" v-model="userData.Username">
-                                </div>
+                                <!-- basics, password, 2fa, force logout -->
+                                <section>
+                                    <!-- basics -->
+                                    <div class="form-group" v-if="addingNew === false">
+                                        <label>User ID:</label>
+                                        <input type="text" class="form-control" v-model="userData.ID" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Username:</label>
+                                        <input type="email" class="form-control text-lowercase" v-model="userData.Username">
+                                    </div>
+                                    
+                                    <!-- password, 2fa, force logout -->
+                                    <fieldset v-if="addingNew">
+                                        <div class="form-group">
+                                            <label>Password: <small class="text-muted">(Min. {{$minPasswordLength}} characters.)</small></label>
+                                            <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password1">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Password, again:</label>
+                                            <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password2">
+                                        </div>
+                                    </fieldset>
+                                    <fieldset v-else>
+                                        <div class="form-group">
+                                            <button 
+                                                class="btn btn-outline-secondary btn-block" 
+                                                data-toggle="modal" 
+                                                data-target="#modal-changePassword"
+                                            >
+                                                Change Password
+                                            </button>
+                                        </div>
+                                        <div class="form-group">
+                                            <button 
+                                                class="btn btn-outline-secondary btn-block" 
+                                                v-on:click="forceLogout"
+                                            >
+                                                [[forceLogoutBtnText]]
+                                            </button>
+                                        </div>
+    
+                                        {{if $appSettings.Allow2FactorAuth}}
+                                        <!-- show certain 2fa button/modal based on if user currently has 2fa enabled and if app setting enables 2fa -->
+                                        <div class="form-group">
+                                            <button 
+                                                v-if="userData.TwoFactorAuthEnabled" 
+                                                class="btn btn-outline-secondary btn-block" 
+                                                data-toggle="modal" 
+                                                data-target="#modal-deactivate2FA"
+                                            >
+                                                Deactivate 2 Factor Authentication
+                                            </button>
+                                            <button 
+                                                v-else 
+                                                class="btn btn-outline-secondary btn-block" 
+                                                data-toggle="modal" 
+                                                data-target="#modal-activate2FA"
+                                                v-on:click="reset2FAActivationModal"
+                                            >
+                                                Activate 2 Factor Authentication
+                                            </button>
+                                        </div>
+                                        {{end}}
+                                    </fieldset>
+                                </section>
 
-                                <!-- password & 2 factor auth -->
-                                <fieldset v-if="addingNew">
-                                    <div class="form-group">
-                                        <label>Password: <small class="text-muted">(Min. {{$minPasswordLength}} characters.)</small></label>
-                                        <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password1">
+                                <!-- permissions-->
+                                <section>
+                                    <div class="form-group side-by-side">
+                                        <label>Active:</label>
+                                        <div class="btn-group btn-group-toggle" id="Active" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('Active', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('Active', false)">No
+                                            </label>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label>Password, again:</label>
-                                        <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password2">
+                                    <div class="form-group side-by-side">
+                                        <label>Administrator:</label>
+                                        <div class="btn-group btn-group-toggle" id="Administrator" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('Administrator', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('Administrator', false)">No
+                                            </label>
+                                        </div>
                                     </div>
-                                </fieldset>
-                                <fieldset v-else>
-                                    <div class="form-group">
-                                        <button 
-                                            class="btn btn-outline-secondary btn-block" 
-                                            data-toggle="modal" 
-                                            data-target="#modal-changePassword"
-                                        >
-                                            Change Password
-                                        </button>
+                                    <div class="form-group side-by-side">
+                                        <label>CreateLicenses:</label>
+                                        <div class="btn-group btn-group-toggle" id="CreateLicenses" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('CreateLicenses', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('CreateLicenses', false)">No
+                                            </label>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <button 
-                                            class="btn btn-outline-secondary btn-block" 
-                                            v-on:click="forceLogout"
-                                        >
-                                            [[forceLogoutBtnText]]
-                                        </button>
+                                    <div class="form-group side-by-side">
+                                        <label>ViewLicenses:</label>
+                                        <div class="btn-group btn-group-toggle" id="ViewLicenses" data-toggle="buttons">
+                                            <label class="btn btn-secondary" data-switch="true">
+                                                <input type="radio" v-on:click="setField('ViewLicenses', true)">Yes
+                                            </label>
+                                            <label class="btn btn-secondary" data-switch="false">
+                                                <input type="radio" v-on:click="setField('ViewLicenses', false)">No
+                                            </label>
+                                        </div>
                                     </div>
-
-                                    {{if $appSettings.Allow2FactorAuth}}
-                                    <!-- show certain 2fa button/modal based on if user currently has 2fa enabled and if app setting enables 2fa -->
-                                    <div class="form-group">
-                                        <button 
-                                            v-if="userData.TwoFactorAuthEnabled" 
-                                            class="btn btn-outline-secondary btn-block" 
-                                            data-toggle="modal" 
-                                            data-target="#modal-deactivate2FA"
-                                        >
-                                            Deactivate 2 Factor Authentication
-                                        </button>
-                                        <button 
-                                            v-else 
-                                            class="btn btn-outline-secondary btn-block" 
-                                            data-toggle="modal" 
-                                            data-target="#modal-activate2FA"
-                                            v-on:click="reset2FAActivationModal"
-                                        >
-                                            Activate 2 Factor Authentication
-                                        </button>
-                                    </div>
-                                    {{end}}
-                                </fieldset>
-
-                                <!-- access permissions-->
-                                <div class="form-group side-by-side">
-                                    <label>Active:</label>
-                                    <div class="btn-group btn-group-toggle" id="Active" data-toggle="buttons">
-                                        <label class="btn btn-secondary" data-switch="true">
-                                            <input type="radio" v-on:click="setField('Active', true)">Yes
-                                        </label>
-                                        <label class="btn btn-secondary" data-switch="false">
-                                            <input type="radio" v-on:click="setField('Active', false)">No
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="form-group side-by-side">
-                                    <label>Administrator:</label>
-                                    <div class="btn-group btn-group-toggle" id="Administrator" data-toggle="buttons">
-                                        <label class="btn btn-secondary" data-switch="true">
-                                            <input type="radio" v-on:click="setField('Administrator', true)">Yes
-                                        </label>
-                                        <label class="btn btn-secondary" data-switch="false">
-                                            <input type="radio" v-on:click="setField('Administrator', false)">No
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="form-group side-by-side">
-                                    <label>CreateLicenses:</label>
-                                    <div class="btn-group btn-group-toggle" id="CreateLicenses" data-toggle="buttons">
-                                        <label class="btn btn-secondary" data-switch="true">
-                                            <input type="radio" v-on:click="setField('CreateLicenses', true)">Yes
-                                        </label>
-                                        <label class="btn btn-secondary" data-switch="false">
-                                            <input type="radio" v-on:click="setField('CreateLicenses', false)">No
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="form-group side-by-side">
-                                    <label>ViewLicenses:</label>
-                                    <div class="btn-group btn-group-toggle" id="ViewLicenses" data-toggle="buttons">
-                                        <label class="btn btn-secondary" data-switch="true">
-                                            <input type="radio" v-on:click="setField('ViewLicenses', true)">Yes
-                                        </label>
-                                        <label class="btn btn-secondary" data-switch="false">
-                                            <input type="radio" v-on:click="setField('ViewLicenses', false)">No
-                                        </label>
-                                    </div>
-                                </div>
+                                </section>
                                 
                                 <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                                     [[msgSave]]
@@ -200,7 +205,7 @@
                     <div class="modal-body">
                         <form>
                             <div class="form-group">
-                                <label>Password: <small class="text-muted">(Min. {{$minPasswordLength}} characters.)</small></label>
+                                <label>Password: <small class="text-secondary">(Min. {{$minPasswordLength}} characters.)</small></label>
                                 <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="password1">
                             </div>
                             <div class="form-group">
@@ -300,7 +305,7 @@
                     </div>
                     <div class="modal-body">
                         <blockquote class="section-description section-description-secondary">
-                            Please confirm you want to deactivate 2FA for this user.  Having 2FA enabled increase security for user logins.
+                            Please confirm you want to deactivate 2FA for this user. Having 2FA enabled increase security for user logins.
                         </blockquote>
                         
                         <div class="mt-3 alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
