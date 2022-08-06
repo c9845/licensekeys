@@ -21,10 +21,10 @@ DBJournalMode: "WAL"
 #StaticFileCacheDays: (integer) - The number of days a user's browser will cache CSS and JS files, greater than 0. Default: 7. 
 WebFilesStore: "embedded"
 WebFilesPath: "/"
+StaticFileCacheDays: 7
+UseLocalFiles: false
 FQDN: "."
 Port: 8007
-UseLocalFiles: false
-StaticFileCacheDays: 7
 
 #SESSION SETTINGS.
 #LoginLifetimeHours: (decimal) -        The length of time of inactivity after which a user will need to log back into the app, greater than 0. Default: 1. 
