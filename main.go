@@ -74,7 +74,7 @@ func init() {
 	//If user just wants to see app version, print it and exit.
 	//Not using log.Println() so that a timestamp isn't printed.
 	if *showVersion {
-		fmt.Println(version.V)
+		fmt.Printf("Version: %s (Released: %s)\n", version.V, version.ReleaseDate)
 		os.Exit(0)
 		return
 	}

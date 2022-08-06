@@ -152,6 +152,7 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	//Misc...
 	d.set("**MISC**", "******************************")
 	d.set("AppVersion", version.V)
+	d.set("ReleaseDate", version.ReleaseDate)
 	d.set("OS", runtime.GOOS)
 	d.set("Arch", runtime.GOARCH)
 	d.set("Startup Time", startTime)
