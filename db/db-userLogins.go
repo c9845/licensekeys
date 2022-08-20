@@ -13,10 +13,10 @@ import (
 //This table stores a history of each time a user logs into the app. This is used for
 //maintaining logged in sessions as well as forced-log-outs of users by admins.
 
-//TableUserLogins is the name of the table
+// TableUserLogins is the name of the table
 const TableUserLogins = "user_logins"
 
-//UserLogin is used to interact with the table
+// UserLogin is used to interact with the table
 type UserLogin struct {
 	ID                 int64 //not stored in cookie because it is easily guessed & incremented to find "next" session
 	UserID             int64
@@ -73,7 +73,7 @@ const (
 	createIndexUserLoginsDatetimeCreated = `CREATE INDEX IF NOT EXISTS ` + TableUserLogins + `__DatetimeCreated_idx ON ` + TableUserLogins + ` (DatetimeCreated)`
 )
 
-//Insert saves an entry to the database for a user logging in to the app.
+// Insert saves an entry to the database for a user logging in to the app.
 func (u *UserLogin) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"UserID",
@@ -116,7 +116,7 @@ func (u *UserLogin) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//GetLoginByCookieValue looks up login/session data by the cookie stored value.
+// GetLoginByCookieValue looks up login/session data by the cookie stored value.
 func GetLoginByCookieValue(ctx context.Context, cv string) (l UserLogin, err error) {
 	c := sqldb.Connection()
 	q := `
@@ -131,11 +131,11 @@ func GetLoginByCookieValue(ctx context.Context, cv string) (l UserLogin, err err
 	return
 }
 
-//DisableLoginsForUser disables all sessions for a user that are active and not
-//currently expired. This is used upon logging in when single sessions is enabled to
-//mark all other currently active and non-expired sessions as inactive to enforce the
-//single session policy. UserID is required to prevent us from mistakenly disabled
-//all sessions for all users.
+// DisableLoginsForUser disables all sessions for a user that are active and not
+// currently expired. This is used upon logging in when single sessions is enabled to
+// mark all other currently active and non-expired sessions as inactive to enforce the
+// single session policy. UserID is required to prevent us from mistakenly disabled
+// all sessions for all users.
 func DisableLoginsForUser(ctx context.Context, userID int64) (err error) {
 	c := sqldb.Connection()
 	q := `
@@ -167,9 +167,9 @@ func DisableLoginsForUser(ctx context.Context, userID int64) (err error) {
 	return
 }
 
-//ExtendLoginExpiration updates the expiration timestamp for a user's login. This is
-//used to reset the time a session will expire to keep users logged in if they are
-//active within the app.
+// ExtendLoginExpiration updates the expiration timestamp for a user's login. This is
+// used to reset the time a session will expire to keep users logged in if they are
+// active within the app.
 func (l *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int64) (err error) {
 	c := sqldb.Connection()
 	q := `
@@ -195,9 +195,9 @@ func (l *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int
 	return
 }
 
-//GetUserLogins looks up successful logins. This defaults to looking up the last 200
-//rows if not limit is provided. You can optionally filter by userID or get logins
-//for all users if userID is 0.
+// GetUserLogins looks up successful logins. This defaults to looking up the last 200
+// rows if not limit is provided. You can optionally filter by userID or get logins
+// for all users if userID is 0.
 func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []UserLogin, err error) {
 	const defaultMaxRows uint16 = 200
 

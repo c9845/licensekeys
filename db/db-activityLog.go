@@ -16,10 +16,10 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-//TableActivityLog is the name of the table
+// TableActivityLog is the name of the table
 const TableActivityLog = "activity_log"
 
-//ActivityLog is used to interact with the table
+// ActivityLog is used to interact with the table
 type ActivityLog struct {
 	ID               int64
 	DatetimeCreated  string //no default in CREATE TABLE so that we can set value using golang since we will also set TimestampCreated using golang.
@@ -70,9 +70,9 @@ const (
 	createIndexActivityLogDatetimeCreated  = `CREATE INDEX IF NOT EXISTS ` + TableActivityLog + `__DatetimeCreated_idx ON ` + TableActivityLog + ` (DatetimeCreated)`
 )
 
-//Insert saves a log entry to the database for an action performed
-//by a user or via an api key.
-//you should have already performed validation.
+// Insert saves a log entry to the database for an action performed
+// by a user or via an api key.
+// you should have already performed validation.
 func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 	//similar fields between user actions and api actions
 	cols := sqldb.Columns{
@@ -130,10 +130,10 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//GetActivityLog looks up the activities in the log.  This defaults
-//to returning the last 200 runs if numRows is 0.  This can filter
-//results by user and/or by a search string which performs a wildcard-ed
-//LIKE query on the form values.
+// GetActivityLog looks up the activities in the log.  This defaults
+// to returning the last 200 runs if numRows is 0.  This can filter
+// results by user and/or by a search string which performs a wildcard-ed
+// LIKE query on the form values.
 func GetActivityLog(ctx context.Context, userID int64, endpoint, searchFor string, numRows uint16) (aa []ActivityLog, err error) {
 	const defaultMaxRows uint16 = 200
 
@@ -220,7 +220,7 @@ func GetActivityLog(ctx context.Context, userID int64, endpoint, searchFor strin
 	return
 }
 
-//ClearActivityLog deletes rows from the activity log table prior to a given date
+// ClearActivityLog deletes rows from the activity log table prior to a given date
 func ClearActivityLog(ctx context.Context, date string) (rowsDeleted int64, err error) {
 	q := `
 		DELETE FROM ` + TableActivityLog + ` 

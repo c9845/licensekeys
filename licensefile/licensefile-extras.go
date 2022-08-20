@@ -5,14 +5,14 @@ import (
 	"fmt"
 )
 
-//ErrFieldDoesNotExist is returned when trying to retrieve a field with a given name
-//using one of the ExtraAs... type assertion retrieval functions but the field does
-//not exist in the File's Extra map.
+// ErrFieldDoesNotExist is returned when trying to retrieve a field with a given name
+// using one of the ExtraAs... type assertion retrieval functions but the field does
+// not exist in the File's Extra map.
 var ErrFieldDoesNotExist = errors.New("extra field does not exist")
 
-//ExtraAsInt returns the value of the Extra field with the given name as an int64.
-//If the field cannot be found, an error is returned. If the field cannot be type
-//asserted to an int, an error is returned.
+// ExtraAsInt returns the value of the Extra field with the given name as an int64.
+// If the field cannot be found, an error is returned. If the field cannot be type
+// asserted to an int, an error is returned.
 func (f *File) ExtraAsInt(name string) (i int, err error) {
 	v, ok := f.Extras[name]
 	if !ok {
@@ -28,9 +28,9 @@ func (f *File) ExtraAsInt(name string) (i int, err error) {
 	return
 }
 
-//ExtraAsFloat returns the value of the Extra field with the given name as a float64.
-//If the field cannot be found, an error is returned. If the field cannot be type
-//asserted to a float64, an error is returned.
+// ExtraAsFloat returns the value of the Extra field with the given name as a float64.
+// If the field cannot be found, an error is returned. If the field cannot be type
+// asserted to a float64, an error is returned.
 func (f *File) ExtraAsFloat(name string) (x float64, err error) {
 	v, ok := f.Extras[name]
 	if !ok {
@@ -46,9 +46,9 @@ func (f *File) ExtraAsFloat(name string) (x float64, err error) {
 	return
 }
 
-//ExtraAsString returns the value of the Extra field with the given name as a string.
-//If the field cannot be found, an error is returned. If the field cannot be type
-//asserted to a string, an error is returned.
+// ExtraAsString returns the value of the Extra field with the given name as a string.
+// If the field cannot be found, an error is returned. If the field cannot be type
+// asserted to a string, an error is returned.
 func (f *File) ExtraAsString(name string) (s string, err error) {
 	v, ok := f.Extras[name]
 	if !ok {
@@ -64,9 +64,9 @@ func (f *File) ExtraAsString(name string) (s string, err error) {
 	return
 }
 
-//ExtraAsBool returns the value of the Extra field with the given name as a bool.
-//If the field cannot be found, an error is returned. If the field cannot be type
-//asserted to an bool, an error is returned.
+// ExtraAsBool returns the value of the Extra field with the given name as a bool.
+// If the field cannot be found, an error is returned. If the field cannot be type
+// asserted to an bool, an error is returned.
 func (f *File) ExtraAsBool(name string) (b bool, err error) {
 	v, ok := f.Extras[name]
 	if !ok {

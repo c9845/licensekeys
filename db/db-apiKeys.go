@@ -10,10 +10,10 @@ import (
 	"github.com/c9845/sqldb/v2"
 )
 
-//TableAPIKeys is the name of the table
+// TableAPIKeys is the name of the table
 const TableAPIKeys = "api_keys"
 
-//APIKey is used to interact with the table
+// APIKey is used to interact with the table
 type APIKey struct {
 	ID               int64
 	DatetimeCreated  string
@@ -52,7 +52,7 @@ const (
 	createIndexAPIKeysActive = `CREATE INDEX IF NOT EXISTS ` + TableAPIKeys + `__Active_idx ON ` + TableAPIKeys + ` (Active)`
 )
 
-//GetAPIKeys looks up a list of API keys.
+// GetAPIKeys looks up a list of API keys.
 func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa []APIKey, err error) {
 	//build columns
 	cols, err := columns.ForSelect()
@@ -90,7 +90,7 @@ func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa
 	return
 }
 
-//GetAPIKeyByKey looks up an api key by its Key.
+// GetAPIKeyByKey looks up an api key by its Key.
 func GetAPIKeyByKey(ctx context.Context, key string, columns sqldb.Columns) (a APIKey, err error) {
 	cols, err := columns.ForSelect()
 	if err != nil {
@@ -108,10 +108,10 @@ func GetAPIKeyByKey(ctx context.Context, key string, columns sqldb.Columns) (a A
 	return
 }
 
-//GetAPIKeyByDescription looks up an API key by its Description
-//This is used when adding an API key to verify that a description isn't used
-//for more than one active key. We don't want duplicate descriptions to reduce
-//confusion and mistakes with multiple active API keys for the same usage.
+// GetAPIKeyByDescription looks up an API key by its Description
+// This is used when adding an API key to verify that a description isn't used
+// for more than one active key. We don't want duplicate descriptions to reduce
+// confusion and mistakes with multiple active API keys for the same usage.
 func GetAPIKeyByDescription(ctx context.Context, desc string) (a APIKey, err error) {
 	q := `
 		SELECT ` + TableAPIKeys + `.* 
@@ -127,8 +127,8 @@ func GetAPIKeyByDescription(ctx context.Context, desc string) (a APIKey, err err
 	return
 }
 
-//Insert saves a new api to the database.
-//you should have already performed validation.
+// Insert saves a new api to the database.
+// you should have already performed validation.
 func (a *APIKey) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"CreatedByUserID",
@@ -164,7 +164,7 @@ func (a *APIKey) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//RevokeAPIKey marks an api key as inactive
+// RevokeAPIKey marks an api key as inactive
 func RevokeAPIKey(ctx context.Context, id int64) error {
 	q := `
 		UPDATE ` + TableAPIKeys + ` 

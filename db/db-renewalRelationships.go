@@ -11,10 +11,10 @@ import (
 //This table keeps a record of the relationship that arises from renewing a
 //license. This stores the "from" to "to" relationship.
 
-//TableRenewalRelationships is the name of the table.
+// TableRenewalRelationships is the name of the table.
 const TableRenewalRelationships = "renewal_relationships"
 
-//RenewalRelationship is used to interact with the table.
+// RenewalRelationship is used to interact with the table.
 type RenewalRelationship struct {
 	ID               int64
 	DatetimeCreated  string
@@ -51,7 +51,7 @@ const (
 	`
 )
 
-//Insert saves a new renewal relationship.
+// Insert saves a new renewal relationship.
 func (r *RenewalRelationship) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeCreated",
@@ -93,8 +93,8 @@ func (r *RenewalRelationship) Insert(ctx context.Context, tx *sqlx.Tx) (err erro
 	return
 }
 
-//GetRenewalRelationshipByFromID looks up a renewal relationship's data by the
-//from license's ID.
+// GetRenewalRelationshipByFromID looks up a renewal relationship's data by the
+// from license's ID.
 func GetRenewalRelationshipByFromID(ctx context.Context, fromLicenseID int64) (r RenewalRelationship, err error) {
 	q := `
 		SELECT 

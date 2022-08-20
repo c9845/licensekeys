@@ -10,7 +10,7 @@ import (
 	"github.com/c9845/templates"
 )
 
-//Users shows the page to manage users.
+// Users shows the page to manage users.
 func Users(w http.ResponseWriter, r *http.Request) {
 	//Get data to build gui.
 	pd, err := getPageConfigData(r)
@@ -28,7 +28,7 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	templates.Show(w, "app", "users", pd)
 }
 
-//UserLogins shows the page of user logins to the app. You can also filter by user ID.
+// UserLogins shows the page of user logins to the app. You can also filter by user ID.
 func UserLogins(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)

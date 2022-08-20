@@ -15,7 +15,7 @@ import (
 	"github.com/c9845/output"
 )
 
-//GetAll gets a list of all users optionally filtered by users that are active.
+// GetAll gets a list of all users optionally filtered by users that are active.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	activeOnly, _ := strconv.ParseBool(r.FormValue("activeOnly"))
 
@@ -28,7 +28,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(users, w)
 }
 
-//Add saves a new user.
+// Add saves a new user.
 func Add(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	raw := r.FormValue("data")
@@ -95,8 +95,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(u.ID, w)
 }
 
-//Update saves changes to a user. This does not handle password changes nor 2 Factor
-//Auth stuff since those actions are bit more specialized.
+// Update saves changes to a user. This does not handle password changes nor 2 Factor
+// Auth stuff since those actions are bit more specialized.
 func Update(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	raw := r.FormValue("data")
@@ -137,7 +137,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//ChangePassword sets a new password for a user
+// ChangePassword sets a new password for a user
 func ChangePassword(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)

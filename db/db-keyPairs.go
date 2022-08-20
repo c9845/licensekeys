@@ -27,10 +27,10 @@ import (
 //is needed. This prevents the private key from being used if the db is stolen/hacked
 //but only if the password/config file isn't stolen as well.
 
-//TableKeyPairs is the name of the table.
+// TableKeyPairs is the name of the table.
 const TableKeyPairs = "key_pairs"
 
-//KeyPair is used to interact with the table.
+// KeyPair is used to interact with the table.
 type KeyPair struct {
 	ID               int64
 	DatetimeCreated  string
@@ -77,7 +77,7 @@ const (
 	`
 )
 
-//GetKeyPairByName looks up a key pair by its name.
+// GetKeyPairByName looks up a key pair by its name.
 func GetKeyPairByName(ctx context.Context, name string) (k KeyPair, err error) {
 	q := `
 		SELECT ` + TableKeyPairs + `.*
@@ -90,7 +90,7 @@ func GetKeyPairByName(ctx context.Context, name string) (k KeyPair, err error) {
 	return
 }
 
-//Validate handles validation of a key pair before saving.
+// Validate handles validation of a key pair before saving.
 func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize.
 	k.Name = strings.TrimSpace(k.Name)
@@ -119,8 +119,8 @@ func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
 	return
 }
 
-//Insert saves a key pair.
-//You should have already called Validate().
+// Insert saves a key pair.
+// You should have already called Validate().
 func (k *KeyPair) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"CreatedByUserID",
@@ -166,8 +166,8 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//GetPublicKeyByID returns the public key for a key pair. This is used to display
-//the public key for copying.
+// GetPublicKeyByID returns the public key for a key pair. This is used to display
+// the public key for copying.
 func GetPublicKeyByID(ctx context.Context, id int64) (publicKey string, err error) {
 	q := `SELECT PublicKey FROM ` + TableKeyPairs + ` WHERE ID = ?`
 	c := sqldb.Connection()
@@ -175,8 +175,8 @@ func GetPublicKeyByID(ctx context.Context, id int64) (publicKey string, err erro
 	return
 }
 
-//GetKeyPairs returns the list of key pairs for an app optionally filtered by
-//active keypairs only.
+// GetKeyPairs returns the list of key pairs for an app optionally filtered by
+// active keypairs only.
 func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []KeyPair, err error) {
 	//Base query.
 	q := `
@@ -211,7 +211,7 @@ func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []KeyPai
 	return
 }
 
-//Delete marks a defined custom field as deleted.
+// Delete marks a defined custom field as deleted.
 func (k *KeyPair) Delete(ctx context.Context) (err error) {
 	q := `
 		UPDATE ` + TableKeyPairs + ` 
@@ -239,7 +239,7 @@ func (k *KeyPair) Delete(ctx context.Context) (err error) {
 	return
 }
 
-//GetKeyPairByID looks up a key pair by its ID.
+// GetKeyPairByID looks up a key pair by its ID.
 func GetKeyPairByID(ctx context.Context, id int64) (k KeyPair, err error) {
 	q := `
 		SELECT ` + TableKeyPairs + `.*
@@ -252,9 +252,9 @@ func GetKeyPairByID(ctx context.Context, id int64) (k KeyPair, err error) {
 	return
 }
 
-//SetIsDefault marks the keypair as the default keypair for the respective app. This
-//also marks any other keypairs as non-default for the app to ensure only one
-//keypair is marked as default as a time.
+// SetIsDefault marks the keypair as the default keypair for the respective app. This
+// also marks any other keypairs as non-default for the app to ensure only one
+// keypair is marked as default as a time.
 func (kp *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 	//look up details of key pair to get app id to set other
 	//keypairs as inactive.
@@ -316,7 +316,7 @@ func (kp *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 	return
 }
 
-//GetDefaultKeyPair retuns the default key pair for an app.
+// GetDefaultKeyPair retuns the default key pair for an app.
 func GetDefaultKeyPair(ctx context.Context, appID int64) (k KeyPair, err error) {
 	//Base query.
 	q := `

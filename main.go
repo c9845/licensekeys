@@ -10,6 +10,7 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -40,20 +41,21 @@ import (
 	"github.com/justinas/alice"
 )
 
-//embed HTML templates and static files into app.
-//This is done so that we don't need to distribute our HTML, CSS, JS, etc. files
-//separately. The end-user will not have to set the WebFilesPath field in their config
-//file.
+// embed HTML templates and static files into app.
+// This is done so that we don't need to distribute our HTML, CSS, JS, etc. files
+// separately. The end-user will not have to set the WebFilesPath field in their config
+// file.
 //
-//Embedding files will increase the size of the built executable. To limit the size of
-//the executable, we only embed the necessary files. This ends up being a lot of files
-//since we still want to allow the end-user to serve third party files from the local
-//server versus from over the internet/CDN.
+// Embedding files will increase the size of the built executable. To limit the size of
+// the executable, we only embed the necessary files. This ends up being a lot of files
+// since we still want to allow the end-user to serve third party files from the local
+// server versus from over the internet/CDN.
 //
 //go:embed website/templates/*
 //go:embed website/static/css
 //go:embed website/static/js/*.js
 //go:embed website/static/js/vendor
+//go:embed website/root/*
 var embeddedFiles embed.FS
 
 func init() {
@@ -92,7 +94,7 @@ func init() {
 	//Starting messages...
 	//Always show version number when starting for diagnostics.
 	log.Println("Starting License Key Server...")
-	log.Println("Version:", version.V)
+	log.Printf("Version: %s (Released: %s)\n", version.V, version.ReleaseDate)
 
 	//Read and parse the config file at the provided path. The config file provides
 	//runtime configuration of the app and contains settings that are rarely modified.
@@ -365,6 +367,11 @@ func main() {
 	externalAPI.Handle("/licenses/renew/", extAPIMid.Then(http.HandlerFunc(license.Renew))).Methods("POST")
 	externalAPI.Handle("/licenses/disable/", extAPIMid.Then(http.HandlerFunc(license.Disable))).Methods("POST")
 
+	//Handle static files served off the root directory. This is typically for robots.txt,
+	//favicon, etc. {file} is placeholder that isn't used, it is there just so that the
+	//router knows to match "something off of /" with this handler.
+	r.HandleFunc("/{file}", rootFileHandler)
+
 	//Handle static files/assets.
 	//This is anything located of the /static directory and typically includes
 	//js, css, images, fonts, etc.
@@ -393,9 +400,54 @@ func main() {
 	log.Fatal(http.ListenAndServe(hostPort, r))
 }
 
-//healthcheckHandler is used to send back a response when an infrastructure
-//monitoring tool is checking if this app is running/alive. The sent back
-//data could probably be more simple, something like w.Write([]byte("alive")).
+// healthcheckHandler is used to send back a response when an infrastructure
+// monitoring tool is checking if this app is running/alive. The sent back
+// data could probably be more simple, something like w.Write([]byte("alive")).
 func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	output.DataFound("alive", w)
+}
+
+// rootFileHandler handles serving static files at the root directory. Think robots.txt
+// and favicon.ico.
+//
+// Note that this has to handle embedded files! Make sure go:embed directives include
+// root sourced files. This is also why root files are stored in website/root versus
+// just at website/; embedding the website/ folder would embed every file recursively
+// which is what we don't want (we don't need .ts files embedded), therefore using
+// website/root allows us to import more specifically.
+func rootFileHandler(w http.ResponseWriter, r *http.Request) {
+	var httpFS http.FileSystem
+
+	//Handle embedded or on-disk storage of files.
+	if config.Data().WebFilesStore == config.WebFilesStoreEmbedded {
+		w.Header().Set("X-Rootfile-Served-From", "embedded")
+
+		//Get path to embedded root files.
+		embeddedDir := embeddedFiles
+		dirOffEmbedRoot := filepath.ToSlash(filepath.Join("website", "root"))
+		rootDir, err := fs.Sub(embeddedDir, dirOffEmbedRoot)
+		if err != nil {
+			log.Println("rootFileHandler", "could not find directory in embedded files", err)
+			return
+		}
+
+		//Serve the directory.
+		httpFS = http.FS(rootDir)
+
+	} else {
+		w.Header().Set("X-Rootfile-Served-From", "disk")
+
+		//Get path to static files. This sibling directory to this is where root files
+		//are stored. To get the directory to root files, we start with the static file
+		//directory, get the parent directory, and then append the root directory.
+		staticFilesDir := config.Data().WebFilesPath
+		parentDir := filepath.Dir(staticFilesDir)
+		rootFilesDir := filepath.Join(parentDir, "root")
+
+		//Serve the directory.
+		dir := os.DirFS(rootFilesDir)
+		httpFS = http.FS(dir)
+	}
+
+	http.FileServer(httpFS).ServeHTTP(w, r)
 }

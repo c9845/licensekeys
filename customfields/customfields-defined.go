@@ -22,7 +22,7 @@ import (
 	"github.com/c9845/output"
 )
 
-//Add saves a new custom field.
+// Add saves a new custom field.
 func Add(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")
@@ -72,7 +72,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(cfd.ID, w)
 }
 
-//GetDefined returns the list of fields for an app. You can optionally filter by active fields only.
+// GetDefined returns the list of fields for an app. You can optionally filter by active fields only.
 func GetDefined(w http.ResponseWriter, r *http.Request) {
 	appID, _ := strconv.ParseInt(r.FormValue("appID"), 10, 64)
 	activeOnly, _ := strconv.ParseBool(r.FormValue("activeOnly"))
@@ -91,7 +91,7 @@ func GetDefined(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(items, w)
 }
 
-//Update saves changes to an existing field.
+// Update saves changes to an existing field.
 func Update(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")
@@ -133,9 +133,9 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//DeleteDefined marks a custom field as inactive. The field will no longer be available
-//when creating a license. The field will still be displayed when viewing already
-//created licenses.
+// DeleteDefined marks a custom field as inactive. The field will no longer be available
+// when creating a license. The field will still be displayed when viewing already
+// created licenses.
 func DeleteDefined(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 

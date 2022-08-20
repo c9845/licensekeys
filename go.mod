@@ -1,6 +1,6 @@
 module github.com/c9845/licensekeys/v2
 
-go 1.18
+go 1.19
 
 require (
 	github.com/c9845/cachebusting v1.0.0

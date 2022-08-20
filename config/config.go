@@ -16,12 +16,12 @@ import loops (besides minor utility packages).
 ---
 
 When adding a new field to the config file:
- - Add the field to the File type below.
- - Determine any default value(s) for the field and set it in newDefaultConfig().
- - Document the field in the template config file in the documenation.
- - Set and validation in validate().
- - Determine if the field should be listed in nonPublishedFields.
- - Add the field to the diagnostics page, see pages.Diagnostics().
+  - Add the field to the File type below.
+  - Determine any default value(s) for the field and set it in newDefaultConfig().
+  - Document the field in the template config file in the documenation.
+  - Set and validation in validate().
+  - Determine if the field should be listed in nonPublishedFields.
+  - Add the field to the diagnostics page, see pages.Diagnostics().
 
 Try to keep the organization/order of the config fields the same between the config
 file templates, the type defined below, validation, and diagnostics.
@@ -53,16 +53,16 @@ import (
 	_ "time/tzdata"
 )
 
-//DefaultConfigFileName is the typical name of the config file.
+// DefaultConfigFileName is the typical name of the config file.
 const DefaultConfigFileName = "licensekeys.conf"
 
-//File defines the list of configuration fields. The value for each field will be set
-//by a default or read from a config file. The config file is typically stored in the
-//same directory as the executable.
+// File defines the list of configuration fields. The value for each field will be set
+// by a default or read from a config file. The config file is typically stored in the
+// same directory as the executable.
 //
-//Don't use uints! If user provided a negative number an ugly error message is
-//kicked out. We would rather check for the negative number here and provide a nicer
-//error message.
+// Don't use uints! If user provided a negative number an ugly error message is
+// kicked out. We would rather check for the negative number here and provide a nicer
+// error message.
 type File struct {
 	DBPath        string `yaml:"DBPath"`        //The path the the database file.
 	DBJournalMode string `yaml:"DBJournalMode"` //Sets the mode for writing to the database file; delete or wal.
@@ -86,22 +86,22 @@ type File struct {
 	Development bool `yaml:"Development"` //shows header in app that app is in development, uses non minified CSS & JSS, enabled some debugging, extra logging, etc.
 }
 
-//nonPublishedFields is the list of config fields that we do not advertise to end
-//users. These fields are used for development or diagnostic purposes only. The fields
-//are listed here so that we can make sure not to print them when the -print-config
-//flag is provided to the executable or when we create and write a default config to
-//a file..
+// nonPublishedFields is the list of config fields that we do not advertise to end
+// users. These fields are used for development or diagnostic purposes only. The fields
+// are listed here so that we can make sure not to print them when the -print-config
+// flag is provided to the executable or when we create and write a default config to
+// a file..
 var nonPublishedFields = []string{
 	"Development",
 }
 
-//parsedConfig is the data parsed from the config file. This data is stored so that
-//we don't need to reparse the config file each time we need a piece of data from it.
-//This is not exported so that changes cannot be made to the parsed data as easily.
-//Use the Data() func to get the data for use elsewhere.
+// parsedConfig is the data parsed from the config file. This data is stored so that
+// we don't need to reparse the config file each time we need a piece of data from it.
+// This is not exported so that changes cannot be made to the parsed data as easily.
+// Use the Data() func to get the data for use elsewhere.
 var parsedConfig File
 
-//Stuff used for validation.
+// Stuff used for validation.
 const (
 	portMin = 1024
 	portMax = 65535
@@ -121,7 +121,7 @@ var (
 	}
 )
 
-//newDefaultConfig returns a File with default values set for each field.
+// newDefaultConfig returns a File with default values set for each field.
 func newDefaultConfig() (f File, err error) {
 	//Get path to executable to build default paths.
 	exePath, err := os.Executable()
@@ -151,14 +151,14 @@ func newDefaultConfig() (f File, err error) {
 	return
 }
 
-//Read handles reading and parsing the config file at the provided path. The parsed
-//data is sanitized and validated. The print argument is used to print the config as
-//it was read/parsed and as it was understood after sanitizing, validating, and
-//handling default values.
+// Read handles reading and parsing the config file at the provided path. The parsed
+// data is sanitized and validated. The print argument is used to print the config as
+// it was read/parsed and as it was understood after sanitizing, validating, and
+// handling default values.
 //
-//The parsed configuration is stored in a local variable for access with the Data()
-//func. This is done so that the config file doesn't need to be reparsed each time we
-//want to get data from it.
+// The parsed configuration is stored in a local variable for access with the Data()
+// func. This is done so that the config file doesn't need to be reparsed each time we
+// want to get data from it.
 func Read(path string, print bool) (err error) {
 	// log.Println("Provided config file path:", path, print)
 
@@ -276,7 +276,7 @@ func Read(path string, print bool) (err error) {
 	return
 }
 
-//write writes a config to a file at the provided path.
+// write writes a config to a file at the provided path.
 func (conf *File) write(path string) (err error) {
 	//Marshal to yaml.
 	y, err := yaml.Marshal(conf)
@@ -323,7 +323,7 @@ func (conf *File) write(path string) (err error) {
 	return
 }
 
-//validate handles sanitizing and validation of a config file's data.
+// validate handles sanitizing and validation of a config file's data.
 func (conf *File) validate() (err error) {
 	//Get defaults to use for cases when user provided invalid input.
 	defaults, err := newDefaultConfig()
@@ -443,9 +443,9 @@ func (conf *File) validate() (err error) {
 	return
 }
 
-//print logs out the configuration file. This is used for diagnostic purposes. This
-//will show all fields from the File struct, even fields that the provided config file
-//omitted (except nonPublishedFields).
+// print logs out the configuration file. This is used for diagnostic purposes. This
+// will show all fields from the File struct, even fields that the provided config file
+// omitted (except nonPublishedFields).
 func (conf File) print(path string) {
 	//Full path to the config file, so if file is in same directory as the executable
 	//and -config flag was not provided we still get the complete path.
@@ -467,14 +467,14 @@ func (conf File) print(path string) {
 	}
 }
 
-//Data returns the parsed config file data. This is used in other packages to use
-//config file data.
+// Data returns the parsed config file data. This is used in other packages to use
+// config file data.
 func Data() File {
 	return parsedConfig
 }
 
-//getRandomEncryptionKey returns a string used for encrypting the private key of a key
-//pair.
+// getRandomEncryptionKey returns a string used for encrypting the private key of a key
+// pair.
 func getRandomEncryptionKey() (encKey string) {
 	//By default, use the longest length key.
 	const l = 32

@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-//SecHeaders sets http headers for security purposes.
+// SecHeaders sets http headers for security purposes.
 func SecHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("strict-transport-security", "max-age=60")

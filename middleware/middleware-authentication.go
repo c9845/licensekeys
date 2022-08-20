@@ -30,10 +30,10 @@ import (
 
 var errLoginNotValid = errors.New("login inactive or expired")
 
-//Auth is used to verify a request to this app is authenticated via a user profile.
-//API authentications are handled via middleware.ExternalAPI since api reachable
-//endpoints are hosted on /api/v1/. If a user is found then the next middleware or
-//handler is performed, otherwise a user is redirected to a login page.
+// Auth is used to verify a request to this app is authenticated via a user profile.
+// API authentications are handled via middleware.ExternalAPI since api reachable
+// endpoints are hosted on /api/v1/. If a user is found then the next middleware or
+// handler is performed, otherwise a user is redirected to a login page.
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Check if user provided an api key and tell them they are trying to reach a

@@ -10,17 +10,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//MinLength is the shortest password we allow.
+// MinLength is the shortest password we allow.
 const MinLength = 10
 
-//bcryptCost is the work factor, higher is more resistant to attacks.
+// bcryptCost is the work factor, higher is more resistant to attacks.
 const bcryptCost = 13
 
-//ErrBadPassword is used when an invalid password is given. This is used so we don't
-//send back the bcrypt error message.
+// ErrBadPassword is used when an invalid password is given. This is used so we don't
+// send back the bcrypt error message.
 var ErrBadPassword = errors.New("bad password")
 
-//Create gets a hash from a plaintext password.
+// Create gets a hash from a plaintext password.
 func Create(password string) (string, error) {
 	passwordByte := []byte(password)
 
@@ -28,7 +28,7 @@ func Create(password string) (string, error) {
 	return string(hash), err
 }
 
-//IsValid validates a cleartext password against its possible hash.
+// IsValid validates a cleartext password against its possible hash.
 func IsValid(password, hash string) (bool, error) {
 	passwordByte := []byte(password)
 

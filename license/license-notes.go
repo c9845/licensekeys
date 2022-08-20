@@ -21,7 +21,7 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-//Notes gets the list of notes for a license.
+// Notes gets the list of notes for a license.
 func Notes(w http.ResponseWriter, r *http.Request) {
 	//Make sure a license ID was provided and it is valid.
 	licenseID, _ := strconv.ParseInt(r.FormValue("licenseID"), 10, 64)
@@ -51,7 +51,7 @@ func Notes(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(hh, w)
 }
 
-//AddNote adds a note for a license.
+// AddNote adds a note for a license.
 func AddNote(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")

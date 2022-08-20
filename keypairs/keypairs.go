@@ -24,8 +24,8 @@ import (
 	"github.com/c9845/output"
 )
 
-//Add saves a new keypair. The keypair data provided is used to generate a new keypair
-//which is then saved to the database.
+// Add saves a new keypair. The keypair data provided is used to generate a new keypair
+// which is then saved to the database.
 func Add(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")
@@ -123,19 +123,19 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.InsertOKWithData(k, w)
 }
 
-//encryptPrivateKey encrypts a private key with the encryption key provided in the
-//config file. This performs AES encryption. This returns a []byte since the input
-//unencrypted data is also a []byte; we just keep the type the same for ease of use
-//elsewhere.
+// encryptPrivateKey encrypts a private key with the encryption key provided in the
+// config file. This performs AES encryption. This returns a []byte since the input
+// unencrypted data is also a []byte; we just keep the type the same for ease of use
+// elsewhere.
 //
-//The encryption key must be 16, 24, or 32 characters long. The encryptionKey is a
-//string since that is how it is stored in the config file and we can handle the
-//conversion inside this func as needed.
+// The encryption key must be 16, 24, or 32 characters long. The encryptionKey is a
+// string since that is how it is stored in the config file and we can handle the
+// conversion inside this func as needed.
 //
-//The resulting encryptedPrivateKey includes the nonce, at the start of the
-//encrypted data, since it is needed to decrypt the data.
+// The resulting encryptedPrivateKey includes the nonce, at the start of the
+// encrypted data, since it is needed to decrypt the data.
 //
-//https://pkg.go.dev/crypto/cipher#example-NewGCM-Encrypt
+// https://pkg.go.dev/crypto/cipher#example-NewGCM-Encrypt
 func encryptPrivateKey(encryptionKey string, unencryptedPrivateKey []byte) (encryptedPrivateKey []byte, err error) {
 	//Not using a salt here since the encryptionKey must be exactly 32 characters
 	//long and we tell the user this when setting the key in the config file. Plus,
@@ -163,20 +163,20 @@ func encryptPrivateKey(encryptionKey string, unencryptedPrivateKey []byte) (encr
 	return
 }
 
-//DecryptPrivateKey decrypts the private key stored in the database using the
-//encryption key provided in the config file. This returns a []byte since the input
-//unencrypted data is also a []byte; we just keep the type the same for ease of use
-//elsewhere.
+// DecryptPrivateKey decrypts the private key stored in the database using the
+// encryption key provided in the config file. This returns a []byte since the input
+// unencrypted data is also a []byte; we just keep the type the same for ease of use
+// elsewhere.
 //
-//The encryption key must be 16, 24, or 32 characters long. The encryptionKey is a
-//string since that is how it is stored in the config file and we can handle the
-//conversion inside this func as needed.
+// The encryption key must be 16, 24, or 32 characters long. The encryptionKey is a
+// string since that is how it is stored in the config file and we can handle the
+// conversion inside this func as needed.
 //
-//This func is only used when signing a newly created license file. Once a license
-//key file has been created, the signature is stored in the db and we just retrieve
-//it when a license key file needs to be downloaded.
+// This func is only used when signing a newly created license file. Once a license
+// key file has been created, the signature is stored in the db and we just retrieve
+// it when a license key file needs to be downloaded.
 //
-//https://pkg.go.dev/crypto/cipher#example-NewGCM-Decrypt
+// https://pkg.go.dev/crypto/cipher#example-NewGCM-Decrypt
 func DecryptPrivateKey(encryptionKey string, encryptedPrivateKey []byte) (unecryptedPrivKey []byte, err error) {
 	//Not using a salt here since the encryptionKey must be exactly 32 characters
 	//long and we tell the user this when setting the key in the config file. Plus,
@@ -201,7 +201,7 @@ func DecryptPrivateKey(encryptionKey string, encryptedPrivateKey []byte) (unecry
 	return
 }
 
-//Get returns the list of keypairs. You can optionally filter by active only.
+// Get returns the list of keypairs. You can optionally filter by active only.
 func Get(w http.ResponseWriter, r *http.Request) {
 	appID, _ := strconv.ParseInt(r.FormValue("appID"), 10, 64)
 	activeOnly, _ := strconv.ParseBool(r.FormValue("activeOnly"))
@@ -220,9 +220,9 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(items, w)
 }
 
-//Delete marks a keypair as inactive. The keypair will no longer be available for use
-//to sign a license. Old licenses will still use their assigned keypair even when
-//keypair is deleted.
+// Delete marks a keypair as inactive. The keypair will no longer be available for use
+// to sign a license. Old licenses will still use their assigned keypair even when
+// keypair is deleted.
 func Delete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 
@@ -243,8 +243,8 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//Default marks a keypair as the default for the app. This marks all other keypairs
-//for this app as non-default.
+// Default marks a keypair as the default for the app. This marks all other keypairs
+// for this app as non-default.
 func Default(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 

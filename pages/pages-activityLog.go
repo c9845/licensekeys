@@ -19,11 +19,11 @@ import (
 	"github.com/c9845/templates"
 )
 
-//ActivityLog shows the page of user activity within the app. This is useful for
-//auditing user activity or for diagnnostics (seeing what data a user provided versus
-//what they say when an error occurs). You can filter the results by a specific user
-//and/or by a search string. Using a search string performs a sql LIKE query with
-//starting & ending wildcards on the request data (post form values).
+// ActivityLog shows the page of user activity within the app. This is useful for
+// auditing user activity or for diagnnostics (seeing what data a user provided versus
+// what they say when an error occurs). You can filter the results by a specific user
+// and/or by a search string. Using a search string performs a sql LIKE query with
+// starting & ending wildcards on the request data (post form values).
 func ActivityLog(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -120,10 +120,10 @@ func ActivityLog(w http.ResponseWriter, r *http.Request) {
 	templates.Show(w, "app", "activity-log", pd)
 }
 
-//ActivityChartOverTimeOfDay shows the usage of the app over the time of day broken
-//into 10 minute increments. This is useful for showing when users are most active in
-//the app. This query/page load will look up a lot of data and take a lot of time to
-//complete.
+// ActivityChartOverTimeOfDay shows the usage of the app over the time of day broken
+// into 10 minute increments. This is useful for showing when users are most active in
+// the app. This query/page load will look up a lot of data and take a lot of time to
+// complete.
 func ActivityChartOverTimeOfDay(w http.ResponseWriter, r *http.Request) {
 	//This query is very specialized for this page so there is no need to store it in
 	//the db package.
@@ -212,8 +212,8 @@ func ActivityChartOverTimeOfDay(w http.ResponseWriter, r *http.Request) {
 	templates.Show(w, "app", "activity-log-chart-over-time-of-day", pd)
 }
 
-//ActivityChartMaxAvgDuration shows the average and max duration of requests made to
-//the app on a monthly basis. This can be used to check if "things are getting slower".
+// ActivityChartMaxAvgDuration shows the average and max duration of requests made to
+// the app on a monthly basis. This can be used to check if "things are getting slower".
 func ActivityChartMaxAvgDuration(w http.ResponseWriter, r *http.Request) {
 	//Handle options, mostly for advanced usage.
 	ignorePDF, _ := strconv.ParseBool(r.FormValue("ignorePDF")) //ignores looking up of pdf files since if we have to create the pdf file this can create a lot of latency and push the avg, or max, way off typical
@@ -300,9 +300,9 @@ func ActivityChartMaxAvgDuration(w http.ResponseWriter, r *http.Request) {
 	templates.Show(w, "app", "activity-log-chart-max-avg-duration", pd)
 }
 
-//ActivityChartDurationLatestRequests shows duration of the latest requests to the app.
-//This defaults to the latest 500 requests but this can be changed as needed, but note
-//that the time to serve the data may get longer.
+// ActivityChartDurationLatestRequests shows duration of the latest requests to the app.
+// This defaults to the latest 500 requests but this can be changed as needed, but note
+// that the time to serve the data may get longer.
 func ActivityChartDurationLatestRequests(w http.ResponseWriter, r *http.Request) {
 	//Handle options, mostly for advanced usage.
 	limit, _ := strconv.Atoi(r.FormValue("limit"))

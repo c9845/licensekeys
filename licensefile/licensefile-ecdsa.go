@@ -11,9 +11,9 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-//GenerateKeyPairECDSA creates and returns a new ECDSA private and public key. We
-//don't just accept an elliptic.Curve as an input because this overall code base does
-//not support every curve type.
+// GenerateKeyPairECDSA creates and returns a new ECDSA private and public key. We
+// don't just accept an elliptic.Curve as an input because this overall code base does
+// not support every curve type.
 func GenerateKeyPairECDSA(k KeyPairAlgoType) (private, public []byte, err error) {
 	//Make sure an ECDSA key pair type was provided.
 	if !slices.Contains(keyPairECDSATypes, k) {
@@ -63,10 +63,10 @@ func GenerateKeyPairECDSA(k KeyPairAlgoType) (private, public []byte, err error)
 	return
 }
 
-//SignECDSA signs File with the provided ECDSA private key. The generated signature
-//will be set in the Signature field of File. You would need to call File.Marshal()
-//after this func completes to return/serve the license key file. The private key
-//must be decrypted, if needed, prior to being provided.
+// SignECDSA signs File with the provided ECDSA private key. The generated signature
+// will be set in the Signature field of File. You would need to call File.Marshal()
+// after this func completes to return/serve the license key file. The private key
+// must be decrypted, if needed, prior to being provided.
 func (f *File) SignECDSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
 	//Make sure a valid ECDSA algo type was provided.
 	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {
@@ -103,12 +103,12 @@ func (f *File) SignECDSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err er
 	return
 }
 
-//VerifyECDSA verifies the File's Signature with the provided ECDSA public key. You
-//must populate the FileFormat field prior per to calling this func.
+// VerifyECDSA verifies the File's Signature with the provided ECDSA public key. You
+// must populate the FileFormat field prior per to calling this func.
 //
-//This uses a copy of the File since we are going to remove the Signature field prior
-//to hashing and verification but we don't want to modify the original File so it can
-//be used as it was parsed/unmarshalled.
+// This uses a copy of the File since we are going to remove the Signature field prior
+// to hashing and verification but we don't want to modify the original File so it can
+// be used as it was parsed/unmarshalled.
 func (f File) VerifyECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
 	//Make sure a valid ECDSA algo type was provided.
 	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {

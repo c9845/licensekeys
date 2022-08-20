@@ -29,7 +29,7 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-//by is used to differentiate between a user and API action.
+// by is used to differentiate between a user and API action.
 type by string
 
 const (
@@ -37,18 +37,18 @@ const (
 	byAPI  by = "api"
 )
 
-//AddViaAPI handles transforming the data provided by the request to create a license
-//via the public API to the format the interal API/Add func expects. This is done to
-//keep the public API simpler: the user building the request can provide the main
-//license data in key:value pairs rather than a struct/object, and the user can
-//provide the list of custom fields in an object of field-name:value pairings rather
-//than an array of objects. This takes the user provided data and builds the internal
-//license struct and slice of custom field results structs before calling Add() to
-//handle the actual validation and saving of the license.
+// AddViaAPI handles transforming the data provided by the request to create a license
+// via the public API to the format the interal API/Add func expects. This is done to
+// keep the public API simpler: the user building the request can provide the main
+// license data in key:value pairs rather than a struct/object, and the user can
+// provide the list of custom fields in an object of field-name:value pairings rather
+// than an array of objects. This takes the user provided data and builds the internal
+// license struct and slice of custom field results structs before calling Add() to
+// handle the actual validation and saving of the license.
 //
-//Note that when adding a license via the public API, the request can have either the
-//AppID or KeyPairID. If the AppID is provided, then the default key pair's ID is used.
-//If the KeyPairID is provided, we simply use the parent app's ID.
+// Note that when adding a license via the public API, the request can have either the
+// AppID or KeyPairID. If the AppID is provided, then the default key pair's ID is used.
+// If the KeyPairID is provided, we simply use the parent app's ID.
 func AddViaAPI(w http.ResponseWriter, r *http.Request) {
 	//Read input data and build license object.
 	appID, _ := strconv.ParseInt(r.FormValue("appID"), 10, 64)
@@ -201,11 +201,11 @@ func AddViaAPI(w http.ResponseWriter, r *http.Request) {
 	Add(w, r)
 }
 
-//Add saves the data used to create a license. First, we handle saving the common
-//license data, then we handle saving the custom field results, then we generate the
-//license file and sign it, we update the saved license data with the signature, and
-//finally we verify the license file by creating it, rereading it, and checking the
-//signature with the public key.
+// Add saves the data used to create a license. First, we handle saving the common
+// license data, then we handle saving the custom field results, then we generate the
+// license file and sign it, we update the saved license data with the signature, and
+// finally we verify the license file by creating it, rereading it, and checking the
+// signature with the public key.
 func Add(w http.ResponseWriter, r *http.Request) {
 	//Parse and validate main license data.
 	rawCommonData := r.FormValue("licenseData")
@@ -448,7 +448,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(l.ID, w)
 }
 
-//All gets the list of licenses, optionally filtered if needed.
+// All gets the list of licenses, optionally filtered if needed.
 func All(w http.ResponseWriter, r *http.Request) {
 	//An App ID of 0 means "look up results for all apps". We translate an invalid
 	//ID of < 0 to 0.
@@ -493,7 +493,7 @@ func All(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(lics, w)
 }
 
-//One gets the full data for one license.
+// One gets the full data for one license.
 func One(w http.ResponseWriter, r *http.Request) {
 	licenseID, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if licenseID < 1 {
@@ -527,11 +527,11 @@ func One(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(l, w)
 }
 
-//Download retrieves the license data as a text file. This file is complete, is is
-//signed, and is the license you would distribute for use in your apps.
+// Download retrieves the license data as a text file. This file is complete, is is
+// signed, and is the license you would distribute for use in your apps.
 //
-//This can also be used to display the license data in the browser if needed. This is
-//really only done for diagnostics by an admin.
+// This can also be used to display the license data in the browser if needed. This is
+// really only done for diagnostics by an admin.
 func Download(w http.ResponseWriter, r *http.Request) {
 	//Get data for license.
 	licenseID, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
@@ -635,12 +635,12 @@ func Download(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//buildLicense builds the File with the required data. The resulting File would need
-//to be signed, or have an already calculated signature added, and marshalled to the
-//required file format.
+// buildLicense builds the File with the required data. The resulting File would need
+// to be signed, or have an already calculated signature added, and marshalled to the
+// required file format.
 //
-//This is used when a license is created so it can be validated and when downloading
-//a license.
+// This is used when a license is created so it can be validated and when downloading
+// a license.
 func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File, err error) {
 	//Make sure required fields for building license file were provided.
 	err = l.FileFormat.Valid()
@@ -696,7 +696,7 @@ func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File,
 	return
 }
 
-//Disable marks a license as inactive.
+// Disable marks a license as inactive.
 func Disable(w http.ResponseWriter, r *http.Request) {
 	//Get inputs and validate.
 	licenseID, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
@@ -769,9 +769,9 @@ func Disable(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//Renew creates a new license from an existing license, just with a new expiration
-//date set. This creates a copy of the existing license's common data and custom
-//field results. The renewal relationship is also saved to link the licenses together.
+// Renew creates a new license from an existing license, just with a new expiration
+// date set. This creates a copy of the existing license's common data and custom
+// field results. The renewal relationship is also saved to link the licenses together.
 func Renew(w http.ResponseWriter, r *http.Request) {
 	//Get inputs and validate.
 	fromLicenseID, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
@@ -1050,11 +1050,11 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(l.ID, w)
 }
 
-//getCreatedBy gets the ID of who/what is creating something. The ID matches either
-//a user or an API key and can be differentiated by the createdBy result.
+// getCreatedBy gets the ID of who/what is creating something. The ID matches either
+// a user or an API key and can be differentiated by the createdBy result.
 //
-//This func was written as a helper for use when creating a license or downloading a
-//license file (saving to download history).
+// This func was written as a helper for use when creating a license or downloading a
+// license file (saving to download history).
 func getCreatedBy(r *http.Request) (createdByID int64, createdBy by, err error) {
 	//First, check if a user session exists.
 	createdByID, err = users.GetUserIDByRequest(r)
@@ -1089,8 +1089,8 @@ func getCreatedBy(r *http.Request) (createdByID int64, createdBy by, err error) 
 	return
 }
 
-//writeReadVerify is used to verify a just created license data and signature. This
-//performs the same "read and verify" that a third-party app would.
+// writeReadVerify is used to verify a just created license data and signature. This
+// performs the same "read and verify" that a third-party app would.
 func writeReadVerify(f licensefile.File, keyPairAlgo licensefile.KeyPairAlgoType, publicKey []byte) (err error) {
 	//Store data that isn't serialized into license file.
 	fileFormat := f.FileFormat()
@@ -1114,9 +1114,9 @@ func writeReadVerify(f licensefile.File, keyPairAlgo licensefile.KeyPairAlgoType
 	return
 }
 
-//replaceFilenamePlaceholders replaces placeholders in filename that was defined for
-//an app with the correct associated data. This generates the actual filename a license
-//will be downloaded as.
+// replaceFilenamePlaceholders replaces placeholders in filename that was defined for
+// an app with the correct associated data. This generates the actual filename a license
+// will be downloaded as.
 func replaceFilenamePlaceholders(filename string, licenseID int64, appName string, format licensefile.FileFormat) string {
 	filename = strings.ReplaceAll(filename, "{licenseID}", strconv.FormatInt(licenseID, 10))
 

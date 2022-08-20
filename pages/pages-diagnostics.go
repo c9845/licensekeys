@@ -22,25 +22,25 @@ import (
 	"github.com/c9845/templates"
 )
 
-//startTime is used to track when the app was last started so we can monitor uptime.
-//The value for this is set in init() for this package.
+// startTime is used to track when the app was last started so we can monitor uptime.
+// The value for this is set in init() for this package.
 var startTime time.Time
 
 func init() {
 	startTime = time.Now()
 }
 
-//lineKey is used to specify the field name for a line in the diagnostics
+// lineKey is used to specify the field name for a line in the diagnostics
 type lineKey string
 
-//diagLines is the list of lines we will print in the diagnostics file
-//We use this so that we can return the diag data in a consistent order.
+// diagLines is the list of lines we will print in the diagnostics file
+// We use this so that we can return the diag data in a consistent order.
 type diagLines struct {
 	Lines map[lineKey]interface{}
 	Order []lineKey
 }
 
-//newDiagLines returns an initialized diagLines that new lines can be added to
+// newDiagLines returns an initialized diagLines that new lines can be added to
 func newDiagLines() *diagLines {
 	var dl diagLines
 	dl.Lines = make(map[lineKey]interface{})
@@ -49,7 +49,7 @@ func newDiagLines() *diagLines {
 	return &dl
 }
 
-//set adds a new item to the diagnostics to be printed out.
+// set adds a new item to the diagnostics to be printed out.
 func (dl *diagLines) set(key string, value interface{}) {
 	//get key in correct var type
 	//We allow user to provide string as key since it is easier in code.
@@ -60,9 +60,9 @@ func (dl *diagLines) set(key string, value interface{}) {
 	dl.Order = append(dl.Order, k)
 }
 
-//Diagnostics shows the diagnostic page.
-//We use an actual page for this instead of just using w.Write() so that we
-//can display diagnostic info from js and css.
+// Diagnostics shows the diagnostic page.
+// We use an actual page for this instead of just using w.Write() so that we
+// can display diagnostic info from js and css.
 func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	//Hold diagnostic data.
 	d := newDiagLines()

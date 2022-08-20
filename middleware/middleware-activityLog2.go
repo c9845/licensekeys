@@ -24,16 +24,16 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-//skippedEndpoints2 are endpoints we don't need to log to the activity log since they
-//would just clog up the log.
+// skippedEndpoints2 are endpoints we don't need to log to the activity log since they
+// would just clog up the log.
 var skippedEndpoints2 = []string{}
 
-//LogActivity2 saves the activity the user performed to the database.
+// LogActivity2 saves the activity the user performed to the database.
 //
-//This adds a lot of INSERTS to the database which may be undesirable based on server
-//load. Therefore, you can disable this via app settings.
+// This adds a lot of INSERTS to the database which may be undesirable based on server
+// load. Therefore, you can disable this via app settings.
 //
-//Skip on errors since logging isn't the most important thing in the world.
+// Skip on errors since logging isn't the most important thing in the world.
 func LogActivity2(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Check if activity logging is enabled.
@@ -137,15 +137,15 @@ func LogActivity2(next http.Handler) http.Handler {
 	})
 }
 
-//getRequestDataAsJSON2 returns the url form values as a JSON string so we don't need
-//to use the url.Values map[string][]string format for storing data in db. The
-//map[string][]string format is not parsable easily since there are extra characters
-//in it. Returning JSON is much more useful for parsing data in a JSON parser/formatter.
+// getRequestDataAsJSON2 returns the url form values as a JSON string so we don't need
+// to use the url.Values map[string][]string format for storing data in db. The
+// map[string][]string format is not parsable easily since there are extra characters
+// in it. Returning JSON is much more useful for parsing data in a JSON parser/formatter.
 //
-//Note the use of v[0]. We assume that all requests made to this app will have only
-//one value per key. This is done even though the url.Values type is map[string][]string.
-//Since we can control how data is provided we can safely assume that there is only
-//one value per key at most.
+// Note the use of v[0]. We assume that all requests made to this app will have only
+// one value per key. This is done even though the url.Values type is map[string][]string.
+// Since we can control how data is provided we can safely assume that there is only
+// one value per key at most.
 func getRequestDataAsJSON2(formVals url.Values) (output string, err error) {
 	//Placeholder for building output.
 	jStr2 := make(map[string]interface{})
@@ -225,11 +225,11 @@ func getRequestDataAsJSON2(formVals url.Values) (output string, err error) {
 	return
 }
 
-//getRequestDataAsDirtyString2 returns the url form values as a map[string][]string
-//flattened using a JSON format. The data in it is not correctly formatted as JSON
-//and cannot be parsed as JSON. This is used as a backup to getRequestDataAsJSON2
-//failing to parse correctly so that we still record a copy of the request data. The
-//data can be manually formatted as JSON if needed.
+// getRequestDataAsDirtyString2 returns the url form values as a map[string][]string
+// flattened using a JSON format. The data in it is not correctly formatted as JSON
+// and cannot be parsed as JSON. This is used as a backup to getRequestDataAsJSON2
+// failing to parse correctly so that we still record a copy of the request data. The
+// data can be manually formatted as JSON if needed.
 func getRequestDataAsDirtyString2(formVals url.Values) (output string, err error) {
 	j, err := json.Marshal(formVals)
 	if err != nil {

@@ -15,10 +15,10 @@ import (
 //Some notes are added automatically, such as when disabling a license, but users
 //can also add notes manually.
 
-//TableLicenseNotes is the name of the table.
+// TableLicenseNotes is the name of the table.
 const TableLicenseNotes = "license_notes"
 
-//LicenseNote is used to interact with the table.
+// LicenseNote is used to interact with the table.
 type LicenseNote struct {
 	ID               int64
 	DatetimeCreated  string
@@ -62,7 +62,7 @@ const (
 	`
 )
 
-//Validate handles sanitizing and validation before a note is saved.
+// Validate handles sanitizing and validation before a note is saved.
 func (n *LicenseNote) Validate() (errMsg string) {
 	//Sanitize.
 	n.Note = strings.TrimSpace(n.Note)
@@ -84,10 +84,10 @@ func (n *LicenseNote) Validate() (errMsg string) {
 	return
 }
 
-//Insert saves a note.
-//A transaction is optional, pass nil if you don't have one. A transaction is
-//used when we are performing an action to a license, for example disabling, and
-//we also want to save a note.
+// Insert saves a note.
+// A transaction is optional, pass nil if you don't have one. A transaction is
+// used when we are performing an action to a license, for example disabling, and
+// we also want to save a note.
 func (n *LicenseNote) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	//use tx if given, otherwise generate a tx
 	txProvided := true
@@ -150,7 +150,7 @@ func (n *LicenseNote) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	return
 }
 
-//GetNotes looks up the notes for a license.
+// GetNotes looks up the notes for a license.
 func GetNotes(ctx context.Context, licenseID int64, orderBy string) (nn []LicenseNote, err error) {
 	//base query
 	q := `

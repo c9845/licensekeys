@@ -26,7 +26,7 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
-//configuration options
+// configuration options
 const (
 	//secretLength is the length of the shared secret
 	//20 is 160 bytes which is the recommended length per RFC4226
@@ -47,9 +47,9 @@ const (
 	twoFACookieName = "2fa_browser_id"
 )
 
-//Get2FABarcode generates a QR code for enrolling a user in 2FA. This returns the QR
-//code as a base64 string that will be embedded into an <img> tag using data: type
-//in src. This only returns a QR code if user is not currently enrolled in 2FA.
+// Get2FABarcode generates a QR code for enrolling a user in 2FA. This returns the QR
+// code as a base64 string that will be embedded into an <img> tag using data: type
+// in src. This only returns a QR code if user is not currently enrolled in 2FA.
 func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -144,9 +144,9 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 	output.InsertOKWithData(imgBytes, w)
 }
 
-//Validate2FACode takes the 6 character 1-time code provided by a user and checks if
-//it is valid given the 2fa info we have saved for the user. This is used to make sure
-//that enrollment in 2fa is successful.
+// Validate2FACode takes the 6 character 1-time code provided by a user and checks if
+// it is valid given the 2fa info we have saved for the user. This is used to make sure
+// that enrollment in 2fa is successful.
 func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -191,14 +191,14 @@ func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//validate2FA performs validation of a given 2fa token and a user's secret. This
-//performs the actual checking if the token is correct.
+// validate2FA performs validation of a given 2fa token and a user's secret. This
+// performs the actual checking if the token is correct.
 func validate2FA(token, secret string) (valid bool) {
 	valid = totp.Validate(token, secret)
 	return
 }
 
-//Deactivate2FA turns 2FA off for a user.
+// Deactivate2FA turns 2FA off for a user.
 func Deactivate2FA(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -220,15 +220,15 @@ func Deactivate2FA(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//save2FABrowserIDCookie saves the cookie used to identify a browser. This is used to
-//help identify a browser to see if a 2FA token was recently used on this browser
-//already and therefore not require user to provide it again.
+// save2FABrowserIDCookie saves the cookie used to identify a browser. This is used to
+// help identify a browser to see if a 2FA token was recently used on this browser
+// already and therefore not require user to provide it again.
 //
-//This is kept separate from normal login ID cookie since some users may not have 2FA
-//enabled. Plus, this allows for 2FA cookie to expire on a different time frequency
-//than the login ID cookie.
+// This is kept separate from normal login ID cookie since some users may not have 2FA
+// enabled. Plus, this allows for 2FA cookie to expire on a different time frequency
+// than the login ID cookie.
 //
-//Everything in ab will be provided except the cookie value which is generated here.
+// Everything in ab will be provided except the cookie value which is generated here.
 func save2FABrowserIDCookie(ctx context.Context, w http.ResponseWriter, ab db.AuthorizedBrowser) (err error) {
 	//Get random value to store in cookie to identify this browser/session.
 	cv, err := utils.RandString(32)

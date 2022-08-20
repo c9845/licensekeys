@@ -23,10 +23,10 @@ import (
 //account when the license is signed so that end-users cannot modify the values
 //of any custom fields.
 
-//TableCustomFieldDefined is the name of the table.
+// TableCustomFieldDefined is the name of the table.
 const TableCustomFieldDefined = "custom_fields_defined"
 
-//CustomFieldDefined is used to interact with the table.
+// CustomFieldDefined is used to interact with the table.
 type CustomFieldDefined struct {
 	ID               int64
 	DatetimeCreated  string
@@ -98,7 +98,7 @@ const (
 	`
 )
 
-//Define the types of custom fields this app supports.
+// Define the types of custom fields this app supports.
 type customFieldType string
 
 const (
@@ -119,14 +119,14 @@ var customFieldTypes = []customFieldType{
 	CustomFieldTypeDate,
 }
 
-//multiSeparator is the character used to split options for a multichoice field when
-//provided as a single string. Ex: ["a", "b", "c"] -> "a;b;c".
-//This is exported for use when we validate the option chosen when a user
-//creates/saves a license.
+// multiSeparator is the character used to split options for a multichoice field when
+// provided as a single string. Ex: ["a", "b", "c"] -> "a;b;c".
+// This is exported for use when we validate the option chosen when a user
+// creates/saves a license.
 const multiSeparator = ";"
 
-//Valid checks if a provided field type is one of our supported types. This is used
-//for validation purposes.
+// Valid checks if a provided field type is one of our supported types. This is used
+// for validation purposes.
 func (c customFieldType) Valid() bool {
 	for _, v := range customFieldTypes {
 		if v == c {
@@ -137,8 +137,8 @@ func (c customFieldType) Valid() bool {
 	return false
 }
 
-//Validate is used to validate a struct's data before adding or saving changes. This also
-//handles sanitizing.
+// Validate is used to validate a struct's data before adding or saving changes. This also
+// handles sanitizing.
 func (cfd *CustomFieldDefined) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize
 	cfd.Name = strings.TrimSpace(cfd.Name)
@@ -251,8 +251,8 @@ func (cfd *CustomFieldDefined) Validate(ctx context.Context) (errMsg string, err
 	return
 }
 
-//GetFieldByName looks up a field by its name for a given app. We filter by app since
-//multiple apps can have the same fields names.
+// GetFieldByName looks up a field by its name for a given app. We filter by app since
+// multiple apps can have the same fields names.
 func GetFieldByName(ctx context.Context, appID int64, name string) (cfd CustomFieldDefined, err error) {
 	q := `
 		SELECT ` + TableCustomFieldDefined + `.*
@@ -268,7 +268,7 @@ func GetFieldByName(ctx context.Context, appID int64, name string) (cfd CustomFi
 	return
 }
 
-//Insert saves a defined field. You should have already called Validate().
+// Insert saves a defined field. You should have already called Validate().
 func (cfd *CustomFieldDefined) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"CreatedByUserID",
@@ -339,7 +339,7 @@ func (cfd *CustomFieldDefined) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//GetCustomFieldsDefined returns the list of fields for an app optionally filtered by active fields only.
+// GetCustomFieldsDefined returns the list of fields for an app optionally filtered by active fields only.
 func GetCustomFieldsDefined(ctx context.Context, appID int64, activeOnly bool) (cc []CustomFieldDefined, err error) {
 	//base query
 	q := `
@@ -374,7 +374,7 @@ func GetCustomFieldsDefined(ctx context.Context, appID int64, activeOnly bool) (
 	return
 }
 
-//Update saves changes to a defined field. You should have already called Validate().
+// Update saves changes to a defined field. You should have already called Validate().
 func (cfd *CustomFieldDefined) Update(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeModified",
@@ -440,7 +440,7 @@ func (cfd *CustomFieldDefined) Update(ctx context.Context) (err error) {
 	return
 }
 
-//Delete marks a defined custom field as deleted.
+// Delete marks a defined custom field as deleted.
 func (cfd *CustomFieldDefined) Delete(ctx context.Context) (err error) {
 	q := `
 		UPDATE ` + TableCustomFieldDefined + ` 

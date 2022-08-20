@@ -16,7 +16,7 @@ import (
 	"github.com/c9845/output"
 )
 
-//Add saves a new app.
+// Add saves a new app.
 func Add(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")
@@ -66,7 +66,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(a.ID, w)
 }
 
-//Get returns the list of apps. You can optionally filter by active apps only.
+// Get returns the list of apps. You can optionally filter by active apps only.
 func Get(w http.ResponseWriter, r *http.Request) {
 	activeOnly, _ := strconv.ParseBool(r.FormValue("activeOnly"))
 
@@ -79,7 +79,7 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(items, w)
 }
 
-//Update saves changes to an existing app.
+// Update saves changes to an existing app.
 func Update(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")

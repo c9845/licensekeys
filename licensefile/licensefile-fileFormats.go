@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//FileFormat is the format of the license key file's data.
+// FileFormat is the format of the license key file's data.
 type FileFormat string
 
 const (
@@ -21,7 +21,7 @@ var fileFormats = []FileFormat{
 	FileFormatJSON,
 }
 
-//Valid checks if a provided file format is one of our supported file formats.
+// Valid checks if a provided file format is one of our supported file formats.
 func (f FileFormat) Valid() error {
 	contains := slices.Contains(fileFormats, f)
 	if contains {
@@ -31,7 +31,7 @@ func (f FileFormat) Valid() error {
 	return fmt.Errorf("invalid file format, should be one of '%s', got '%s'", fileFormats, f)
 }
 
-//Marshal serializes a File to the format specified in the File's FileFormat.
+// Marshal serializes a File to the format specified in the File's FileFormat.
 func (f *File) Marshal() (b []byte, err error) {
 	err = f.fileFormat.Valid()
 	if err != nil {
@@ -51,11 +51,11 @@ func (f *File) Marshal() (b []byte, err error) {
 	return
 }
 
-//Unmarshal takes data read from a file, or elsewhere, and deserializes it from the
-//requested file format into a File. This is used when reading a license file for
-//verifying it/the signature. If unmarshalling is successful, the format is saved to
-//the File's FileFormat field. It is typically easier to call Read() instead since it
-//handles reading a file from a path and deserializing it.
+// Unmarshal takes data read from a file, or elsewhere, and deserializes it from the
+// requested file format into a File. This is used when reading a license file for
+// verifying it/the signature. If unmarshalling is successful, the format is saved to
+// the File's FileFormat field. It is typically easier to call Read() instead since it
+// handles reading a file from a path and deserializing it.
 func Unmarshal(in []byte, format FileFormat) (f File, err error) {
 	err = format.Valid()
 	if err != nil {

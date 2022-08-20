@@ -19,11 +19,11 @@ import (
 	"github.com/c9845/sqldb/v2"
 )
 
-//errAPIAccessNotAllowed is used when a request is made using and API key but the app
-//is configured to not allow api access. This is a setting in app settings.
+// errAPIAccessNotAllowed is used when a request is made using and API key but the app
+// is configured to not allow api access. This is a setting in app settings.
 var errAPIAccessNotAllowed = errors.New("api access it not enabled")
 
-//ExternalAPI handles authenticating access to the public endpoints using api keys.
+// ExternalAPI handles authenticating access to the public endpoints using api keys.
 func ExternalAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Get API key.

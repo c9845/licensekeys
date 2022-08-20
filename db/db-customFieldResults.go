@@ -19,10 +19,10 @@ import (
 //populated each time a new license is created and is used whenever a license needs
 //to be viewed or downloaded.
 
-//TableCustomFieldResults is the name of the table.
+// TableCustomFieldResults is the name of the table.
 const TableCustomFieldResults = "custom_field_results"
 
-//CustomFieldResult is used to interact with the table.
+// CustomFieldResult is used to interact with the table.
 type CustomFieldResult struct {
 	ID              int64
 	DatetimeCreated string
@@ -44,8 +44,8 @@ type CustomFieldResult struct {
 	DateValue        null.String //provided result for a date field
 }
 
-//MultiCustomFieldResult is used so that we can defined a method on a
-//slice type. You cannot do func (c []CustomField) FuncName...
+// MultiCustomFieldResult is used so that we can defined a method on a
+// slice type. You cannot do func (c []CustomField) FuncName...
 type MultiCustomFieldResult []CustomFieldResult
 
 const (
@@ -75,7 +75,7 @@ const (
 	`
 )
 
-//Insert saves an app. You should have already called Validate().
+// Insert saves an app. You should have already called Validate().
 func (f *CustomFieldResult) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeCreated",
@@ -144,7 +144,7 @@ func (f *CustomFieldResult) Insert(ctx context.Context, tx *sqlx.Tx) (err error)
 	return
 }
 
-//GetCustomFieldResults looks up the list of saved values for a license.
+// GetCustomFieldResults looks up the list of saved values for a license.
 func GetCustomFieldResults(ctx context.Context, licenseID int64) (ff []CustomFieldResult, err error) {
 	q := `
 		SELECT ` + TableCustomFieldResults + `.*
@@ -158,15 +158,15 @@ func GetCustomFieldResults(ctx context.Context, licenseID int64) (ff []CustomFie
 	return
 }
 
-//Validate handles validating results for each custom field provided when creating
-//a new license.
+// Validate handles validating results for each custom field provided when creating
+// a new license.
 //
-//An error can be returned as a string, errMsg, or an error, err. This is done
-//because if an input validation error occurs we will not have an error type value
-//to pass back, but we will have a human-readable message to display to the user.
+// An error can be returned as a string, errMsg, or an error, err. This is done
+// because if an input validation error occurs we will not have an error type value
+// to pass back, but we will have a human-readable message to display to the user.
 //
-//The input provided results are modified with data from the defined field to use
-//when saving the results to the database.
+// The input provided results are modified with data from the defined field to use
+// when saving the results to the database.
 func (results MultiCustomFieldResult) Validate(ctx context.Context, appID int64, viaAPI bool) (errMsg string, err error) {
 	//Look up fields defined for app.
 	definedFields, err := GetCustomFieldsDefined(ctx, appID, true)

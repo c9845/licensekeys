@@ -8,9 +8,9 @@ import (
 	"github.com/c9845/templates"
 )
 
-//ErrorPage is the data used to show messages when an error or unexpected event occurs
-//this stuff is injected into a template to describe to user what occured and how to
-//fix it.
+// ErrorPage is the data used to show messages when an error or unexpected event occurs
+// this stuff is injected into a template to describe to user what occured and how to
+// fix it.
 type ErrorPage struct {
 	PageTitle string //card header
 
@@ -24,10 +24,10 @@ type ErrorPage struct {
 	LinkText    string //text to show on button, if blank will default to Main Menu.
 }
 
-//ShowError shows the error page with injected data. This this func cleans up the code
-//whereever an error page is called/shown since it is common throughout the app. The
-//first part of this func is similar to getPageConfigData but allows for skipping the
-//user data since we do not use it on the error page.
+// ShowError shows the error page with injected data. This this func cleans up the code
+// whereever an error page is called/shown since it is common throughout the app. The
+// first part of this func is similar to getPageConfigData but allows for skipping the
+// user data since we do not use it on the error page.
 func ShowError(w http.ResponseWriter, r *http.Request, ep ErrorPage) {
 	//Get app settings.
 	as, err := db.GetAppSettings(r.Context())

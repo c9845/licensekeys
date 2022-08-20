@@ -10,10 +10,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-//TableKeyValue is the name of the table
+// TableKeyValue is the name of the table
 const TableKeyValue = "key_value"
 
-//KeyValue is used to interact with the table
+// KeyValue is used to interact with the table
 type KeyValue struct {
 	ID               int64
 	DatetimeCreated  string
@@ -49,8 +49,8 @@ const (
 	createIndexKeyValueK = "CREATE UNIQUE INDEX IF NOT EXISTS " + TableKeyValue + "__K_idx ON " + TableKeyValue + " (K)"
 )
 
-//GetValueByKey looks up key/value pair by the key name.
-//This will skip keys that are inactive or expired.
+// GetValueByKey looks up key/value pair by the key name.
+// This will skip keys that are inactive or expired.
 func GetValueByKey(ctx context.Context, keyName string) (k KeyValue, err error) {
 	//build query
 	q := `
@@ -79,8 +79,8 @@ func GetValueByKey(ctx context.Context, keyName string) (k KeyValue, err error) 
 	return
 }
 
-//Insert saves a key/value to the database.
-//you should have already performed validation.
+// Insert saves a key/value to the database.
+// you should have already performed validation.
 func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	//use tx if given, otherwise generate a tx
 	txProvided := true
@@ -138,9 +138,9 @@ func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	return
 }
 
-//Update saves changes to a key/value.
-//Updating is done by key (name), not by ID.
-//Don't forget to update expiration if needed!
+// Update saves changes to a key/value.
+// Updating is done by key (name), not by ID.
+// Don't forget to update expiration if needed!
 func (k *KeyValue) Update(ctx context.Context, tx *sqlx.Tx) (err error) {
 	//use tx if given, otherwise generate a tx
 	txProvided := true

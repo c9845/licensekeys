@@ -22,13 +22,13 @@ import (
 	"github.com/c9845/templates"
 )
 
-//errPermissionRefused is returned when a user does not have the correct permission
-//to view a page or endpoint or perform an action.
+// errPermissionRefused is returned when a user does not have the correct permission
+// to view a page or endpoint or perform an action.
 var errPermissionRefused = errors.New("middleware: user does not have permission to this page or to perfom this action")
 
-//refuseAccess sends back the correct form of permission denied error message based
-//upon what kind of request this is. We have to handle two types of requests: api/ajax
-//requests or gui page requests.
+// refuseAccess sends back the correct form of permission denied error message based
+// upon what kind of request this is. We have to handle two types of requests: api/ajax
+// requests or gui page requests.
 func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u db.User) {
 	msg := "You do not have the '" + permission + "' permission. Please contact an administrator."
 
@@ -46,7 +46,7 @@ func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u d
 	templates.Show(w, "app", "permission-error", pd)
 }
 
-//Administrator checks if the user has this permission.
+// Administrator checks if the user has this permission.
 func Administrator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "Administrator"
@@ -69,7 +69,7 @@ func Administrator(next http.Handler) http.Handler {
 	})
 }
 
-//CreateLicenses check if the user has this permission.
+// CreateLicenses check if the user has this permission.
 func CreateLicenses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "CreateLicenses"
@@ -89,7 +89,7 @@ func CreateLicenses(next http.Handler) http.Handler {
 	})
 }
 
-//ViewLicenses check if the user has this permission.
+// ViewLicenses check if the user has this permission.
 func ViewLicenses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "ViewLicenses"

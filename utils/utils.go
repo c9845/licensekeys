@@ -14,8 +14,8 @@ import (
 	"encoding/base64"
 )
 
-//RandString generates a random string. This is typically used for creating login/session
-//or 2FA cookie values. This retuns a string formated in base64.
+// RandString generates a random string. This is used for creating login or 2FA
+// cookie values. This retuns a string formated in base64.
 func RandString(length int) (s string, err error) {
 	b := make([]byte, length)
 	_, err = rand.Read(b)

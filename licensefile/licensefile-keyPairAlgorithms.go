@@ -6,7 +6,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-//KeyPairAlgoType is the key pair algorithm used to sign and verify a license key file.
+// KeyPairAlgoType is the key pair algorithm used to sign and verify a license key file.
 type KeyPairAlgoType string
 
 const (
@@ -38,7 +38,7 @@ var keyPairRSATypes = []KeyPairAlgoType{
 	KeyPairAlgoRSA4096,
 }
 
-//Valid checks if a provided algorithm is one of our supported key pair algorithms.
+// Valid checks if a provided algorithm is one of our supported key pair algorithms.
 func (k KeyPairAlgoType) Valid() error {
 	contains := slices.Contains(keyPairAlgoTypes, k)
 	if contains {

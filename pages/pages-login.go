@@ -11,8 +11,8 @@ import (
 	"github.com/c9845/templates"
 )
 
-//Login shows the login page to the app. This also checks if the user is already logged
-//in and redirects the user to the main logged in page if so.
+// Login shows the login page to the app. This also checks if the user is already logged
+// in and redirects the user to the main logged in page if so.
 func Login(w http.ResponseWriter, r *http.Request) {
 	//Look up login cookie. If it exists, check if the login is valid and active and
 	//if so, redirect user.

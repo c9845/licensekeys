@@ -13,23 +13,23 @@ import (
 	"github.com/c9845/templates"
 )
 
-//PageData is the format of our data we inject into a template to render it or show
-//data. This struct is used so we always have a consistent format of data being
-//injected into templates for easy parsing.
+// PageData is the format of our data we inject into a template to render it or show
+// data. This struct is used so we always have a consistent format of data being
+// injected into templates for easy parsing.
 //
-//Returning interface{} instead of defined db types for ease of use.
+// Returning interface{} instead of defined db types for ease of use.
 type PageData struct {
 	UserData    interface{} //username, permissions, etc.
 	AppSettings interface{} //whether certain features are used or enabled.
 	Data        interface{} //misc. actual data we want to show in the gui.
 }
 
-//getPageConfigData gets the common data needed to build pages. This retrieves the
-//common data we use on every page, such as user data (mostly for permissions and
-//hiding/showing certain elements), app settings (for hiding/showing certain elements
-//or functionality), and other common stuff like company and license data. This is used
-//on nearly every page requested/shown to fill the PageData struct (except the Data
-//field).
+// getPageConfigData gets the common data needed to build pages. This retrieves the
+// common data we use on every page, such as user data (mostly for permissions and
+// hiding/showing certain elements), app settings (for hiding/showing certain elements
+// or functionality), and other common stuff like company and license data. This is used
+// on nearly every page requested/shown to fill the PageData struct (except the Data
+// field).
 func getPageConfigData(r *http.Request) (pd PageData, err error) {
 	//Get user data.
 	u, err := users.GetUserDataByRequest(r)
@@ -55,9 +55,9 @@ func getPageConfigData(r *http.Request) (pd PageData, err error) {
 	return
 }
 
-//Main shows the main GUI of the license server app. The main page shows
-//navigation links to create & manage your apps, create & manage licenses,
-//manage users, manage this app, and view activity logging.
+// Main shows the main GUI of the license server app. The main page shows
+// navigation links to create & manage your apps, create & manage licenses,
+// manage users, manage this app, and view activity logging.
 func Main(w http.ResponseWriter, r *http.Request) {
 	//get data to build gui
 	pd, err := getPageConfigData(r)
@@ -69,7 +69,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	templates.Show(w, "app", "main", pd)
 }
 
-//License shows the data for a specific license.
+// License shows the data for a specific license.
 func License(w http.ResponseWriter, r *http.Request) {
 	//make sure a license ID was provided and it is valid.
 	licenseID, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
@@ -139,13 +139,13 @@ Reference commit from 6/24/22 from other projects.
 *************************************************************************************
 */
 
-//App serves a template based upon the last piece of the path exactly matching an HTML
-//template's filename. This is used for serving basic pages where no computations
-//or functionality needs to be performed prior to showing the page.
+// App serves a template based upon the last piece of the path exactly matching an HTML
+// template's filename. This is used for serving basic pages where no computations
+// or functionality needs to be performed prior to showing the page.
 //
-//You would not use this when you need to provide more data to an HTML template, need
-//to perform some kind of computation or validation prior to showing a template, or
-//if you are serving the filename on a different URL path.
+// You would not use this when you need to provide more data to an HTML template, need
+// to perform some kind of computation or validation prior to showing a template, or
+// if you are serving the filename on a different URL path.
 func App(w http.ResponseWriter, r *http.Request) {
 	//Get last element of path.
 	u := r.URL.Path
@@ -162,18 +162,18 @@ func App(w http.ResponseWriter, r *http.Request) {
 	templates.Show(w, "app", last, pd)
 }
 
-//AppMapped serves a template based upon matching up the full request URL path to an
-//HTML template's filename. This is used for serving basic pages where no computations
-//or functionality needs to be performed prior to showing the page, but where the last
-//element in the path does not match the template's filename exactly.
+// AppMapped serves a template based upon matching up the full request URL path to an
+// HTML template's filename. This is used for serving basic pages where no computations
+// or functionality needs to be performed prior to showing the page, but where the last
+// element in the path does not match the template's filename exactly.
 //
-//Mapping a URL path to a filename is necessary to handle the different organization
-//structures for HTML templates in the filesystem and the URL paths for HTTP routing.
+// Mapping a URL path to a filename is necessary to handle the different organization
+// structures for HTML templates in the filesystem and the URL paths for HTTP routing.
 //
-//For example: request is sent to "/raw-materials/reports/underused-containers/" but
-//the HTML template is named "raw-material-underused-containers". The path last element
-//and name does not match because each fits and organization method based upon its
-//use (HTTP router vs filesystem).
+// For example: request is sent to "/raw-materials/reports/underused-containers/" but
+// the HTML template is named "raw-material-underused-containers". The path last element
+// and name does not match because each fits and organization method based upon its
+// use (HTTP router vs filesystem).
 func AppMapped(w http.ResponseWriter, r *http.Request) {
 	//List of URL paths to HTML filenames.
 	m := map[string]string{

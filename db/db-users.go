@@ -15,16 +15,16 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-//TableUsers is the name of the table
+// TableUsers is the name of the table
 const TableUsers = "users"
 
-//default stuff to insert upon creating table
+// default stuff to insert upon creating table
 const (
 	InitialUserUsername = "admin@example.com"
 	initialUserPassword = "admin@example.com"
 )
 
-//User is used to interact with the table
+// User is used to interact with the table
 type User struct {
 	//Basics.
 	ID               int64
@@ -126,7 +126,7 @@ func insertInitialUser(c *sqlx.DB) (err error) {
 	return
 }
 
-//GetUsers looks up a list of users.
+// GetUsers looks up a list of users.
 func GetUsers(ctx context.Context, activeOnly bool) (uu []User, err error) {
 	q := `
 		SELECT *
@@ -146,7 +146,7 @@ func GetUsers(ctx context.Context, activeOnly bool) (uu []User, err error) {
 	return
 }
 
-//GetUserByID looks up a user's data by their ID.
+// GetUserByID looks up a user's data by their ID.
 func GetUserByID(ctx context.Context, id int64, columns sqldb.Columns) (u User, err error) {
 	cols, err := columns.ForSelect()
 	if err != nil {
@@ -164,7 +164,7 @@ func GetUserByID(ctx context.Context, id int64, columns sqldb.Columns) (u User, 
 	return
 }
 
-//GetUserByUsername looks up a user's by their username.
+// GetUserByUsername looks up a user's by their username.
 func GetUserByUsername(ctx context.Context, username string, columns sqldb.Columns) (u User, err error) {
 	cols, err := columns.ForSelect()
 	if err != nil {
@@ -182,8 +182,8 @@ func GetUserByUsername(ctx context.Context, username string, columns sqldb.Colum
 	return
 }
 
-//Validate handles validating and sanitizing of data prior to saving or updating
-//a user.
+// Validate handles validating and sanitizing of data prior to saving or updating
+// a user.
 func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 	//Santize.
 	u.Username = strings.ToLower(strings.TrimSpace(u.Username))
@@ -222,7 +222,7 @@ func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 	return "", nil
 }
 
-//Insert saves a user to the database.
+// Insert saves a user to the database.
 func (u *User) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"Username",
@@ -264,7 +264,7 @@ func (u *User) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//Update saves changes to a user
+// Update saves changes to a user
 func (u *User) Update(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"Username",
@@ -299,8 +299,8 @@ func (u *User) Update(ctx context.Context) (err error) {
 	return
 }
 
-//SetNewPassword sets a new password for a given user ID. The password should
-//already be hashed.
+// SetNewPassword sets a new password for a given user ID. The password should
+// already be hashed.
 func SetNewPassword(ctx context.Context, userID int64, passwordHash string) (err error) {
 	q := `
 		UPDATE ` + TableUsers + `
@@ -325,9 +325,9 @@ func SetNewPassword(ctx context.Context, userID int64, passwordHash string) (err
 	return
 }
 
-//Save2FASecret saves the secret shared secret for 2fa to the database for a user.
-//This does not enable 2fa since the user still needs to verify a 2fa token the first
-//time a secret/qr code is shown to them.
+// Save2FASecret saves the secret shared secret for 2fa to the database for a user.
+// This does not enable 2fa since the user still needs to verify a 2fa token the first
+// time a secret/qr code is shown to them.
 func Save2FASecret(ctx context.Context, userID int64, secret string) (err error) {
 	q := `
 		UPDATE ` + TableUsers + `
@@ -350,16 +350,16 @@ func Save2FASecret(ctx context.Context, userID int64, secret string) (err error)
 	return
 }
 
-//Enable2FAForAll is a random value that allows the use of the Enable2FA func to
-//turn 2FA on/off for all users. This random value is used so that someone can't
-//just code in a value easily when using this func and mistakenly turn 2FA on/off
-//for all users.
+// Enable2FAForAll is a random value that allows the use of the Enable2FA func to
+// turn 2FA on/off for all users. This random value is used so that someone can't
+// just code in a value easily when using this func and mistakenly turn 2FA on/off
+// for all users.
 const Enable2FAForAll int64 = -132674
 
-//Enable2FA sets 2fa on or off for a user.
+// Enable2FA sets 2fa on or off for a user.
 //
-//This also works for all users, but only if userID is set to Enable2FAForAll. Be
-//careful! This was added to support turning 2fa on/off in development and testing.
+// This also works for all users, but only if userID is set to Enable2FAForAll. Be
+// careful! This was added to support turning 2fa on/off in development and testing.
 func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeModified",
@@ -394,10 +394,10 @@ func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
 	return
 }
 
-//Set2FABadAttempts sets the value for 2fa bad login attempts for a user. This is
-//used to either (a) reset the value upon a good login or (b) increment the value
-//(up to the max) for bad logins. The new badValue should have already been
-//calculated and validated.
+// Set2FABadAttempts sets the value for 2fa bad login attempts for a user. This is
+// used to either (a) reset the value upon a good login or (b) increment the value
+// (up to the max) for bad logins. The new badValue should have already been
+// calculated and validated.
 func Set2FABadAttempts(ctx context.Context, userID int64, badValue uint8) error {
 	q := `
 		UPDATE ` + TableUsers + `
@@ -420,10 +420,10 @@ func Set2FABadAttempts(ctx context.Context, userID int64, badValue uint8) error 
 	return err
 }
 
-//SetPasswordBadAttempts sets the value for the bad password attempts for a user.
-//This is used to either (a) reset the value upon a good password or (b) increment
-//the value (up to the max) for bad passwords. The new badValue should have already
-//been calculated and validated.
+// SetPasswordBadAttempts sets the value for the bad password attempts for a user.
+// This is used to either (a) reset the value upon a good password or (b) increment
+// the value (up to the max) for bad passwords. The new badValue should have already
+// been calculated and validated.
 func SetPasswordBadAttempts(ctx context.Context, userID int64, badValue uint8) error {
 	q := `
 		UPDATE ` + TableUsers + `

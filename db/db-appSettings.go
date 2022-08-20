@@ -14,10 +14,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-//TableAppSettings is the name of the table
+// TableAppSettings is the name of the table
 const TableAppSettings = "app_settings"
 
-//AppSettings is used to interact with the table
+// AppSettings is used to interact with the table
 type AppSettings struct {
 	ID               int64
 	DatetimeModified string
@@ -86,7 +86,7 @@ func insertInitialAppSettings(c *sqlx.DB) (err error) {
 	return
 }
 
-//errors specific to app settings
+// errors specific to app settings
 var (
 	//ErrAppSettingDisabled is the generic error used when an app setting is turned of
 	//A more detailed or specific err can be defined for certain use cases.
@@ -97,7 +97,7 @@ var (
 	ErrNoUser2FAEnabled = errors.New("no user has 2 factor auth enabled")
 )
 
-//GetAppSettings looks up the current app settings used for this app.
+// GetAppSettings looks up the current app settings used for this app.
 func GetAppSettings(ctx context.Context) (a AppSettings, err error) {
 	//get data from database
 	q := `
@@ -111,7 +111,7 @@ func GetAppSettings(ctx context.Context) (a AppSettings, err error) {
 	return
 }
 
-//Update updates the saved app settings to the given values
+// Update updates the saved app settings to the given values
 func (a *AppSettings) Update(ctx context.Context) (err error) {
 
 	//if forcing 2fa is turned on, make sure 2fa is enabled too

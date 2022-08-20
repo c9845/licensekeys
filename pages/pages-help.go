@@ -15,15 +15,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//HelpTableOfContents shows the page listing help documents
+// HelpTableOfContents shows the page listing help documents
 func HelpTableOfContents(w http.ResponseWriter, r *http.Request) {
 	//show page
 	templates.Show(w, "help", "table-of-contents", nil)
 }
 
-//Help shows a help documentation page. This serves any help page by using the end of
-//the url as the document name. This is useful since we don't need to create a func
-//or route for each help page we create.
+// Help shows a help documentation page. This serves any help page by using the end of
+// the url as the document name. This is useful since we don't need to create a func
+// or route for each help page we create.
 func Help(w http.ResponseWriter, r *http.Request) {
 	//get data from url
 	vars := mux.Vars(r)

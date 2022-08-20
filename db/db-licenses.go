@@ -27,10 +27,10 @@ import (
 //You would use the data in this table in conjunction with the custom_field_results
 //table to "rebuild" a license to allow for redownloading it.
 
-//TableLicenses is the name of the table.
+// TableLicenses is the name of the table.
 const TableLicenses = "licenses"
 
-//License is used to interact with the table.
+// License is used to interact with the table.
 type License struct {
 	ID               int64
 	DatetimeCreated  string
@@ -124,7 +124,7 @@ const (
 	`
 )
 
-//setLicenseIDStartingValue sets the starting value that the ID will auto increment from
+// setLicenseIDStartingValue sets the starting value that the ID will auto increment from
 func setLicenseIDStartingValue(c *sqlx.DB) error {
 	const startingValue = 10000
 
@@ -168,12 +168,12 @@ func setLicenseIDStartingValue(c *sqlx.DB) error {
 	return nil
 }
 
-//Validate handle sanitizing and validation of the license data. This only
-//handle the common fields, not custom fields.
+// Validate handle sanitizing and validation of the license data. This only
+// handle the common fields, not custom fields.
 //
-//viaAPI alters the validation based on if this function is being called due
-//to a license being created by an API request. We have to handle validation
-//slightly different due to how the data will be provided in this request.
+// viaAPI alters the validation based on if this function is being called due
+// to a license being created by an API request. We have to handle validation
+// slightly different due to how the data will be provided in this request.
 func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize.
 	l.CompanyName = strings.TrimSpace(l.CompanyName)
@@ -248,9 +248,9 @@ func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 	return
 }
 
-//Insert saves a license. You should have already called Validate().
-//You need to validate the license and update the Signature and
-//Verified fields.
+// Insert saves a license. You should have already called Validate().
+// You need to validate the license and update the Signature and
+// Verified fields.
 func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	if l.CreatedByUserID.Int64 == 0 && l.CreatedByAPIKeyID.Int64 == 0 {
 		return errors.New("cannot determine how license is being added")
@@ -328,7 +328,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	return
 }
 
-//SaveSignature updates a saved license by saving the generated signature.
+// SaveSignature updates a saved license by saving the generated signature.
 func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
@@ -345,7 +345,7 @@ func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	return
 }
 
-//MarkVerified updates a saved license by marking it as valid.
+// MarkVerified updates a saved license by marking it as valid.
 func (l *License) MarkVerified(ctx context.Context) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
@@ -363,8 +363,8 @@ func (l *License) MarkVerified(ctx context.Context) (err error) {
 	return
 }
 
-//GetLicenses looks up a list of licenses optionally filtered by app and active
-//licenses only.
+// GetLicenses looks up a list of licenses optionally filtered by app and active
+// licenses only.
 func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, columns sqldb.Columns) (ll []License, err error) {
 	//build base query
 	cols, err := columns.ForSelect()
@@ -426,7 +426,7 @@ func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, colum
 	return
 }
 
-//GetLicense looks up a single license's data.
+// GetLicense looks up a single license's data.
 func GetLicense(ctx context.Context, licenseID int64, columns sqldb.Columns) (l License, err error) {
 	//build base query
 	cols, err := columns.ForSelect()
@@ -469,8 +469,8 @@ func GetLicense(ctx context.Context, licenseID int64, columns sqldb.Columns) (l 
 	return
 }
 
-//DisableLicense marks a license as inactive. We use a transaction for this
-//since we typically will add a note about why the license as disabled as well.
+// DisableLicense marks a license as inactive. We use a transaction for this
+// since we typically will add a note about why the license as disabled as well.
 func DisableLicense(ctx context.Context, licenseID int64, tx *sqlx.Tx) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + `

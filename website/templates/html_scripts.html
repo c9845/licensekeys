@@ -6,14 +6,14 @@
         locally.
     -->
     {{if .UseLocalFiles}}
-        <script src="/static/js/vendor/jquery-3.4.1.slim.min.js"></script>
+        <script src="/static/js/vendor/jquery-3.6.0.slim.min.js"></script>
         <script src="/static/js/vendor/popper-1.16.1.min.js"></script>
-        <script src="/static/js/vendor/bootstrap-4.4.1.min.js"></script>
+        <script src="/static/js/vendor/bootstrap-4.6.2.min.js"></script>
 
         {{if .Development}}
-        <script src="/static/js/vendor/vue.js"></script>
+        <script src="/static/js/vendor/vue-2.7.8.js"></script>
         {{else}}
-        <script src="/static/js/vendor/vue.min.js"></script>
+        <script src="/static/js/vendor/vue-2.7.8.min.js"></script>
         {{end}}
 
 
@@ -22,14 +22,16 @@
         Good for using the latest libraries.
     -->
     {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.slim.min.js" integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8=" crossorigin="anonymous"></script>    
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.slim.min.js" integrity="sha512-6ORWJX/LrnSjBzwefdNUyLCMTIsGoNP6NftMy2UAm1JBm6PRZCO1d7OHBStWpVFZLO+RerTvqX/Z9mBFfCJZ4A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        
+        <!-- looked at updating to 5.x in nov2021 but there is a lot that changed layout wise and would take a ton of time to update our custom CSS to look right again -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js" integrity="sha256-/ijcOLwFf26xEYAjW75FizKVo5tnTYiQddPZoLUHHZ8=" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha256-WqU1JavFxSAMcLP2WIOI+GB2zWmShMI82mTpLDcqFUg=" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
         {{if .Development}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.js" integrity="sha512-pSyYzOKCLD2xoGM1GwkeHbdXgMRVsSqQaaUoHskx/HF09POwvow2VfVEdARIYwdeFLbu+2FCOTRYuiyeGxXkEg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.8/vue.js" integrity="sha512-aQ0A39cadufUhzw4jPaQ1KoHF4iH3GzmRu49mmoVrj7/WPvM8mcSz51DcWqYc0XPWqGuTmTV1Z0rG6XyRiAplw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js" integrity="sha512-XdUZ5nrNkVySQBnnM5vzDqHai823Spoq1W3pJoQwomQja+o4Nw0Ew1ppxo5bhF2vMug6sfibhKWcNJsG8Vj9tg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.8/vue.min.js" integrity="sha512-FBUSVbYJGylZSdYsKcPzD8eeP7xHN3ke9AeIZhmGWigvqdTibWEPGGOv0ppwvawuJswJ6/vQIfsq6q/7dAAx9g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         {{end}}
     {{end}}
 

@@ -16,10 +16,10 @@ import (
 	"github.com/c9845/output"
 )
 
-//Clear handles deleting rows from the activity log table. This is usually only done
-//from the admin tools page to reduce the table size. The user provides a date up to
-//which rows are deleted. The activity log table can get very large very fast so
-//clearing old stuff from time to time can be helpful.
+// Clear handles deleting rows from the activity log table. This is usually only done
+// from the admin tools page to reduce the table size. The user provides a date up to
+// which rows are deleted. The activity log table can get very large very fast so
+// clearing old stuff from time to time can be helpful.
 func Clear(w http.ResponseWriter, r *http.Request) {
 	//date to delete up to
 	priorToDate := strings.TrimSpace(r.FormValue("priorToDate"))

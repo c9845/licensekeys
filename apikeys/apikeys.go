@@ -29,25 +29,25 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-//keyLength is the length of random part of each API key. This does not include the
-//prefix or the separator!
+// keyLength is the length of random part of each API key. This does not include the
+// prefix or the separator!
 const keyLength = 40
 
-//keyPrefix defines a prefix that gets prepended to each api key so that an API key
-//can be more easily be identified versus just an arbitrary string.
-//https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
+// keyPrefix defines a prefix that gets prepended to each api key so that an API key
+// can be more easily be identified versus just an arbitrary string.
+// https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
 //
-//The keySeparator will be used to separate the prefix and the randomly generated
-//part of the key.
+// The keySeparator will be used to separate the prefix and the randomly generated
+// part of the key.
 const keyPrefix = "lks" //License Key Server
 
-//keySeparator is used to separate the keyPrefix from the randomly generated part
-//of an API key.
+// keySeparator is used to separate the keyPrefix from the randomly generated part
+// of an API key.
 const keySeparator = "_"
 
-//publicEndpoints are the list of URLs a user can access via an API key. This list
-//is checked against in middleware to make sure a request using an API key is
-//accessing a publicly accessible endpoint.
+// publicEndpoints are the list of URLs a user can access via an API key. This list
+// is checked against in middleware to make sure a request using an API key is
+// accessing a publicly accessible endpoint.
 var publicEndpoints = []string{
 	"/api/v1/licenses/add/",
 	"/api/v1/licenses/download/",
@@ -55,11 +55,11 @@ var publicEndpoints = []string{
 	"/api/v1/licenses/disable/",
 }
 
-//ErrNonPublicEndpoint is returned when a request is made via an api key to an
-//endpoint that isn't in the list publicEndpoints.
+// ErrNonPublicEndpoint is returned when a request is made via an api key to an
+// endpoint that isn't in the list publicEndpoints.
 var ErrNonPublicEndpoint = errors.New("api: access denied to non-public endpoint")
 
-//GetAll looks up a list of all API keys. This is used on the manage API keys page.
+// GetAll looks up a list of all API keys. This is used on the manage API keys page.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	cols := sqldb.Columns{
 		db.TableAPIKeys + ".ID",
@@ -79,7 +79,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	output.DataFound(keys, w)
 }
 
-//Generate creates a new API key and saves it to the database.
+// Generate creates a new API key and saves it to the database.
 func Generate(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")
@@ -149,8 +149,8 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	output.InsertOKWithData(a, w)
 }
 
-//generateKey actually creates a new API key. An API key is generated using a seed of
-//a salt, the user provided description, and a timestamp to add some randomness.
+// generateKey actually creates a new API key. An API key is generated using a seed of
+// a salt, the user provided description, and a timestamp to add some randomness.
 func generateKey(ctx context.Context, apiKeyDesc string) (key string) {
 	const salt = "xkr8NVwLg$@ENvPj*S&k"
 
@@ -179,12 +179,12 @@ func generateKey(ctx context.Context, apiKeyDesc string) (key string) {
 	return
 }
 
-//buildCompleteAPIKey builds an API key by prepending the prefix and separator.
+// buildCompleteAPIKey builds an API key by prepending the prefix and separator.
 func buildCompleteAPIKey(partialKey string) string {
 	return keyPrefix + keySeparator + partialKey
 }
 
-//Revoke marks an API key as inactive.
+// Revoke marks an API key as inactive.
 func Revoke(w http.ResponseWriter, r *http.Request) {
 	//Get input.
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
@@ -205,16 +205,16 @@ func Revoke(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-//IsPublicEndpoint checks if a provided URL is in the list of publically accessible
-//endpoints. If not, it returnes an error.
+// IsPublicEndpoint checks if a provided URL is in the list of publically accessible
+// endpoints. If not, it returnes an error.
 func IsPublicEndpoint(urlPath string) bool {
 	return slices.Contains(publicEndpoints, urlPath)
 }
 
-//KeyLength returns the length of API keys generated inclusive of the key's prefix
-//and key separator. This is used during validation of API requests to simply check
-//if the provided api key is the correct length before looking up the key in the
-//database.
+// KeyLength returns the length of API keys generated inclusive of the key's prefix
+// and key separator. This is used during validation of API requests to simply check
+// if the provided api key is the correct length before looking up the key in the
+// database.
 func KeyLength() int {
 	return len(keyPrefix) + len(keySeparator) + keyLength
 }

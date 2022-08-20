@@ -36,7 +36,7 @@ import (
 	"github.com/c9845/licensekeys/v2/config"
 )
 
-//errors
+// errors
 var (
 	//ErrInputInvalid is returned when doing validation before INSERT or UPDATE
 	//queries and some input value is not valid.
@@ -48,13 +48,13 @@ var (
 	ErrCouldNotFindMatchingField = errors.New("could not find matching result for defined field")
 )
 
-//GetDatetimeInConfigTimezone is used to convert a datetime from the database
-//as UTC into the timezone specified in the config file.  This cleans up and
-//removes duplicate code to do this elsewhere.  This is mostly used for DatetimeCreated
-//and DatetimeModified fields.  Although we use time.Parse that can return an
-//error, we simply log the error and return the input value instead.  Typically when
-//this func is used, the original datetime value is stored in "fieldNameUTC" such as
-//DatetimeCreatedUTC for clarification and/or diagnostics.
+// GetDatetimeInConfigTimezone is used to convert a datetime from the database
+// as UTC into the timezone specified in the config file.  This cleans up and
+// removes duplicate code to do this elsewhere.  This is mostly used for DatetimeCreated
+// and DatetimeModified fields.  Although we use time.Parse that can return an
+// error, we simply log the error and return the input value instead.  Typically when
+// this func is used, the original datetime value is stored in "fieldNameUTC" such as
+// DatetimeCreatedUTC for clarification and/or diagnostics.
 func GetDatetimeInConfigTimezone(input string) (output string) {
 	//the format of datetimes stored in the db
 	const format = "2006-01-02 15:04:05"
@@ -76,8 +76,8 @@ func GetDatetimeInConfigTimezone(input string) (output string) {
 	return
 }
 
-//GetDateInConfigTimezone is similar to GetDatetimeInConfigTimezone but
-//for dates only.
+// GetDateInConfigTimezone is similar to GetDatetimeInConfigTimezone but
+// for dates only.
 func GetDateInConfigTimezone(input string) (output string) {
 	//the format of dates stored in the db
 	const format = "2006-01-02"

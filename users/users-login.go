@@ -23,17 +23,17 @@ import (
 	"github.com/c9845/sqldb/v2"
 )
 
-//badPasswordAttemptsMax helps determine the maximum delay a user will experience if
-//they provide a bad password over and over. This value is multiplied against a time
-//value, i.e.: 1 second, to determine the delay between providing a bad password and
-//when the user can try again. Setting an upper limit prevents the delay from growing
-//endlessly.
+// badPasswordAttemptsMax helps determine the maximum delay a user will experience if
+// they provide a bad password over and over. This value is multiplied against a time
+// value, i.e.: 1 second, to determine the delay between providing a bad password and
+// when the user can try again. Setting an upper limit prevents the delay from growing
+// endlessly.
 //
-//Increase this number to make brute forcing passwords more expensive.
+// Increase this number to make brute forcing passwords more expensive.
 const badPasswordAttemptsMax = 5
 
-//Login handles authentication a user logging in to the app. This handles password
-//login and 2fa login.
+// Login handles authentication a user logging in to the app. This handles password
+// login and 2fa login.
 func Login(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	username := r.FormValue("username")
@@ -329,10 +329,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	output.Success(output.MessageType("loginOK"), nil, w)
 }
 
-//getIPFormatted formats the IP in an http request. This is used in Login to make sure
-//we always get the same format for the IP to check if user has already authorized
-//browser via 2fa. Note that user's real IP is probably being put in header since
-//there should be a proxy in front of this app.
+// getIPFormatted formats the IP in an http request. This is used in Login to make sure
+// we always get the same format for the IP to check if user has already authorized
+// browser via 2fa. Note that user's real IP is probably being put in header since
+// there should be a proxy in front of this app.
 func getIPFormatted(r *http.Request) (ip string) {
 	ip = r.RemoteAddr
 
@@ -357,15 +357,15 @@ func getIPFormatted(r *http.Request) (ip string) {
 	return
 }
 
-//loginIDCookieName is the name of the cookie used to store the login ID/session identifier.
+// loginIDCookieName is the name of the cookie used to store the login ID/session identifier.
 const loginIDCookieName = "login_id"
 
-//SetLoginCookieValue saves the login identifier to a cookie. This is used to identify
-//the user's session and user when needed in middleware or elsewhere in the app. The
-//expiration timestamp of the cookie SHOULD match the expiration saved to the database
-//although we only rely on the database value for validity. There is no need to encrypt
-//the value stored in the cookie since it is just a random identifier with no other
-//useful information.
+// SetLoginCookieValue saves the login identifier to a cookie. This is used to identify
+// the user's session and user when needed in middleware or elsewhere in the app. The
+// expiration timestamp of the cookie SHOULD match the expiration saved to the database
+// although we only rely on the database value for validity. There is no need to encrypt
+// the value stored in the cookie since it is just a random identifier with no other
+// useful information.
 func SetLoginCookieValue(w http.ResponseWriter, cv string, expiration time.Time) {
 	cookie := http.Cookie{
 		Name:     loginIDCookieName,
@@ -380,10 +380,10 @@ func SetLoginCookieValue(w http.ResponseWriter, cv string, expiration time.Time)
 	http.SetCookie(w, &cookie)
 }
 
-//GetLoginCookieValue looks up the cookie value set to identify this login. This is
-//used to validate a user in middleware or elsewhere, or look up session to get user
-//details or permissions. This is a unique value generated and saved when the user
-//logged into the app.
+// GetLoginCookieValue looks up the cookie value set to identify this login. This is
+// used to validate a user in middleware or elsewhere, or look up session to get user
+// details or permissions. This is a unique value generated and saved when the user
+// logged into the app.
 func GetLoginCookieValue(r *http.Request) (cv string, err error) {
 	cookie, err := r.Cookie(loginIDCookieName)
 	if err != nil {
@@ -393,15 +393,15 @@ func GetLoginCookieValue(r *http.Request) (cv string, err error) {
 	return cookie.Value, nil
 }
 
-//DeleteLoginCookie removes a session cookie from a request/response by making it
-//expired.
+// DeleteLoginCookie removes a session cookie from a request/response by making it
+// expired.
 func DeleteLoginCookie(w http.ResponseWriter) {
 	SetLoginCookieValue(w, "", time.Now().Add(-1*time.Second))
 }
 
-//GetUserDataByRequest returns the user's data based on the login cookie from the
-//http request. This is a wrapper around GetLoginCookieValue + db.GetLoginByCookieValue +
-//db.GetUserByID since this pattern is used frequently.
+// GetUserDataByRequest returns the user's data based on the login cookie from the
+// http request. This is a wrapper around GetLoginCookieValue + db.GetLoginByCookieValue +
+// db.GetUserByID since this pattern is used frequently.
 func GetUserDataByRequest(r *http.Request) (u db.User, err error) {
 	cv, err := GetLoginCookieValue(r)
 	if err != nil {
@@ -421,8 +421,8 @@ func GetUserDataByRequest(r *http.Request) (u db.User, err error) {
 	return
 }
 
-//GetUserIDByRequest returns the user's ID based on the login ID cookie from the http
-//request.
+// GetUserIDByRequest returns the user's ID based on the login ID cookie from the http
+// request.
 func GetUserIDByRequest(r *http.Request) (userID int64, err error) {
 	u, err := GetUserDataByRequest(r)
 	if err != nil {
@@ -432,8 +432,8 @@ func GetUserIDByRequest(r *http.Request) (userID int64, err error) {
 	return u.ID, nil
 }
 
-//GetUsernameByRequest returns the user's username based on the login ID cookie from the
-//http request.
+// GetUsernameByRequest returns the user's username based on the login ID cookie from the
+// http request.
 func GetUsernameByRequest(r *http.Request) (username string, err error) {
 	u, err := GetUserDataByRequest(r)
 	if err != nil {

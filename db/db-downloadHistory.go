@@ -12,10 +12,10 @@ import (
 //for auditing purposes. This is somewhat of a duplicate of the activity log
 //but only tracks downloads of licenses.
 
-//TableDownloadHistory is the name of the table.
+// TableDownloadHistory is the name of the table.
 const TableDownloadHistory = "download_history"
 
-//DownloadHistory is used to interact with the table.
+// DownloadHistory is used to interact with the table.
 type DownloadHistory struct {
 	ID               int64
 	DatetimeCreated  string //no default in CREATE TABLE so that we can set value using golang since we will also set TimestampCreated using golang.
@@ -53,7 +53,7 @@ const (
 	`
 )
 
-//Insert saves the record of a license being downloaded.
+// Insert saves the record of a license being downloaded.
 func (h *DownloadHistory) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeCreated",
@@ -96,7 +96,7 @@ func (h *DownloadHistory) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//GetHistory returns the download history for a license.
+// GetHistory returns the download history for a license.
 func GetHistory(ctx context.Context, licenseID int64, orderBy string) (hh []DownloadHistory, err error) {
 	q := `
 		SELECT 

@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-//YMDHMS returns a YYYY-MM-DD HH:MM:SS formatted datetime timestamp.
+// YMDHMS returns a YYYY-MM-DD HH:MM:SS formatted datetime timestamp.
 func YMDHMS() string {
 	return time.Now().UTC().Format("2006-01-02 15:04:05")
 }
 
-//YMD returns a YYYY-MM-DD formatted datetime timestamp.
+// YMD returns a YYYY-MM-DD formatted datetime timestamp.
 func YMD() string {
 	return time.Now().UTC().Format("2006-01-02")
 }

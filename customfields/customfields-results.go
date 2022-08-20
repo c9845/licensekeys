@@ -22,7 +22,7 @@ import (
 	"github.com/c9845/sqldb/v2"
 )
 
-//GetResults looks up the custom field values saved for a license.
+// GetResults looks up the custom field values saved for a license.
 func GetResults(w http.ResponseWriter, r *http.Request) {
 	//Make sure a license ID was provided and it is valid.
 	licenseID, _ := strconv.ParseInt(r.FormValue("licenseID"), 10, 64)

@@ -10,10 +10,10 @@ import (
 //2 Factor Authentication. This is used to remove the need for users to provide a 2FA
 //token with each log in to the app.
 
-//TableAuthorizedBrowsers is the name of the table
+// TableAuthorizedBrowsers is the name of the table
 const TableAuthorizedBrowsers = "user_authorized_browsers"
 
-//AuthorizedBrowser is used to interact with the table
+// AuthorizedBrowser is used to interact with the table
 type AuthorizedBrowser struct {
 	ID              int64
 	DatetimeCreated string
@@ -45,8 +45,8 @@ const (
 	createIndexAuthorizedBrowsersCookieUnique = `CREATE UNIQUE INDEX IF NOT EXISTS ` + TableAuthorizedBrowsers + `__Cookie_idx ON ` + TableAuthorizedBrowsers + ` (Cookie)`
 )
 
-//Insert saves a row to the database.
-//you should have already performed validation.
+// Insert saves a row to the database.
+// you should have already performed validation.
 func (a *AuthorizedBrowser) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"UserID",
@@ -85,8 +85,8 @@ func (a *AuthorizedBrowser) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//LookUpAuthorizedBrowser looks up if a browser identified by ip, useragent, and cookie
-//has already been authorized via 2fa.
+// LookUpAuthorizedBrowser looks up if a browser identified by ip, useragent, and cookie
+// has already been authorized via 2fa.
 func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, ua, cookie string, activeOnly bool) (a AuthorizedBrowser, err error) {
 	//Note, useragent was removed from checking because it changes too frequently and
 	//was causing users to provide their 2fa token often. This is mostly due to browsers
@@ -113,10 +113,10 @@ func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, ua, cookie s
 	return
 }
 
-//DisableAllAuthorizedBrowsers disabled all saved authorized browsers for a user.
-//Authorized browsers are saved when 2FA is enabled.  This func is used to "unremember"
-//all authorized browsers so user has to provide 2FA token again.  This func is called
-//in db-users.go ForceUserLogout().
+// DisableAllAuthorizedBrowsers disabled all saved authorized browsers for a user.
+// Authorized browsers are saved when 2FA is enabled.  This func is used to "unremember"
+// all authorized browsers so user has to provide 2FA token again.  This func is called
+// in db-users.go ForceUserLogout().
 func DisableAllAuthorizedBrowsers(ctx context.Context, userID int64) (err error) {
 	//filtering by Active = true so we don't look up rows that
 	//are already set to false.

@@ -21,10 +21,10 @@ import (
 //fields isn't often used, but is useful in cases where you update your app to handle
 //a change for some reason.
 
-//TableApps is the name of the table.
+// TableApps is the name of the table.
 const TableApps = "apps"
 
-//App is used to interact with the table.
+// App is used to interact with the table.
 type App struct {
 	ID               int64
 	DatetimeCreated  string
@@ -68,8 +68,8 @@ const (
 	`
 )
 
-//Validate is used to validate a struct's data before adding or saving changes. This also
-//handles sanitizing.
+// Validate is used to validate a struct's data before adding or saving changes. This also
+// handles sanitizing.
 func (a *App) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize
 	a.Name = strings.TrimSpace(a.Name)
@@ -117,7 +117,7 @@ func (a *App) Validate(ctx context.Context) (errMsg string, err error) {
 	return
 }
 
-//GetAppByName looks up an app by its name.
+// GetAppByName looks up an app by its name.
 func GetAppByName(ctx context.Context, name string) (a App, err error) {
 	q := `
 		SELECT ` + TableApps + `.*
@@ -130,7 +130,7 @@ func GetAppByName(ctx context.Context, name string) (a App, err error) {
 	return
 }
 
-//GetAppByID looks up an app by its ID.
+// GetAppByID looks up an app by its ID.
 func GetAppByID(ctx context.Context, id int64) (a App, err error) {
 	q := `
 		SELECT ` + TableApps + `.*
@@ -143,7 +143,7 @@ func GetAppByID(ctx context.Context, id int64) (a App, err error) {
 	return
 }
 
-//Insert saves an app. You should have already called Validate().
+// Insert saves an app. You should have already called Validate().
 func (a *App) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"CreatedByUserID",
@@ -187,7 +187,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 	return
 }
 
-//GetApps returns the list of apps optionally filtered by active apps only.
+// GetApps returns the list of apps optionally filtered by active apps only.
 func GetApps(ctx context.Context, activeOnly bool) (aa []App, err error) {
 	//base query
 	q := `
@@ -217,7 +217,7 @@ func GetApps(ctx context.Context, activeOnly bool) (aa []App, err error) {
 	return
 }
 
-//Update saves changes to an app. You should have already called Validate().
+// Update saves changes to an app. You should have already called Validate().
 func (a *App) Update(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeModified",
