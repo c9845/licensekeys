@@ -437,12 +437,8 @@ func rootFileHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set("X-Rootfile-Served-From", "disk")
 
-		//Get path to static files. This sibling directory to this is where root files
-		//are stored. To get the directory to root files, we start with the static file
-		//directory, get the parent directory, and then append the root directory.
-		staticFilesDir := config.Data().WebFilesPath
-		parentDir := filepath.Dir(staticFilesDir)
-		rootFilesDir := filepath.Join(parentDir, "root")
+		//Get path to root files.
+		rootFilesDir := filepath.Join(config.Data().WebFilesPath, "root")
 
 		//Serve the directory.
 		dir := os.DirFS(rootFilesDir)
