@@ -71,10 +71,13 @@
                                         <input type="text" class="form-control" v-model="userData.ID" readonly>
                                     </div>
                                     <div class="form-group">
-                                        <label>Username:</label>
+                                        <label>Username: <small class="text-muted">(An email address.)</small></label>
                                         <input type="email" class="form-control text-lowercase" v-model="userData.Username">
                                     </div>
+                                </section>
+                                <hr class="divider">
                                     
+                                <section>
                                     <!-- password, 2fa, force logout -->
                                     <fieldset v-if="addingNew">
                                         <div class="form-group">
@@ -114,7 +117,7 @@
                                                 data-toggle="modal" 
                                                 data-target="#modal-deactivate2FA"
                                             >
-                                                Deactivate 2 Factor Authentication
+                                                Deactivate 2 Factor Auth
                                             </button>
                                             <button 
                                                 v-else 
@@ -123,7 +126,7 @@
                                                 data-target="#modal-activate2FA"
                                                 v-on:click="reset2FAActivationModal"
                                             >
-                                                Activate 2 Factor Authentication
+                                                Activate 2 Factor Auth
                                             </button>
                                         </div>
                                         {{end}}
@@ -241,13 +244,13 @@
                     <div class="modal-body">
                         <section v-if="show2FAInfoOnly">
                             <blockquote class="section-description section-description-secondary">
-                                2 Factor Authentication (2FA) provides a secondary level of login security. It requires you to provide a 1-time code during login generated via a code generator app on your phone.  You will need to provide a code each time you login to the app.
+                                2 Factor Authentication (2FA) provides a secondary level of login security. It requires you to provide a 1-time code during login generated via a code generator app (ex.: Authy) on your phone. You will need to provide a code each time you login to the app.
                             </blockquote>
                         </section>
                         
                         <section v-else v-cloak>
                             <blockquote class="section-description section-description-secondary">
-                                To start using 2 Factor Authentication, open your authentication app (i.e.: Google Authenticator) and scan the barcode below.  Then provide the 6-digit code for validation.
+                                To start using 2 Factor Authentication, open your authentication app (ex.: Authy) and scan the barcode below.  Then provide the 6-digit code for verification.
                             </blockquote>
                             <hr class="divider">
 
