@@ -7,6 +7,10 @@ package db
 
 import "github.com/c9845/sqldb/v2"
 
+// DeployQueries is the list of queries to deploy the database schema. This only includes
+// CREATE TABLE queries.
+// - Inserting of initial data is handled via DeployFuncs (see below).
+// - Queries to create indexes are located in createIndexes (see db--indexes.go).
 var DeployQueries = []string{
 	createTableKeyValue,
 
@@ -26,21 +30,6 @@ var DeployQueries = []string{
 	createTableDownloadHistory,
 	createTableLicenseNotes,
 	createTableRenewalRelationships,
-
-	//indexes
-	//We create indexes in queries separate from CREATE TABLE since these queries are the same accross db
-	//types; i.e. we don't need to translate the query based on the db type in use.
-	createIndexActivityLogTimestampCreated,
-	createIndexActivityLogDatetimeCreated,
-	createIndexAPIKeysK,
-	createIndexAPIKeysActive,
-	createIndexAuthorizedBrowsersRemoteIP,
-	createIndexAuthorizedBrowsersCookieUnique,
-	createIndexUserLoginsValueUnique,
-	createIndexUserLoginsDatetimeCreated,
-	createIndexUsersUsername,
-	createIndexUsersActive,
-	createIndexKeyValueK,
 }
 
 var DeployFuncs = []sqldb.DeployFunc{

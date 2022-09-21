@@ -70,13 +70,13 @@ func init() {
 	showSQLiteVersion := flag.Bool("sqlite-version", false, "Show the version of SQLite the app has embedded.")
 	dbDeploySchema := flag.Bool("deploy-db", false, "Deploy a new database or add new tables to an existing database.")
 	dbUpdateSchema := flag.Bool("update-db", false, "Update an already deployed database.")
-	dontInsertInitialData := flag.Bool("no-insert-initial-data", false, "Set to true to deploy the database without inserting default data.") //used when converting from mariadb to sqlite
+	dbDontInsertInitialData := flag.Bool("no-insert-initial-data", false, "Set to true to deploy the database without inserting default data.") //used when converting from mariadb to sqlite
 	flag.Parse()
 
 	//If user just wants to see app version, print it and exit.
 	//Not using log.Println() so that a timestamp isn't printed.
 	if *showVersion {
-		fmt.Printf("Version: %s (Released: %s)\n", version.V, version.ReleaseDate)
+		fmt.Println(version.V)
 		os.Exit(0)
 		return
 	}
@@ -85,8 +85,10 @@ func init() {
 	//Not using log.Println() so that a timestamp isn't printed.
 	if *showSQLiteVersion {
 		ver, err := sqldb.GetSQLiteVersion()
-		log.Println("SQLite Version:", ver, err)
-		log.Println("SQLite Library:", sqldb.GetSQLiteLibrary())
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(ver, "-", sqldb.GetSQLiteLibrary())
 		os.Exit(0)
 		return
 	}
@@ -119,21 +121,24 @@ func init() {
 		},
 		MapperFunc:    sqldb.DefaultMapperFunc,
 		DeployQueries: db.DeployQueries,
-		DeployFuncs:   db.DeployFuncs,
 		UpdateQueries: db.UpdateQueries,
 		Debug:         true,
 		UpdateIgnoreErrorFuncs: []sqldb.UpdateIgnoreErrorFunc{
 			sqldb.UFAddDuplicateColumn,
 			sqldb.UFDropUnknownColumn,
 			sqldb.UFModifySQLiteColumn,
-			sqldb.UFAlreadyExists,
+			sqldb.UFIndexAlreadyExists,
 		},
 	}
+	if !*dbDontInsertInitialData {
+		cfg.DeployFuncs = db.DeployFuncs
+	}
+
 	sqldb.Save(cfg)
 
 	//Deploy the database if requested by --deploy-db flag.
 	if *dbDeploySchema {
-		err := sqldb.DeploySchema(*dontInsertInitialData)
+		err := sqldb.DeploySchema()
 		if err != nil {
 			log.Fatalln("Error during db deploy.", err)
 			return
@@ -176,7 +181,7 @@ func init() {
 	if os.IsNotExist(err) {
 		log.Println("WARNING! (main) Database file does not exist at given path, database will be deployed.")
 
-		err := sqldb.DeploySchema(false)
+		err := sqldb.DeploySchema()
 		if err != nil {
 			log.Fatalln("Error during db deploy.", err)
 			return
