@@ -8,6 +8,7 @@ or endpoint visited so we can investigate user activity as needed.
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -60,6 +61,11 @@ func LogActivity2(next http.Handler) http.Handler {
 		//Serve the actual page/endpoint.
 		next.ServeHTTP(w, r)
 
+		//ServerHTTP will cause the context to be closed, therefore we won't be able
+		//to use it below for calls to the db to save data. We have to create a new
+		//context for this.
+		ctx := context.Background()
+
 		//Get data from request to save to db for logging purposes. This data is used
 		//for diagnostics since the data is the actual data the user provided to this
 		//app prior to the app reading or modifying the data in any way. This saves
@@ -99,13 +105,13 @@ func LogActivity2(next http.Handler) http.Handler {
 		if len(key) == apikeys.KeyLength() {
 			//Look up api key from db to get API key's ID.
 			cols := sqldb.Columns{db.TableAPIKeys + ".ID"}
-			k, err := db.GetAPIKeyByKey(r.Context(), key, cols)
+			k, err := db.GetAPIKeyByKey(ctx, key, cols)
 			if err != nil {
 				log.Println("middleware.LogActivity2 - could not look up api key", key, err)
 			} else {
 				activity.CreatedByAPIKeyID = null.IntFrom(k.ID)
 
-				err := activity.Insert(r.Context())
+				err := activity.Insert(ctx)
 				if err != nil {
 					log.Println("middleware.LogActivity2 - could not save api access to log", err)
 				}
@@ -115,23 +121,23 @@ func LogActivity2(next http.Handler) http.Handler {
 			//Get login ID from cookie and user ID from login data.
 			cv, err := users.GetLoginCookieValue(r)
 			if err != nil {
-				log.Println("middleware.LogActivity2 - could not get login id from cookie", err)
+				log.Println("middleware.LogActivity2 - could not get login id from cookie", r.URL.Path, err)
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			ul, err := db.GetLoginByCookieValue(r.Context(), cv)
+			ul, err := db.GetLoginByCookieValue(ctx, cv)
 			if err != nil {
-				log.Println("middleware.LogActivity2 - could not get user id from login data", err)
+				log.Println("middleware.LogActivity2 - could not get user id from login data", r.URL.Path, err)
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			//Set user ID for saving to activity log.
 			activity.CreatedByUserID = null.IntFrom(ul.UserID)
-			err = activity.Insert(r.Context())
+			err = activity.Insert(ctx)
 			if err != nil {
-				log.Println("middleware.LogActivity2 - could not save user access to log", err)
+				log.Println("middleware.LogActivity2 - could not save user access to log", r.URL.Path, err)
 			}
 		}
 	})
