@@ -1,1 +1,0 @@
-The `build.go` code run the tooling to build distributions of this software.
