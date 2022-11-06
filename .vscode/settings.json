@@ -1,0 +1,6 @@
+{
+    //85 characters is the width when having 2 editors side-by-side on 15" MacBook 
+    //Pro (with explorer closed). This also works well on 24" monitors (2 editors 
+    //side-by-side) and 27" monitors (3 editors side-by-side).
+    "editor.rulers": [85],
+}

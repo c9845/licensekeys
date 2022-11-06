@@ -12,6 +12,7 @@ package middleware
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -46,6 +47,31 @@ func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u d
 	templates.Show(w, "app", "permission-error", pd)
 }
 
+// verifyAccessError returns an error when an error occurs when trying to verify a
+// user's permissions.
+//
+// User data is not used since this func can be used after an error occured while
+// trying to look up a user and therefore we wouldn't have user data to use in this
+// func.
+func verifyAccessError(w http.ResponseWriter, r *http.Request, permission string, err error) {
+	log.Println("middleware.verifyAccessError", r.URL.Path, permission, err)
+
+	ep := pages.ErrorPage{
+		PageTitle: "Could Not Verify Permission",
+		Topic:     "An error occured while trying to verify you have the '" + permission + "' permission.",
+		Solution:  "Please contact an administrator to investigate this error.",
+	}
+
+	//Determine if this request is for a page or api endpoint and send back error
+	//formatted correctly for request type.
+	if strings.Contains(r.URL.Path, "api") {
+		output.Error(err, ep.Topic, w)
+		return
+	}
+
+	pages.ShowError(w, r, ep)
+}
+
 // Administrator checks if the user has this permission.
 func Administrator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +80,7 @@ func Administrator(next http.Handler) http.Handler {
 		//Get user data.
 		u, err := users.GetUserDataByRequest(r)
 		if err != nil {
-			refuseAccess(w, r, p, u)
+			verifyAccessError(w, r, p, err)
 			return
 		}
 
@@ -76,7 +102,7 @@ func CreateLicenses(next http.Handler) http.Handler {
 
 		u, err := users.GetUserDataByRequest(r)
 		if err != nil {
-			refuseAccess(w, r, p, u)
+			verifyAccessError(w, r, p, err)
 			return
 		}
 
@@ -96,7 +122,7 @@ func ViewLicenses(next http.Handler) http.Handler {
 
 		u, err := users.GetUserDataByRequest(r)
 		if err != nil {
-			refuseAccess(w, r, p, u)
+			verifyAccessError(w, r, p, err)
 			return
 		}
 

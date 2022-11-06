@@ -11,18 +11,36 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "runOptions": {
-                //"runOn": "folderOpen"
+            "presentation": {
+                "group": "minify",
             }
         },
 
-        //run grunt (gruntfile.js) to minify script.js and styles.css files.
-        //works for app and sales pages
         {
-            "label": "grunt-minify",
-            "command": "grunt",
+            "label": "minify-js",
+            "command": "minify -w -v -o website/static/js/script.min.js website/static/js/script.js",
             "type": "shell",
             "problemMatcher": [],
-        }
+            "presentation": {
+                "group": "minify",
+            }
+        },
+        {
+            "label": "minify-css",
+            "command": "minify -w -v -o website/static/css/styles.min.css website/static/css/styles.css",
+            "type": "shell",
+            "problemMatcher": [],
+            "presentation": {
+                "group": "minify",
+            }
+        },
+        {
+            "label": "minify-all",
+            "dependsOn": ["minify-js", "minify-css"],
+            "problemMatcher":[],
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
     ]
 }

@@ -112,24 +112,19 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 
 	d.set("SQLiteLibrary", sqldb.GetSQLiteLibrary())
 
-	var pragmaJournalMode string
-	q := "PRAGMA journal_mode"
-	c := sqldb.Connection()
-	err = c.Get(&pragmaJournalMode, q)
-	if err != nil {
-		log.Println("pages.Diagnostics", "could not get sqlite journal mode", err)
-	} else {
-		d.set("PRAGMAJournalMode", pragmaJournalMode)
+	pragmas := []string{
+		"journal_mode",
+		"busy_timeout",
+		"foreign_keys",
 	}
-
-	var busyTimeout string
-	q = "PRAGMA busy_timeout"
-	c = sqldb.Connection()
-	err = c.Get(&busyTimeout, q)
-	if err != nil {
-		log.Println("pages.Diagnostics", "could not get sqlite busy timeout", err)
-	} else {
-		d.set("PRAGMABusyTimeout", busyTimeout)
+	for _, p := range pragmas {
+		v, err := getSQLitePragma(p)
+		if err != nil {
+			log.Println("pages.Diagnostics", "Could not get SQLite pragma "+p+".")
+			//not returning on error so rest of diagnostics page is loaded.
+		} else {
+			d.set("PRAGMA"+p, v)
+		}
 	}
 
 	//App settings...
@@ -183,4 +178,17 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.Show(w, "app", "diagnostics", pd)
+}
+
+// getSQLitePragma looks up the value for the named SQLite PRAGMA. The name must match
+// the SQLite given name, exactly.
+//
+// All values are returned as strings just for ease of use. Returning any/interface{}
+// would be annoying.
+func getSQLitePragma(pragmaName string) (pragmaValue string, err error) {
+	c := sqldb.Connection()
+
+	q := "PRAGMA " + pragmaName
+	err = c.Get(&pragmaValue, q)
+	return
 }

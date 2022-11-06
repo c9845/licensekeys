@@ -118,6 +118,7 @@ func init() {
 		SQLitePragmas: []string{
 			"PRAGMA busy_timeout = 5000", //so mattn and modernc are treated the same, 5000 is default for mattn
 			"PRAGMA journal_mode = " + config.Data().DBJournalMode,
+			"PRAGMA foreign_keys = ON",
 		},
 		MapperFunc:    sqldb.DefaultMapperFunc,
 		DeployQueries: db.DeployQueries,
