@@ -30,12 +30,14 @@
 						<!-- go back to main app page-->
 						<a class="btn btn-outline-secondary btn-sm" href="/app/"><i class="fa fa-home"></i></a>
 
-						<!-- show logout and username of logged in user -->
-						<a class="btn btn-outline-secondary btn-sm text-left" id="btn-logout" href="/logout/" v-on:mouseover="usernameHovered = true" v-on:mouseleave="usernameHovered = false">
-							<i class="fas fa-sign-out-alt"></i> 
-							<span v-if="usernameHovered === false">{{$userData.Username}}</span>
-							<span v-else v-cloak>Logout</span>
-						</a>
+						<!-- open nav menu for user stuff: user profile and log out button. -->
+						<div class="btn-group" >
+							<button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown">{{$userData.Username}}</button>
+							<div class="dropdown-menu dropdown-menu-right">
+								<a class="dropdown-item" href="/user-profile/">My Profile</a>
+								<a class="dropdown-item" href="/logout/">Logout</a>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

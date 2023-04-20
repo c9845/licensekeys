@@ -1,8 +1,3 @@
-/*
-Package db handles interacting with the database.
-
-This file defines the list of queries and funcs that will be used to deploy the database schema.
-*/
 package db
 
 import "github.com/c9845/sqldb/v2"

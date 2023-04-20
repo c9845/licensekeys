@@ -5,8 +5,11 @@ import (
 	"net/http"
 
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/templates"
 )
+
+//This file defines handling for general error pages throughout the app. This page
+//shows a general error message with a possible fix to users, but doesn't show low-
+//level information about an error.
 
 // ErrorPage is the data used to show messages when an error or unexpected event occurs
 // this stuff is injected into a template to describe to user what occured and how to
@@ -43,5 +46,5 @@ func ShowError(w http.ResponseWriter, r *http.Request, ep ErrorPage) {
 	}
 
 	//Show the page.
-	templates.Show(w, "app", "error-page", pd)
+	Show(w, "app", "error-page", pd)
 }

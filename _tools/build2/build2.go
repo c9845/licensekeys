@@ -693,8 +693,12 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 			return fmt.Errorf("error copying binary checksum %w", innerErr)
 		}
 
+		//Format hash in specific format to work with "sha256sum --check" command on
+		//linux systems. Note the two spaces to separate hash and filename!
 		hash := strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
-		innerErr = os.WriteFile(binaryChecksumPathAbs, []byte(hash), 0777)
+		hashFormatted := hash + "  " + filepath.Base(binaryName)
+
+		innerErr = os.WriteFile(binaryChecksumPathAbs, []byte(hashFormatted), 0777)
 		if innerErr != nil {
 			return fmt.Errorf("error writing binary hash %w", innerErr)
 		}
@@ -741,6 +745,25 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 		//reading zip to create checksum.
 		zw.Close()
 
+		//Github issue version zipping. Reference: https://github.com/golang/go/issues/54898
+		/*
+			zipFileAbs2 := distributionDirAbs + "-2" + ".zip"
+			zipFile2, innerErr := os.Create(zipFileAbs2)
+			if innerErr != nil {
+				return fmt.Errorf("error creating zip file (2) %w", innerErr)
+			}
+
+			zw2 := zip.NewWriter(zipFile2)
+			defer zw2.Close()
+
+			innerErr = zipAddFS(zw2, sourceDir)
+			if innerErr != nil {
+				return fmt.Errorf("error creating zip (zipAddFS) %w", innerErr)
+			}
+
+			zw2.Close()
+		*/
+
 		//Delete the source un-zipped directory of files.
 		innerErr = os.RemoveAll(distributionDirAbs)
 		if innerErr != nil {
@@ -766,8 +789,12 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 			return fmt.Errorf("error copying zip checksum %w", innerErr)
 		}
 
+		//Format hash in specific format to work with "sha256sum --check" command on
+		//linux systems. Note the two spaces to separate hash and filename!
 		hash = strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
-		innerErr = os.WriteFile(zipChecksumPath, []byte(hash), 0777)
+		hashFormatted = hash + "  " + filepath.Base(zipFileAbs)
+
+		innerErr = os.WriteFile(zipChecksumPath, []byte(hashFormatted), 0777)
 		if innerErr != nil {
 			return fmt.Errorf("error saving zip checksum %w", innerErr)
 		}
@@ -828,4 +855,40 @@ func createZip(zw *zip.Writer, f fs.FS) (err error) {
 	}
 
 	return
+}
+
+// zipAddFS is a Github-issue related version of my createZip function. See Github
+// issue: https://github.com/golang/go/issues/54898
+//
+//lint:ignore U1000 this func is here for testing.
+func zipAddFS(w *zip.Writer, fsys fs.FS) error {
+	return fs.WalkDir(fsys, ".", func(name string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		h, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+		h.Name = name
+		h.Method = zip.Deflate
+		fw, err := w.CreateHeader(h)
+		if err != nil {
+			return err
+		}
+		f, err := fsys.Open(name)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = io.Copy(fw, f)
+		return err
+	})
 }

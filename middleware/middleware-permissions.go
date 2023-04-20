@@ -20,7 +20,6 @@ import (
 	"github.com/c9845/licensekeys/v2/pages"
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
-	"github.com/c9845/templates"
 )
 
 // errPermissionRefused is returned when a user does not have the correct permission
@@ -44,7 +43,7 @@ func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u d
 		UserData: u,
 		Data:     msg,
 	}
-	templates.Show(w, "app", "permission-error", pd)
+	pages.Show(w, "app", "permission-error", pd)
 }
 
 // verifyAccessError returns an error when an error occurs when trying to verify a

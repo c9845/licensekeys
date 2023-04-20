@@ -1,8 +1,5 @@
 package db
 
-//This table stores a history of user and API interactions with this app. This is meant
-//for use for auditing purposes.
-
 import (
 	"context"
 	"fmt"
@@ -15,6 +12,9 @@ import (
 	"github.com/c9845/sqldb/v2"
 	"gopkg.in/guregu/null.v3"
 )
+
+//This table stores a history of user and API interactions with this app. This is meant
+//for use for auditing purposes.
 
 // TableActivityLog is the name of the table
 const TableActivityLog = "activity_log"
@@ -70,6 +70,8 @@ const (
 
 	createIndexActivityLogTimestampCreated = `CREATE INDEX IF NOT EXISTS ` + TableActivityLog + `__TimestampCreated_idx ON ` + TableActivityLog + ` (TimestampCreated)`
 	createIndexActivityLogDatetimeCreated  = `CREATE INDEX IF NOT EXISTS ` + TableActivityLog + `__DatetimeCreated_idx ON ` + TableActivityLog + ` (DatetimeCreated)`
+
+	updateActivityLogReferrer = `ALTER TABLE ` + TableActivityLog + ` ADD COLUMN Referrer TEXT NOT NULL DEFAULT ""`
 )
 
 // Insert saves a log entry to the database for an action performed
@@ -123,6 +125,7 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -240,6 +243,7 @@ func ClearActivityLog(ctx context.Context, date string) (rowsDeleted int64, err 
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, date)
 	if err != nil {

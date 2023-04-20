@@ -3,12 +3,13 @@ package pages
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/c9845/licensekeys/v2/config"
-	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/templates"
 )
+
+//This file specifically handles user related pages. This functionality was broken
+//out into a separate file mostly to handle the password length requirements from the
+//config file.
 
 // Users shows the page to manage users.
 func Users(w http.ResponseWriter, r *http.Request) {
@@ -25,47 +26,30 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	}{config.Data().MinPasswordLength}
 	pd.Data = data
 
-	templates.Show(w, "app", "users", pd)
+	Show(w, "app", "users", pd)
 }
 
-// UserLogins shows the page of user logins to the app. You can also filter by user ID.
-func UserLogins(w http.ResponseWriter, r *http.Request) {
-	//Get inputs.
-	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
-	rows, _ := strconv.ParseInt(r.FormValue("rows"), 10, 64)
-
-	//Validate.
-	if userID < 0 {
-		userID = 0
-	}
-	if rows < 0 {
-		rows = 200
-	}
-
-	//Get results.
-	logins, err := db.GetUserLogins(r.Context(), userID, uint16(rows))
-	if err != nil {
-		e := ErrorPage{
-			PageTitle:   "View User Logins",
-			Topic:       "An error occured while trying to display the login log.",
-			Message:     "The log data cannot be displayed.",
-			Solution:    "Please contact an administrator and have them look at the logs to investigate.",
-			ShowLinkBtn: true,
-		}
-		log.Println("pages.UserLogins", "Could not look up list of logins", err)
-
-		ShowError(w, r, e)
-		return
-	}
-
-	//Get data to build gui.
+// UserProfile shows the page where a user can view and manage their own user account
+// or profile. For now, user's can only change their passwords since we do not want
+// them to be able to change permissions (for obvious reasons) or alerts (so they get
+// alerts for what admin's deem important).
+//
+// This does not use App() since we need to get the minimum password length to build
+// the GUI with.
+func UserProfile(w http.ResponseWriter, r *http.Request) {
+	//Get basic data to build GUI.
 	pd, err := getPageConfigData(r)
 	if err != nil {
 		log.Println("Error getting page config data", err)
 		return
 	}
 
+	//Get the minimum password length to show in GUI and use for validation.
+	data := struct {
+		MinPasswordLength int
+	}{config.Data().MinPasswordLength}
+	pd.Data = data
+
 	//Show page.
-	pd.Data = logins
-	templates.Show(w, "app", "user-logins", pd)
+	Show(w, "app", "user-profile", pd)
 }

@@ -1,81 +1,119 @@
 {{$showDevHeader := .Development}}
-{{$data := .InjectedData.Data}}
 
 <!DOCTYPE html>
 <html>
-	<head>
-        <title>{{template "html_title_app_name" .}} | User Logins</title>
 
-		{{template "html_head" .}}
-	</head>
-	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
-		{{end}}
+<head>
+    <title>{{template "html_title_app_name" .}} | User Logins</title>
 
-		<!-- HEADER -->
-        {{template "header-with-btns" .}}
-        
-		<main>
-			<div class="container">
-				<div class="row">
-                   <div class="col">
-                        <div class="card" id="userLogins">
-                            <div class="card-header">
-                                <h5>User Logins</h5>
-                                <div class="card-header-btn">
-									<button class="btn btn-outline-primary btn-sm" v-on:click="showHelp = !showHelp"><i class="fas fa-question"></i></button>
-								</div>
-                            </div>
-                            <div class="card-body">
-                                <div v-show="showHelp" v-cloak>
-									<div class="alert alert-primary">
-                                        This table shows the log of users who have logged into this app with some associated data.  You can filter results by user.  First, find the user's ID on the Users page.  Then open this page and replace the <code>x</code> in <code>?userID=x</code> in the URL with the user's ID.
-									</div>
-									<br>	
-								</div>
-                                
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-sm table-dense-always">
-                                        <thead class="no-border-top">
-                                            <th class="whitespace-no-wrap">
-                                                Datetime 
-                                                {{if gt (len $data) 0}}
-                                                {{with index $data 0}}
-                                                    <small class="text-secondary">({{.Timezone}})</small>
-                                                {{end}}
-                                                {{end}}
-                                            </th>
-                                            <th>User</th>
-                                            <th title="If a 2FA token was provided.">2FA</th>
-                                            <th class="whitespace-no-wrap">IP Address</th>
-                                            <th>User Agent</th>
-                                        </thead>
-                                        <tbody>
-                                            {{range $data}}
-                                            <tr data-login-history-id="{{.ID}}">
-                                                <td class="datetime whitespace-no-wrap"><span title="{{.DatetimeCreated}} (UTC)">{{.DatetimeCreatedTZ}}</span></td>
-                                                <td><span title="{{.UserID}}">{{.Username}}</span></td>
-                                                <td>{{if .TwoFATokenProvided}}Y{{end}}</td>
-                                                <td class="whitespace-no-wrap">{{.RemoteIP}}</td>
-                                                <td class="whitespace-no-wrap">{{.UserAgent}}</td>
-                                            </tr>
-                                            {{else}}
-                                            <tr>
-                                                <td colspan="6">No data exists for this user id.</td>
-                                            </tr>
-                                            {{end}}
-                                        </tbody>
-                                    </table>
+    {{template "html_head" .}}
+</head>
+
+<body>
+    {{if $showDevHeader}}
+    <p class="text-center text-danger">!! DEV MODE !! </p>
+    {{end}}
+
+    <!-- HEADER -->
+    {{template "header-with-btns" .}}
+
+    <main>
+        <div class="container" id="userLogins">
+            <div class="row">
+                <div class="col">
+
+                    <!-- filters -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Filters</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 col-md-6">
+                                    <div class="form-group side-by-side">
+                                        <label>User:</label>
+                                        <select class="form-control" v-model.number="userID">
+                                            <option value="0">All users.</option>
+                                            <template v-if="usersRetrieved">
+                                                <option v-for="u in users" :key="u.ID" v-bind:value="u.ID">
+                                                    [[u.Username]]</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-group side-by-side">
+                                        <label>Rows Returned:</label>
+                                        <input class="form-control" type="number" min="0" step="1" v-model.number="rows">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-				</div>                   
-			</div>
-		</main>
 
-		{{template "footer"}}
-		{{template "html_scripts" .}}
-	</body>
+                            <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                [[msg]]
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-primary" type="button" v-on:click="getLogins" v-bind:disabled="submitting">Filter</button>
+                        </div>
+                    </div> <!-- end .card for filters-->
+
+                    <!-- results -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>
+                                User Logins
+                                <small 
+                                        v-if="loginsRetrieved"
+                                        class="text-secondary" 
+                                        v-cloak
+                                    >
+                                        ([[logins.length]] rows)
+                                    </small>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm table-dense-always">
+                                    <thead class="no-border-top">
+                                        <th class="whitespace-no-wrap">Datetime</th>
+                                        <th>User</th>
+                                        <th v-tooltip="'If a 2FA token was provided.'">2FA</th>
+                                        <th>IP Address</th>
+                                        <th>User Agent</th>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-if="loginsRetrieved === false">
+                                            <td>User login history not retrieved yet.</td>
+                                        </tr>
+                                        <tr v-else-if="logins.length === 0">
+                                            <td>No logins retrieved.</td>
+                                        </tr>
+                                        <template v-else>
+                                            <tr v-for="l in logins" v-bind:data-loginid="l.ID">
+                                                <td class="datetime whitespace-no-wrap"><span
+                                                        v-bind:title="l.DatetimeCreatedUTC + ' UTC'">[[l.DatetimeCreated]]</span>
+                                                </td>
+                                                <td>[[l.Username]]</td>
+                                                <td class="text-center"><span v-if="l.TwoFATokenProvided" class="text-success fas fa-check"></span></td>
+                                                <td class="whitespace-no-wrap">[[l.RemoteIP]]</td>
+                                                <td class="whitespace-no-wrap">[[l.UserAgent]]</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div> <!-- end .card for results -->
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {{template "footer"}}
+    {{template "html_scripts" .}}
+    {{template "data-toggle-tooltip"}}
+</body>
+
 </html>

@@ -28,7 +28,10 @@
     //@ts-ignore tooltip doesn't exist
     $(el).tooltip({
         title:      binding.value,
+        
+        //https://vuejs.org/guide/reusability/custom-directives.html#:~:text=arg%3A%20The%20argument%20passed%20to%20the%20directive%2C%20if%20any.%20For%20example%20in%20v%2Dmy%2Ddirective%3Afoo%2C%20the%20arg%20would%20be%20%22foo%22.
         placement:  binding.arg || 'top',
+
         trigger:    t.join(' '),
         html:       useHTML,
     });

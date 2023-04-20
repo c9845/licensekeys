@@ -74,6 +74,7 @@ func (a *AuthorizedBrowser) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -134,6 +135,7 @@ func DisableAllAuthorizedBrowsers(ctx context.Context, userID int64) (err error)
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -143,5 +145,36 @@ func DisableAllAuthorizedBrowsers(ctx context.Context, userID int64) (err error)
 
 		userID,
 	)
+	return
+}
+
+// ClearAuthorizedBrowsers deletes rows from the authorized browsers table prior to a
+// given date. This is used as part of the admin tool to delete user login history.
+func ClearAuthorizedBrowsers(ctx context.Context, date string) (rowsDeleted int64, err error) {
+	//Delete rows from table.
+	q := `
+		DELETE FROM ` + TableAuthorizedBrowsers + ` 
+		WHERE DatetimeCreated < ?
+	`
+
+	c := sqldb.Connection()
+	stmt, err := c.PrepareContext(ctx, q)
+	if err != nil {
+		return
+	}
+	defer stmt.Close()
+
+	res, err := stmt.ExecContext(ctx, date)
+	if err != nil {
+		return
+	}
+
+	rowsDeleted, err = res.RowsAffected()
+	if err != nil {
+		return
+	}
+
+	//Not VACUUMing, call VACUUM manually since it may block the db for a while.
+
 	return
 }

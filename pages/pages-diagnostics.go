@@ -1,10 +1,3 @@
-/*
-Package pages is used to display the gui. This package is kind of a middleman for
-other funcs and the templates package.
-
-This file specifically deals with showing the diagnostics page which shows all
-sorts of lower level info on the app.
-*/
 package pages
 
 import (
@@ -19,8 +12,10 @@ import (
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/version"
 	"github.com/c9845/sqldb/v2"
-	"github.com/c9845/templates"
 )
+
+//This file specifically handles the diagnostics page. This page shows a bunch of
+//low level information about the app that can be used to debug issues.
 
 // startTime is used to track when the app was last started so we can monitor uptime.
 // The value for this is set in init() for this package.
@@ -78,7 +73,6 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 
 	d.set("WebFilesStore", cfg.WebFilesStore)
 	d.set("WebFilesPath", cfg.WebFilesPath)
-	d.set("StaticFileCacheDays", cfg.StaticFileCacheDays)
 	d.set("UseLocalFiles", cfg.UseLocalFiles)
 	d.set("FQDN", cfg.FQDN)
 	d.set("Port", cfg.Port)
@@ -177,7 +171,7 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 		Data: *d,
 	}
 
-	templates.Show(w, "app", "diagnostics", pd)
+	Show(w, "app", "diagnostics", pd)
 }
 
 // getSQLitePragma looks up the value for the named SQLite PRAGMA. The name must match

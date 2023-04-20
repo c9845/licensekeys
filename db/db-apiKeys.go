@@ -1,7 +1,5 @@
 package db
 
-//This table stores API keys used to automate interaction with this app.
-
 import (
 	"context"
 
@@ -9,6 +7,8 @@ import (
 	"github.com/c9845/licensekeys/v2/timestamps"
 	"github.com/c9845/sqldb/v2"
 )
+
+//This table stores API keys used to automate interaction with this app.
 
 // TableAPIKeys is the name of the table
 const TableAPIKeys = "api_keys"
@@ -147,6 +147,7 @@ func (a *APIKey) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(
 		ctx,
@@ -179,6 +180,7 @@ func RevokeAPIKey(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,

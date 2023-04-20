@@ -1,7 +1,5 @@
 package db
 
-//This table is used for storing random pieces of information.
-
 import (
 	"context"
 	"time"
@@ -9,6 +7,8 @@ import (
 	"github.com/c9845/sqldb/v2"
 	"github.com/jmoiron/sqlx"
 )
+
+//This table is used for storing random pieces of information.
 
 // TableKeyValue is the name of the table
 const TableKeyValue = "key_value"
@@ -43,6 +43,8 @@ const (
 	`
 
 	createIndexKeyValueK = "CREATE UNIQUE INDEX IF NOT EXISTS " + TableKeyValue + "__K_idx ON " + TableKeyValue + " (K)"
+
+	updateKeyValueDatetimeModified = `ALTER TABLE ` + TableKeyValue + ` ADD COLUMN DatetimeModified DATETIME DEFAULT CURRENT_TIMESTAMP`
 )
 
 // GetValueByKey looks up key/value pair by the key name.
@@ -114,6 +116,7 @@ func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	//run query
 	_, err = stmt.ExecContext(ctx, b...)
@@ -166,6 +169,7 @@ func (k *KeyValue) Update(ctx context.Context, tx *sqlx.Tx) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	//run query
 	_, err = stmt.ExecContext(

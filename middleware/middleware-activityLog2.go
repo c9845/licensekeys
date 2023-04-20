@@ -89,6 +89,12 @@ func LogActivity2(next http.Handler) http.Handler {
 			ip = strings.Join(v, "")
 		}
 
+		referrerFull, err := url.Parse(r.Referer())
+		if err != nil {
+			referrerFull = &url.URL{}
+		}
+		referrerPath := referrerFull.Path
+
 		//Data to save.
 		activity := db.ActivityLog{
 			Method:         r.Method,
@@ -97,6 +103,7 @@ func LogActivity2(next http.Handler) http.Handler {
 			UserAgent:      r.UserAgent(),
 			TimeDuration:   time.Since(timer).Nanoseconds() / 1000000, //milliseconds
 			PostFormValues: jStrToSave,
+			Referrer:       referrerPath, //function name is misspelled, not our field name.
 		}
 
 		//Get the API key or user making this request so we can identify source of

@@ -17,6 +17,15 @@
 
 		<main>
 			<div class="container">
+
+                <div class="row">
+                    <div class="col">
+                        <div class="alert alert-warning">
+                            <b>Caution!</b> These tools only have very basic validation and are thus very powerful. Make sure you know what you are doing!
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
 
                     <!-- link to diagnostics page -->
@@ -54,6 +63,35 @@
                                         <input class="form-control" type="date" v-model.trim="priorToDate">
                                     </div>
                                 </section>
+                                <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                    [[msg]]
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-primary" type="button" v-on:click="clear">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- clear old user logins -->
+                    <div class="col-12 col-md-4">
+                        <div class="card" id="toolsClearLogins">
+                            <div class="card-header">
+                                <h5>User Logins</h5>
+                            </div>
+                            <div class="card-body">
+                                <blockquote class="section-description section-description-secondary">
+                                    Clear the user login history. This is used to remove user login history since the list of logins can get large and impact performance.
+                                </blockquote>
+                                <hr class="divider">
+                                
+                                <section>
+                                    <div class="form-group">
+                                        <label>Prior To:</label>
+                                        <input class="form-control" type="date" v-model.trim="priorToDate">
+                                    </div>
+                                </section>
+
                                 <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
                                     [[msg]]
                                 </div>

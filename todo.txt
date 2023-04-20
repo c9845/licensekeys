@@ -1,3 +1,15 @@
+newer ecdh package.
+    - investigate use.
+    - use crypto ecdh instead of crypto/elliptic?
+
+additional verification/expiration functionality.
+    - Expired() func - checks if a licensedata is expired. Simple time.Before(time.Now) check.
+    - ExpiresIn(d time.Duration) - returns a time.Duration of time until license expires, negative for expired licenses.
+    - Explain when expiration checking is separate from Verify() func.
+        - Verify() is only for checking signature.
+        - Maybe implement new VerifySignature() func that checks signature, and Verify() calls VerifySignature() and Expired()?
+            - Could confuse existing users.
+
 License Activation?
     - longgggg term thing.
     - api endpoint for checking if a license is valid, active, etc.

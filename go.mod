@@ -6,7 +6,6 @@ require (
 	github.com/c9845/cachebusting v1.0.0
 	github.com/c9845/output v1.0.0
 	github.com/c9845/sqldb/v2 v2.5.1
-	github.com/c9845/templates v1.1.0
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/justinas/alice v1.2.0
@@ -18,6 +17,7 @@ require (
 )
 
 require (
+	github.com/benbjohnson/hashfs v0.2.1 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

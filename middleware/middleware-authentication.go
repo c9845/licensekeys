@@ -25,7 +25,6 @@ import (
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
-	"github.com/c9845/templates"
 )
 
 var errLoginNotValid = errors.New("login inactive or expired")
@@ -142,7 +141,7 @@ func Auth(next http.Handler) http.Handler {
 				UserData: u,
 				Data:     "Your user account is not active.  Please contact an administrator.",
 			}
-			templates.Show(w, "app", "error", pd)
+			pages.Show(w, "app", "error", pd)
 			return
 		}
 

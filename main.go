@@ -15,12 +15,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
-	"path/filepath"
-	"runtime"
 	"strconv"
 
-	"github.com/c9845/cachebusting"
+	"github.com/benbjohnson/hashfs"
 	"github.com/c9845/licensekeys/v2/activitylog"
 	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/apps"
@@ -36,7 +33,6 @@ import (
 	"github.com/c9845/licensekeys/v2/version"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
-	"github.com/c9845/templates"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )
@@ -58,11 +54,13 @@ import (
 //go:embed website/root/*
 var embeddedFiles embed.FS
 
-func init() {
-	//Uncomment this to remove datetimes from logging outputs. May be useful on systemd
-	//systems that automatically add in the datetime stamp to logging output in journald.
-	// log.SetFlags(0)
+// Vars for handing files stored on-disk or embedded.
+var sourceFilesFS fs.FS          //files from the website/ directory.
+var templateFilesFS fs.FS        //subdirectory of sourceFilesFS for HTML templates.
+var staticFilesFS fs.FS          //subdirectory of sourceFilesFS for static files (js, css, img, etc.).
+var staticFilesHashFS *hashfs.FS //static files for cache busting using hashfs package.
 
+func init() {
 	//Parse flags.
 	configFilePath := flag.String("config", "./"+config.DefaultConfigFileName, "Full path to the configuration file.")
 	printConfig := flag.Bool("print-config", false, "Print the config file this app has loaded.")
@@ -71,7 +69,30 @@ func init() {
 	dbDeploySchema := flag.Bool("deploy-db", false, "Deploy a new database or add new tables to an existing database.")
 	dbUpdateSchema := flag.Bool("update-db", false, "Update an already deployed database.")
 	dbDontInsertInitialData := flag.Bool("no-insert-initial-data", false, "Set to true to deploy the database without inserting default data.") //used when converting from mariadb to sqlite
+	logFlags := flag.String("log-prefix", "ymdhms", "Format of logging prefix; none, ymdhms, or ymdhmsmicro.")
 	flag.Parse()
+
+	//Handle setting logging prefix. This is useful for handling differences in systems
+	//that run the app. In development, it is nice to have prefix timestamp, and
+	//sometimes microsecond. However, in production on systems running the app with
+	//systemd, systemd/journalctl already prepends the date and time so prefixing the
+	//logging output is redundant and makes for longer log lines.
+	//
+	//This is set via a flag, not config file, because we want the prefix to be set
+	//before any logging output when reading and validating the config file.
+	switch *logFlags {
+	case "none":
+		log.SetFlags(0)
+	case "ymdhms":
+		//default, .SetFlags() does not need to be called.
+	case "ymdhmsmicro":
+		log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	default:
+		//Catch if something strange was provided, use default prefix. SetFlags() does
+		//not need to be called but we do show an error message in case user meant to
+		//set log prefix and did so incorrectly.
+		log.Println("WARNING! (main) log-prefix flag set to invalid value, using default.")
+	}
 
 	//If user just wants to see app version, print it and exit.
 	//Not using log.Println() so that a timestamp isn't printed.
@@ -111,6 +132,52 @@ func init() {
 		return
 	}
 
+	//Parse source files for building GUI as fs.FS. This allows us handle on-disk or
+	//embedded files in the same manner elsewhere (templates, cache busting, root
+	//files).
+	if config.Data().WebFilesStore == config.WebFilesStoreEmbedded {
+		//We need to get the subdirectory "website" that we embed from, because the
+		//embedded files start at "." with the first subdirectory being "website".
+		//This is different than using on-disk files where we are getting the files
+		//that are children/"subs" of the website directory. This makes it so the
+		//sourceFilesFS has the same structure for embedded or on-disk files.
+		sourceFilesFS, err = fs.Sub(embeddedFiles, "website")
+		if err != nil {
+			log.Fatalln("Could not read website directory", err)
+			return
+		}
+	} else {
+		sourceFilesFS = os.DirFS(config.Data().WebFilesPath)
+	}
+
+	staticFilesFS, err = fs.Sub(sourceFilesFS, "static")
+	if err != nil {
+		log.Fatalln("Could not read static directory.", err)
+		return
+	}
+
+	templateFilesFS, err = fs.Sub(sourceFilesFS, "templates")
+	if err != nil {
+		log.Fatalln("Could not read templates directory.", err)
+		return
+	}
+
+	//Handle cache busting of static files for GUI (js, css).
+	staticFilesHashFS = hashfs.NewFS(staticFilesFS)
+
+	//Handle HTML templates and cache busting.
+	pageConfig := pages.Config{
+		Development:   config.Data().Development,
+		UseLocalFiles: config.Data().UseLocalFiles,
+		TemplateFiles: templateFilesFS,
+		StaticFiles:   staticFilesHashFS,
+	}
+	err = pageConfig.Build()
+	if err != nil {
+		log.Fatalln("Could not build templates to build GUI with.", err)
+		return
+	}
+
 	//Configure the database.
 	cfg := sqldb.Config{
 		Type:       sqldb.DBTypeSQLite,
@@ -123,7 +190,7 @@ func init() {
 		MapperFunc:    sqldb.DefaultMapperFunc,
 		DeployQueries: db.DeployQueries,
 		UpdateQueries: db.UpdateQueries,
-		Debug:         true,
+		LoggingLevel:  sqldb.LogLevelInfo,
 		UpdateIgnoreErrorFuncs: []sqldb.UpdateIgnoreErrorFunc{
 			sqldb.UFAddDuplicateColumn,
 			sqldb.UFDropUnknownColumn,
@@ -201,47 +268,6 @@ func init() {
 		return
 	}
 
-	//Handle cache busting, creating the cache busting files as needed.
-	//This is done before HTML templates are parsed so we can pass cache busting file
-	//pairs to the templates for rendering the HTML with the correct static file name.
-	if config.Data().WebFilesStore == config.WebFilesStoreOnDisk || config.Data().WebFilesStore == config.WebFilesStoreOnDiskMemory {
-		css := cachebusting.NewStaticFile(filepath.Join(config.Data().WebFilesPath, "static", "js", "script.min.js"), path.Join("/", "static", "js", "script.min.js"))
-		js := cachebusting.NewStaticFile(filepath.Join(config.Data().WebFilesPath, "static", "css", "styles.min.css"), path.Join("/", "static", "css", "styles.min.css"))
-		cachebusting.DefaultOnDiskConfig(css, js)
-
-		if config.Data().WebFilesStore == config.WebFilesStoreOnDiskMemory {
-			cachebusting.UseMemory(true)
-		}
-	} else {
-		css := cachebusting.NewStaticFile(filepath.ToSlash(filepath.Join("website", "static", "js", "script.min.js")), path.Join("/", "static", "js", "script.min.js"))
-		js := cachebusting.NewStaticFile(filepath.ToSlash(filepath.Join("website", "static", "css", "styles.min.css")), path.Join("/", "static", "css", "styles.min.css"))
-		cachebusting.DefaultEmbeddedConfig(embeddedFiles, css, js)
-	}
-	cachebusting.Development(config.Data().Development)
-	err = cachebusting.Create()
-	if err == cachebusting.ErrNoCacheBustingInDevelopment {
-		log.Println("WARNING! (main) Cache busting is disabled in Development mode!")
-	} else if err != nil {
-		log.Fatalln("Could not create cache busting files", err)
-		return
-	}
-
-	//Handles parsing the the HTML templates that display the app UI.
-	//This parses and saves the templates for future use.
-	if config.Data().WebFilesStore == config.WebFilesStoreOnDisk || config.Data().WebFilesStore == config.WebFilesStoreOnDiskMemory {
-		templates.DefaultOnDiskConfig(filepath.Join(config.Data().WebFilesPath, "templates"), []string{"app", "help"})
-	} else {
-		templates.DefaultEmbeddedConfig(embeddedFiles, "website/templates", []string{"app", "help"})
-	}
-	templates.Development(config.Data().Development)
-	templates.UseLocalFiles(config.Data().UseLocalFiles)
-	templates.CacheBustingFilePairs(cachebusting.GetFilenamePairs())
-	err = templates.Build()
-	if err != nil {
-		log.Fatalln("Could not build GUI.", err)
-		return
-	}
-
 	//Enable logging of HTTP response errorrs.
 	output.Debug(true)
 }
@@ -269,8 +295,9 @@ func main() {
 	r.HandleFunc("/logout/", users.Logout).Methods("GET")
 
 	//**main app pages.
-	r.Handle("/app/", auth.Then(http.HandlerFunc(pages.Main))).Methods("GET")
+	r.Handle("/app/", auth.Then(http.HandlerFunc(pages.App))).Methods("GET")
 	r.Handle("/users/", admin.Then(http.HandlerFunc(pages.Users))).Methods("GET")
+	r.Handle("/user-profile/", auth.Then(http.HandlerFunc(pages.UserProfile))).Methods("GET")
 	r.Handle("/api-keys/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
 	r.Handle("/apps/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
 	r.Handle("/licenses/add/", createLics.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
@@ -279,11 +306,11 @@ func main() {
 
 	//**admin and diagnostic pages.
 	r.Handle("/app-settings/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/user-logins/", admin.Then(http.HandlerFunc(pages.UserLogins))).Methods("GET")
-	r.Handle("/activity-log/", admin.Then(http.HandlerFunc(pages.ActivityLog))).Methods("GET")
-	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.Then(http.HandlerFunc(pages.ActivityChartOverTimeOfDay))).Methods("GET")
-	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.Then(http.HandlerFunc(pages.ActivityChartMaxAvgDuration))).Methods("GET")
-	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.Then(http.HandlerFunc(pages.ActivityChartDurationLatestRequests))).Methods("GET")
+	r.Handle("/user-logins/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
+	r.Handle("/activity-log/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
+	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
+	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
+	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
 
 	//**misc tools/diagnostics
 	r.Handle("/diagnostics/", secHeaders.Then(http.HandlerFunc(pages.Diagnostics))).Methods("GET")
@@ -307,6 +334,10 @@ func main() {
 	u.Handle("/2fa/verify/", admin.Then(http.HandlerFunc(users.Validate2FACode))).Methods("POST")
 	u.Handle("/2fa/deactivate/", admin.Then(http.HandlerFunc(users.Deactivate2FA))).Methods("POST")
 	u.Handle("/force-logout/", admin.Then(http.HandlerFunc(users.ForceLogout))).Methods("POST")
+	u.Handle("/login-history/clear/", admin.Then(http.HandlerFunc(users.ClearLoginHistory))).Methods("POST")
+
+	u1 := api.PathPrefix("/user").Subrouter()
+	u1.Handle("/", auth.Then(http.HandlerFunc(users.GetOne))).Methods("GET")
 
 	//**app settings
 	as := api.PathPrefix("/app-settings").Subrouter()
@@ -322,6 +353,15 @@ func main() {
 	//**activity log
 	act := api.PathPrefix("/activity-log").Subrouter()
 	act.Handle("/clear/", admin.Then(http.HandlerFunc(activitylog.Clear))).Methods("POST")
+	act.Handle("/latest/", admin.Then(http.HandlerFunc(activitylog.GetLatest))).Methods("GET")
+	act.Handle("/latest/filter-by-endpoints/", admin.Then(http.HandlerFunc(activitylog.GetLatestEndpoints))).Methods("GET")
+	act.Handle("/over-time-of-day/", admin.Then(http.HandlerFunc(activitylog.OverTimeOfDay))).Methods("GET")
+	act.Handle("/max-and-avg-monthly-duration/", admin.Then(http.HandlerFunc(activitylog.MaxAndAvgMonthlyDuration))).Methods("GET")
+	act.Handle("/latest-requests-duration/", admin.Then(http.HandlerFunc(activitylog.LatestRequestsDuration))).Methods("GET")
+
+	//**user logins
+	ulg := api.PathPrefix("/user-logins").Subrouter()
+	ulg.Handle("/latest/", admin.Then(http.HandlerFunc(users.LatestLogins))).Methods("GET")
 
 	//**apps
 	app := api.PathPrefix("/apps").Subrouter()
@@ -373,33 +413,32 @@ func main() {
 	externalAPI.Handle("/licenses/renew/", extAPIMid.Then(http.HandlerFunc(license.Renew))).Methods("POST")
 	externalAPI.Handle("/licenses/disable/", extAPIMid.Then(http.HandlerFunc(license.Disable))).Methods("POST")
 
+	//Define healthcheck endpoint. This is useful for checking if this app is running
+	//using infrastructure monitoring tools. This is allowable on all http methods
+	//although GET or HEAD is typical.
+	//
+	//This must be located before r.HandleFunc("/{file}"... (for serving root files)
+	//otherwise this endpoint won't work.
+	r.HandleFunc("/healthcheck/", healthcheckHandler)
+
 	//Handle static files served off the root directory. This is typically for robots.txt,
 	//favicon, etc. {file} is placeholder that isn't used, it is there just so that the
 	//router knows to match "something off of /" with this handler.
 	r.HandleFunc("/{file}", rootFileHandler)
 
-	//Handle static files/assets.
-	//This is anything located of the /static directory and typically includes
-	//js, css, images, fonts, etc.
-	cacheDays := config.Data().StaticFileCacheDays
-	if config.Data().Development || config.Data().StaticFileCacheDays < 0 {
-		cacheDays = 0
+	//Handle static files/assets. This is anything located of the /static directory
+	//and typically includes js, css, images, fonts, etc.
+	//
+	//See templates.static for more info.
+	if config.Data().Development {
+		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileHeaders(http.FileServer(http.FS(staticFilesFS)))))
+	} else {
+		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileHeaders(hashfs.FileServer(staticFilesHashFS))))
 	}
-	r.PathPrefix("/static/").Handler(cachebusting.DefaultStaticFileHandler(cacheDays, config.Data().WebFilesPath))
-
-	//Define healthcheck endpoint. This is useful for checking if this app
-	//is running using infrastructure monitoring tools. This is allowable on all
-	//http methods although GET or HEAD is typical.
-	r.HandleFunc("/healthcheck/", healthcheckHandler)
 
 	//Listen and serve.
-	//Using host as 127.0.0.1 on macOS (darwin) removes firewall warnings on macOS.
-	//Using host as "" is required for app to run in docker container.
 	port := config.Data().Port
-	host := ""
-	if runtime.GOOS == "darwin" {
-		host = "127.0.0.1"
-	}
+	host := "127.0.0.1"
 
 	hostPort := net.JoinHostPort(host, strconv.Itoa(port))
 	log.Println("Listening on port:", port)
@@ -415,41 +454,21 @@ func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // rootFileHandler handles serving static files at the root directory. Think robots.txt
 // and favicon.ico.
-//
-// Note that this has to handle embedded files! Make sure go:embed directives include
-// root sourced files. This is also why root files are stored in website/root versus
-// just at website/; embedding the website/ folder would embed every file recursively
-// which is what we don't want (we don't need .ts files embedded), therefore using
-// website/root allows us to import more specifically.
 func rootFileHandler(w http.ResponseWriter, r *http.Request) {
-	var httpFS http.FileSystem
-
-	//Handle embedded or on-disk storage of files.
-	if config.Data().WebFilesStore == config.WebFilesStoreEmbedded {
-		w.Header().Set("X-Rootfile-Served-From", "embedded")
-
-		//Get path to embedded root files.
-		embeddedDir := embeddedFiles
-		dirOffEmbedRoot := filepath.ToSlash(filepath.Join("website", "root"))
-		rootDir, err := fs.Sub(embeddedDir, dirOffEmbedRoot)
-		if err != nil {
-			log.Println("rootFileHandler", "could not find directory in embedded files", err)
-			return
-		}
-
-		//Serve the directory.
-		httpFS = http.FS(rootDir)
-
-	} else {
-		w.Header().Set("X-Rootfile-Served-From", "disk")
-
-		//Get path to root files.
-		rootFilesDir := filepath.Join(config.Data().WebFilesPath, "root")
-
-		//Serve the directory.
-		dir := os.DirFS(rootFilesDir)
-		httpFS = http.FS(dir)
+	rootFilesFS, err := fs.Sub(sourceFilesFS, "root")
+	if err != nil {
+		log.Fatalln("Could not read web root directory.", err)
+		return
 	}
 
-	http.FileServer(httpFS).ServeHTTP(w, r)
+	http.FileServer(http.FS(rootFilesFS)).ServeHTTP(w, r)
+}
+
+// staticFileHeaders sets extra headers when serving static files from our source (not
+// CDN source). This is mostly for diagnostics in the browser.
+func staticFileHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("x-web-files-store", config.Data().WebFilesStore)
+		next.ServeHTTP(w, r)
+	})
 }

@@ -317,6 +317,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -340,6 +341,7 @@ func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, l.Signature, l.ID)
 	return
@@ -358,6 +360,7 @@ func (l *License) MarkVerified(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, l.Verified, l.ID)
 	return
@@ -486,6 +489,7 @@ func DisableLicense(ctx context.Context, licenseID int64, tx *sqlx.Tx) (err erro
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, b...)
 	return

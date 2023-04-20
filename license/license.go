@@ -772,6 +772,8 @@ func Disable(w http.ResponseWriter, r *http.Request) {
 // Renew creates a new license from an existing license, just with a new expiration
 // date set. This creates a copy of the existing license's common data and custom
 // field results. The renewal relationship is also saved to link the licenses together.
+//
+// The original license is disabled so it cannot be mistakenly downloaded.
 func Renew(w http.ResponseWriter, r *http.Request) {
 	//Get inputs and validate.
 	fromLicenseID, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)

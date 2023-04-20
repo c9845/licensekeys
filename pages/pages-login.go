@@ -8,8 +8,11 @@ import (
 
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/users"
-	"github.com/c9845/templates"
 )
+
+//This file specifically handles the login page. This functionality was broken out
+//into a separate file since it is a bit complex (to handle auto-login for non-expired
+//sessions, 2 Factor Auth).
 
 // Login shows the login page to the app. This also checks if the user is already logged
 // in and redirects the user to the main logged in page if so.
@@ -58,5 +61,5 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Show user the login page.
-	templates.Show(w, "app", "login", nil)
+	Show(w, "app", "login", nil)
 }

@@ -5,7 +5,7 @@
 
 //version is the version number of the ts/js code in this app
 //this isn't update very frequently and is really only used for debugging
-const version: string = "2.0.0";
+const version: string = "2.1.0";
 
 //defaultTimeout is the time used in setTimeout functions.  This is defined as a const
 //so we always use the same time throughout the app
@@ -154,4 +154,52 @@ function dateAdd(ymd: string, days: number): string {
     let dd: string = (d < 10) ? "0" + d.toString() : d.toString();
 
     return yy + "-" + mm + "-" + dd;
+}
+
+//isValidDate checks if a provided input is a valid YYYY-MM-DD formatted date. This 
+//is used to verify that user inputs to a <input type="date"> are full dates and that 
+//a full four-digit year was provided.
+//
+//This should be used any time user is providing a date input.
+/**
+ * @param {string} dateString - An date string in YYYY-MM-DD format as read from an input's value.
+ * @returns {boolean} - true if d is a yyyy-mm-dd data string, false if not.
+ */
+function isValidDate(dateString: string): boolean {
+    //Split year, month, and day so we can check if each component of date has correct 
+    //number of characters. This is done to catch instances where "21" is provided 
+    //instead of "2021".
+    let split: string[] = dateString.split("-");
+    if (split.length !== 3) {
+        return false;
+    }
+
+    let y: string = split[0];
+    if (y.length !== 4) {
+        return false;
+    }
+    if (parseInt(y) < 2000) {
+        return false;
+    }
+
+    let m: string = split[1];
+    if (m.length !== 2) {
+        return false;
+    }
+    if (parseInt(m) < 1 || parseInt(m) > 12) {
+        return false;
+    }
+
+    let d: string = split[2];
+    if (d.length !== 2) {
+        return false;
+    }
+    if (parseInt(d) < 1 || parseInt(d) > 31) {
+        return false;
+    }
+    
+    //Pass date string through regexp to catch any non-numeric values, formatting 
+    //issues, or other errors that would make the date invalid.
+    var regEx: RegExp = /^\d{4}-\d{2}-\d{2}$/;
+    return dateString.match(regEx) != null;
 }

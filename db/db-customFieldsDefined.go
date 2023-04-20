@@ -328,6 +328,7 @@ func (cfd *CustomFieldDefined) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -431,6 +432,7 @@ func (cfd *CustomFieldDefined) Update(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -454,6 +456,7 @@ func (cfd *CustomFieldDefined) Delete(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,

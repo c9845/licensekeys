@@ -155,6 +155,7 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -226,6 +227,7 @@ func (k *KeyPair) Delete(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -255,10 +257,10 @@ func GetKeyPairByID(ctx context.Context, id int64) (k KeyPair, err error) {
 // SetIsDefault marks the keypair as the default keypair for the respective app. This
 // also marks any other keypairs as non-default for the app to ensure only one
 // keypair is marked as default as a time.
-func (kp *KeyPair) SetIsDefault(ctx context.Context) (err error) {
+func (k *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 	//look up details of key pair to get app id to set other
 	//keypairs as inactive.
-	*kp, err = GetKeyPairByID(ctx, kp.ID)
+	*k, err = GetKeyPairByID(ctx, k.ID)
 	if err != nil {
 		return
 	}
@@ -279,13 +281,15 @@ func (kp *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 	`
 	stmt, err := tx.PrepareContext(ctx, q)
 	if err != nil {
-		log.Println(q, kp.AppID)
+		log.Println(q, k.AppID)
 		return
 	}
+	defer stmt.Close()
+
 	_, err = stmt.ExecContext(
 		ctx,
 		false, //Default
-		kp.AppID,
+		k.AppID,
 	)
 	if err != nil {
 		return
@@ -302,10 +306,12 @@ func (kp *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 		log.Println(q)
 		return
 	}
+	defer stmt.Close()
+
 	_, err = stmt.ExecContext(
 		ctx,
 		true, //Default
-		kp.ID,
+		k.ID,
 	)
 	if err != nil {
 		return

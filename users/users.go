@@ -8,11 +8,13 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/pwds"
 	"github.com/c9845/output"
+	"github.com/c9845/sqldb/v2"
 )
 
 // GetAll gets a list of all users optionally filtered by users that are active.
@@ -180,4 +182,74 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.UpdateOK(w)
+}
+
+// GetOne gets user data for a single user. If no user ID is provided, the data is
+// returned for the currently logged in user. This was added to support the user
+// profile page.
+func GetOne(w http.ResponseWriter, r *http.Request) {
+	//Get ID of user to look up data for.
+	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
+	if userID < 1 {
+		loggedInUserID, err := GetUserIDByRequest(r)
+		if err != nil {
+			output.Error(err, "Could not determine the user making this request.", w)
+			return
+		}
+
+		userID = loggedInUserID
+	}
+
+	//Get data.
+	columns := sqldb.Columns{
+		db.TableUsers + ".*",
+	}
+	u, err := db.GetUserByID(r.Context(), userID, columns)
+	if err != nil {
+		output.Error(err, "Could not look up user's data.", w)
+		return
+	}
+
+	output.DataFound(u, w)
+}
+
+// ClearLoginHistory deletes rows in the user logins table before a certain date. This
+// is only done from the admin tools page and is done to clean up the database since
+// the user login history table can get very big if you have a lot of users and/or a
+// short session timeout.
+//
+// This also clears the user authorized browsers table up to the same data since this
+// is tightly related to user logins. This is just easier then making an admin clear
+// both tables separately.
+//
+// The user provides a starting date to delete from, this way you can delete very old
+// activity log rows but keep newer history.
+func ClearLoginHistory(w http.ResponseWriter, r *http.Request) {
+	//Get inputs.
+	priorToDate := strings.TrimSpace(r.FormValue("priorToDate"))
+
+	//Validate.
+	if len(priorToDate) != len("2006-02-02") {
+		output.ErrorInputInvalid("Invalid date provided. Date must be in YYYY-MM-DD format and should be a date in the past.", w)
+		return
+	}
+
+	//Delete.
+	rowsDeleted, err := db.ClearUserLogins(r.Context(), priorToDate)
+	if err != nil && strings.Contains(err.Error(), "DELETE command denied to user") {
+		output.Error(err, "The database user does not have the DELETE privilege. Please assign this privilege to be able to complete this task.", w)
+		return
+	} else if err != nil {
+		output.Error(err, "Could not clear user login history.", w)
+		return
+	}
+
+	//Clear authorized browsers, but don't report rows deleted.
+	_, err = db.ClearAuthorizedBrowsers(r.Context(), priorToDate)
+	if err != nil {
+		output.Error(err, "Could not clear authorized browser history for user logins.", w)
+		return
+	}
+
+	output.UpdateOKWithData(rowsDeleted, w)
 }

@@ -105,6 +105,7 @@ func (u *UserLogin) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -163,6 +164,8 @@ func DisableLoginsForUser(ctx context.Context, userID int64) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
+
 	_, err = stmt.ExecContext(ctx, b...)
 	return
 }
@@ -170,7 +173,7 @@ func DisableLoginsForUser(ctx context.Context, userID int64) (err error) {
 // ExtendLoginExpiration updates the expiration timestamp for a user's login. This is
 // used to reset the time a session will expire to keep users logged in if they are
 // active within the app.
-func (l *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int64) (err error) {
+func (u *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int64) (err error) {
 	c := sqldb.Connection()
 	q := `
 		UPDATE ` + TableUserLogins + ` 
@@ -184,13 +187,15 @@ func (l *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int
 		newExpiration,
 		timestamps.YMDHMS(),
 
-		l.CookieValue,
+		u.CookieValue,
 	}
 
 	stmt, err := c.PrepareContext(ctx, q)
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
+
 	_, err = stmt.ExecContext(ctx, b...)
 	return
 }
@@ -249,6 +254,36 @@ func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []User
 		uu[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
 		uu[k].Timezone = config.Data().Timezone
 	}
+
+	return
+}
+
+// ClearUserLogins deletes rows from the user logins table prior to a given date.
+func ClearUserLogins(ctx context.Context, date string) (rowsDeleted int64, err error) {
+	//Delete rows from table.
+	q := `
+		DELETE FROM ` + TableUserLogins + ` 
+		WHERE DatetimeCreated < ?
+	`
+
+	c := sqldb.Connection()
+	stmt, err := c.PrepareContext(ctx, q)
+	if err != nil {
+		return
+	}
+	defer stmt.Close()
+
+	res, err := stmt.ExecContext(ctx, date)
+	if err != nil {
+		return
+	}
+
+	rowsDeleted, err = res.RowsAffected()
+	if err != nil {
+		return
+	}
+
+	//Not VACUUMing, call VACUUM manually since it may block the db for a while.
 
 	return
 }

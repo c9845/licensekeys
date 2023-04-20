@@ -1,8 +1,5 @@
 package db
 
-//App settings are settings that modify functionality of the app or change how
-//the GUI is displayed. There should only ever be one row in this table.
-
 import (
 	"context"
 	"database/sql"
@@ -13,6 +10,9 @@ import (
 	"github.com/c9845/sqldb/v2"
 	"github.com/jmoiron/sqlx"
 )
+
+//App settings are settings that modify functionality of the app or change how
+//the GUI is displayed. There should only ever be one row in this table.
 
 // TableAppSettings is the name of the table
 const TableAppSettings = "app_settings"
@@ -73,6 +73,7 @@ func insertInitialAppSettings(c *sqlx.DB) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -162,6 +163,7 @@ func (a *AppSettings) Update(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,

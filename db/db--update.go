@@ -1,8 +1,7 @@
-/*
-Package db handles interacting with the database.
-
-This file defines the list of queries that will be used to update the database schema.
-*/
 package db
 
-var UpdateQueries = []string{}
+var UpdateQueries = []string{
+	//v2.1.0
+	updateKeyValueDatetimeModified,
+	updateActivityLogReferrer,
+}

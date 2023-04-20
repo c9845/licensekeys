@@ -133,6 +133,7 @@ func (f *CustomFieldResult) Insert(ctx context.Context, tx *sqlx.Tx) (err error)
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {

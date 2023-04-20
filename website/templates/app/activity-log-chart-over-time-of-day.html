@@ -9,7 +9,7 @@
 	</head>
 	<body>
 		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
+			<p class="text-center text-danger">!! DEV MODE !! </p>
 		{{end}}
 
 		<!-- HEADER -->
@@ -19,7 +19,7 @@
 			<div class="container">
 				<div class="row">
                    <div class="col">
-                        <div class="card" id="activityOverTimeOfDayChart">
+                        <div class="card" id="activityLogChartOverTimeOfDay">
                             <div class="card-header">
                                 <h5>Activity Log Chart, Activity Over Time of Day</h5>
                                 <div class="card-header-btn">
@@ -29,10 +29,14 @@
                             <div class="card-body">
                                 <div v-show="showHelp" v-cloak>
 									<div class="alert alert-primary">
-                                        This chart shows user activity, in 10 minute intervals, over the course of a day. Use this chart to see when users are busy using the app. Please note the time of day is in the UTC timezone.
+                                        This chart shows the amount of user activity, in 10 minute intervals, over the course of a day. Use this chart to see when users are busy using the app. Note the time of day is in the UTC timezone.
 									</div>
 									<br>	
 								</div>
+
+								<div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                    [[msg]]
+                                </div>
                                 
                                 <div>
                                     <canvas id="activity-over-time-of-day-chart"></canvas>
@@ -43,12 +47,6 @@
 				</div>                   
 			</div>
         </main>
-        
-        <!-- loading data into js this way so that we don't need to load page and then make api call to get data to chart -->
-        <input type="hidden" id="raw" value="{{.InjectedData.Data}}">
-        <script>
-            var rawChartData = JSON.parse(document.getElementById("raw").value);
-        </script>
 
         {{template "footer"}}
         {{template "chart-js" .}}

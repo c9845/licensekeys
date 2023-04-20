@@ -74,7 +74,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    <table class="table table-hover table-sm table-dense-always">
+                                    <table class="table table-hover table-sm">
                                         <thead class="no-border-top">
                                             <th></th>
                                             <th class="whitespace-no-wrap">App</th>
@@ -119,6 +119,7 @@
                                                             v-if="x.RenewedToLicenseID !== null"
                                                             class="text-secondary fas fa-redo"
                                                             v-tooltip="'License was renewed.'"
+                                                            data-boundary="window"
                                                         >
                                                         </i>
                                                     </td>
@@ -128,24 +129,28 @@
                                                             v-if="!x.Verified" 
                                                             class="text-danger fas fa-exclamation-triangle" 
                                                             v-tooltip="'License could not be verified.'"
+                                                            data-boundary="window"
                                                         >
                                                         </i>
                                                         <i 
                                                             v-else-if="!x.Active" 
                                                             class="text-danger fas fa-times" 
                                                             v-tooltip="'License is disabled.'"
+                                                            data-boundary="window"
                                                         >
                                                         </i>
                                                         <i 
                                                             v-else-if="x.Expired" 
                                                             class="text-danger fas fa-calendar-times"
                                                             v-tooltip="'License is expired.'"
+                                                            data-boundary="window"
                                                         >
                                                         </i>
                                                         <i 
                                                             v-else 
                                                             class="text-success fas fa-check" 
                                                             v-tooltip="'License is active.'"
+                                                            data-boundary="window"
                                                         >
                                                         </i>
                                                     </td>

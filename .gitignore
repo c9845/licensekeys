@@ -1,6 +1,6 @@
-runner-build*
 tmp/
 node_modules/
+_builds/
 
 website/static/js/script.js
 **.script.min.js
@@ -9,10 +9,12 @@ website/static/js/script.js
 *.db
 *.db-shm
 *.db-wal
+
 licensekeys.conf
+licensekeys
+*.exe
+
 debug.log
 /package-lock.json
-*.exe
-licensekeys
 
-_builds/
+/fresher.conf

@@ -1,51 +1,41 @@
 {{define "html_scripts"}}
     <!-- 
-        Serve files from local disk.
-        This is useful for installs that have internet access firewalled off, internet access is 
-        slow, you want to use known good files (no auto updates), or you just want to serve files
+        Serve files from local disk or internet CDN.
+
+        Serving files from local disk is useful for installs that have internet access 
+        firewalled off, internet access is slow, network is air-gapped, you just want 
+        to use known good files (no auto updates), or you just want to serve files
         locally.
     -->
     {{if .UseLocalFiles}}
-        <script src="/static/js/vendor/jquery-3.6.0.slim.min.js"></script>
-        <script src="/static/js/vendor/popper-1.16.1.min.js"></script>
-        <script src="/static/js/vendor/bootstrap-4.6.2.min.js"></script>
+        <script src='{{static "/static/js/vendor/jquery-3.6.3.slim.min.js"}}'></script>
+        <script src='{{static "/static/js/vendor/popper-1.16.1.min.js"}}'></script>
+        <script src='{{static "/static/js/vendor/bootstrap-4.6.2.min.js"}}'></script>
 
         {{if .Development}}
-        <script src="/static/js/vendor/vue-2.7.8.js"></script>
+        <script src='{{static "/static/js/vendor/vue-2.7.14.js"}}'></script>
         {{else}}
-        <script src="/static/js/vendor/vue-2.7.8.min.js"></script>
+        <script src='{{static "/static/js/vendor/vue-2.7.14.min.js"}}'></script>
         {{end}}
-
-
-    <!--
-        Serve files from internet.
-        Good for using the latest libraries.
-    -->
     {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.slim.min.js" integrity="sha512-6ORWJX/LrnSjBzwefdNUyLCMTIsGoNP6NftMy2UAm1JBm6PRZCO1d7OHBStWpVFZLO+RerTvqX/Z9mBFfCJZ4A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.slim.js" integrity="sha512-M3zrhxXOYQaeBJYLBv7DsKg2BWwSubf6htVyjSkjc9kPqx7Se98+q1oYyBJn2JZXzMaZvUkB8QzKAmeVfzj9ug==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         
         <!-- looked at updating to 5.x in nov2021 but there is a lot that changed layout wise and would take a ton of time to update our custom CSS to look right again -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js" integrity="sha256-/ijcOLwFf26xEYAjW75FizKVo5tnTYiQddPZoLUHHZ8=" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
         {{if .Development}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.8/vue.js" integrity="sha512-aQ0A39cadufUhzw4jPaQ1KoHF4iH3GzmRu49mmoVrj7/WPvM8mcSz51DcWqYc0XPWqGuTmTV1Z0rG6XyRiAplw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.14/vue.js" integrity="sha512-pzaIT4M4pWutHYv8yQrtkMtHBB17qXE6LnS7d9R6oiGQ+zApGM1T+ADe+J9borsHmdMGB3JHhfDsdkavD876nQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.8/vue.min.js" integrity="sha512-FBUSVbYJGylZSdYsKcPzD8eeP7xHN3ke9AeIZhmGWigvqdTibWEPGGOv0ppwvawuJswJ6/vQIfsq6q/7dAAx9g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.14/vue.min.js" integrity="sha512-BAMfk70VjqBkBIyo9UTRLl3TBJ3M0c6uyy2VMUrq370bWs7kchLNN9j1WiJQus9JAJVqcriIUX859JOm12LWtw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         {{end}}
     {{end}}
 
-    <!-- our custom javascript -->
+    <!-- Our custom javascript -->
     {{if .Development}}
         <script src="/static/js/script.js"></script>
     {{else}}
-        {{$minifiedFile := "script.min.js"}}
-        {{$cache := .CacheBustFiles}}
-        {{with index $cache $minifiedFile}}
-            <script src="/static/js/{{.}}"></script>
-        {{else}}
-            <script src="/static/js/{{$minifiedFile}}"></script>
-        {{end}}
+        <script src='{{static "/static/js/script.min.js"}}'></script>
     {{end}}
 {{end}}
 
@@ -54,21 +44,29 @@
     <script>
         window.addEventListener("load", function(event) {
             $('[data-toggle="tooltip"]').tooltip();
-            console.log("Activating tooltips (onload)...");
+            // console.log("Activating tooltips (onload)...");
         });
     </script>
 {{end}}
 
 <!-- charting scripts -->
 <!-- this needs to be added to templates prior to html_scripts-->
+<!-- this is split out from other script since these are only loaded on pages with charts -->
 {{define "chart-js"}}
     {{if .UseLocalFiles}}
-        <script src="/static/js/vendor/moment-2.29.1.min.js"></script>
-        <script src="/static/js/vendor/chart-3.6.0.min.js"></script>
-        <script src="/static/js/vendor/chartjs-adapter-moment-1.0.0.min.js"></script>
+        <script src='{{static "/static/js/vendor/moment-2.29.4.min.js"}}'></script>
+
+        <script src='{{static "/static/js/vendor/chart-3.9.1.min.js"}}'></script>
+
+        <script src='{{static "/static/js/vendor/chartjs-adapter-moment-1.0.1.min.js"}}'></script>
+        <script src='{{static "/static/js/vendor/chartjs-plugin-annotation-1.4.0.min.js"}}'></script>
+
     {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.min.js" integrity="sha512-GMGzUEevhWh8Tc/njS0bDpwgxdCJLQBWG3Z2Ct+JGOpVnEmjvNx6ts4v6A2XJf1HOrtOsfhv3hBKpK9kE5z8AQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.0/chartjs-adapter-moment.min.js" integrity="sha512-oh5t+CdSBsaVVAvxcZKy3XJdP7ZbYUBSRCXDTVn0ODewMDDNnELsrG9eDm8rVZAQg7RsDD/8K3MjPAFB13o6eA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script> <!-- integrity broken for v.29.4 vs cdnjs? -->
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.1/chartjs-adapter-moment.min.js" integrity="sha512-hVy4KxCKgnXi2ok7rlnlPma4JHXI1VPQeempoaclV1GwRHrDeaiuS1pI6DVldaj5oh6Opy2XJ2CTljQLPkaMrQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.4.0/chartjs-plugin-annotation.min.js" integrity="sha512-HrwQrg8S/xLPE6Qwe7XOghA/FOxX+tuVF4TxbvS73/zKJSs/b1gVl/P4MsdfTFWYFYg/ISVNYIINcg35Xvr6QQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     {{end}}
 {{end}}

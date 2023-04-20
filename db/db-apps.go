@@ -1,7 +1,5 @@
 package db
 
-//This table stores the apps you want to create licenses for.
-
 import (
 	"context"
 	"database/sql"
@@ -176,6 +174,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -240,6 +239,7 @@ func (a *App) Update(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,

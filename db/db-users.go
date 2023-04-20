@@ -253,6 +253,7 @@ func (u *User) Insert(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
@@ -284,6 +285,7 @@ func (u *User) Update(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -314,6 +316,7 @@ func SetNewPassword(ctx context.Context, userID int64, passwordHash string) (err
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -339,6 +342,7 @@ func Save2FASecret(ctx context.Context, userID int64, secret string) (err error)
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -389,6 +393,7 @@ func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
 	if err != nil {
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, b...)
 	return
@@ -409,6 +414,7 @@ func Set2FABadAttempts(ctx context.Context, userID int64, badValue uint8) error 
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
@@ -435,6 +441,7 @@ func SetPasswordBadAttempts(ctx context.Context, userID int64, badValue uint8) e
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	_, err = stmt.ExecContext(
 		ctx,
