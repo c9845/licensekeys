@@ -38,7 +38,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -67,12 +66,11 @@ type File struct {
 	DBPath        string `yaml:"DBPath"`        //The path the the database file.
 	DBJournalMode string `yaml:"DBJournalMode"` //Sets the mode for writing to the database file; delete or wal.
 
-	WebFilesStore       string `yaml:"WebFilesStore"`       //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
-	WebFilesPath        string `yaml:"WebFilesPath"`        //The absolute path to the directory storing the app's HTML, CSS and JS files.
-	StaticFileCacheDays int    `yaml:"StaticFileCacheDays"` //The number of days a browser will cache the app's CSS and JS files for. -1 disables caching.
-	UseLocalFiles       bool   `yaml:"UseLocalFiles"`       //Serve third-party CSS and JS files from this app's files or from an internet CDN.
-	FQDN                string `yaml:"FQDN"`                //The domain/subdomain the app serves on and matches your HTTPS certificate, also used for cookies. "." is acceptable but not advised.
-	Port                int    `yaml:"Port"`                //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
+	WebFilesStore string `yaml:"WebFilesStore"` //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
+	WebFilesPath  string `yaml:"WebFilesPath"`  //The absolute path to the directory storing the app's HTML, CSS and JS files.
+	UseLocalFiles bool   `yaml:"UseLocalFiles"` //Serve third-party CSS and JS files from this app's files or from an internet CDN.
+	FQDN          string `yaml:"FQDN"`          //The domain/subdomain the app serves on and matches your HTTPS certificate, also used for cookies. "." is acceptable but not advised.
+	Port          int    `yaml:"Port"`          //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
 
 	LoginLifetimeHours        float64 `yaml:"LoginLifetimeHours"`        //The time a user will remain logged in for.
 	TwoFactorAuthLifetimeDays int     `yaml:"TwoFactorAuthLifetimeDays"` //The time between when a 2FA token will be required. -1 requires it upon each login.
@@ -121,28 +119,38 @@ var (
 	}
 )
 
+// Errors.
+var (
+	//ErrNoFilePathGiven is returned when trying to parse the config file but no
+	//file path was given.
+	ErrNoFilePathGiven = errors.New("config: no file path given")
+)
+
 // newDefaultConfig returns a File with default values set for each field.
 func newDefaultConfig() (f File, err error) {
-	//Get path to executable to build default paths.
-	exePath, err := os.Executable()
+	//Get path to where binary is being run from to build default paths.
+	workingDir, err := os.Getwd()
 	if err != nil {
 		return
 	}
-	exeDir := filepath.Dir(exePath)
+
+	//Paths are always forward slashed in YAML so random parsing errors don't occur
+	//(like "did not find expected hexdecimal number" when path string is surrounded
+	//by double quotes, on Windows).
+	dbPath := filepath.ToSlash(filepath.Join(workingDir, "licensekeys.db"))
 
 	f = File{
-		DBPath:        filepath.Join(exeDir, "licensekeys.db"),
+		DBPath:        dbPath,                //
 		DBJournalMode: DBJournalModeRollback, //DELETE is more safe and easier to use in Docker (see Dockerfile).
 
-		WebFilesStore:       WebFilesStoreEmbedded,
-		WebFilesPath:        "", //don't need this set since we are using embedded files!
-		StaticFileCacheDays: 7,
-		UseLocalFiles:       false,
-		FQDN:                ".",
-		Port:                8007,
+		WebFilesStore: WebFilesStoreEmbedded, //embedded means less files to distribute
+		WebFilesPath:  "",                    //not needed for default embedded file, not set to make config file cleaner and less confusing.
+		UseLocalFiles: true,                  //prefer our distributed files, prevents issues with CDNs.
+		FQDN:          ".",                   //blank results in more error in logging output, user should set this eventually to their fqdn.
+		Port:          8007,                  //
 
-		LoginLifetimeHours:        1,
-		TwoFactorAuthLifetimeDays: 14,
+		LoginLifetimeHours:        1,  //just a safe default.
+		TwoFactorAuthLifetimeDays: 14, //just a safe default.
 
 		Timezone:                "UTC",          //tried using time.Local.String() but this returns "Local" as the timezone which doesn't have much meaning when displayed in the GUI.
 		MinPasswordLength:       pwds.MinLength, //the shortest we allow, same as set in pwds package.
@@ -152,73 +160,84 @@ func newDefaultConfig() (f File, err error) {
 }
 
 // Read handles reading and parsing the config file at the provided path. The parsed
-// data is sanitized and validated. The print argument is used to print the config as
-// it was read/parsed and as it was understood after sanitizing, validating, and
-// handling default values.
+// data is sanitized and validated.
 //
-// The parsed configuration is stored in a local variable for access with the Data()
-// func. This is done so that the config file doesn't need to be reparsed each time we
-// want to get data from it.
+// The parsed configuration is stored in a local variable for access with the
+// Data() func. This is done so that the config file doesn't need to be reparsed
+// each time we want to get data from it.
+//
+// If the path is blank, a default in-app/in-memory config is used. If the path is
+// provided but a file does not exist, a default config if written to the file at the
+// path.
+//
+// The print argument is used to print the config as it was read/parsed and as it was
+// understood after sanitizing, validating, and handling default values.
 func Read(path string, print bool) (err error) {
-	// log.Println("Provided config file path:", path, print)
+	//Clean the path to remove anything odd.
+	path = filepath.Clean(path)
+
+	//Get absolute directory path of file in path, since path could be relative, for
+	//displaying in logging. Absolute path is nicer since it makes finding a config
+	//file easier.
+	absPath, _ := filepath.Abs(path)
 
 	//Handle path to config file.
-	// - If the path is blank, we just use the default config. An empty path should
-	//   not ever happen since the flag that provides the path has a default set.
-	//   However, we still need this since if the path is empty we cannot save the
-	//   default config to a file (we don't know where to save it).
-	// - If a path is provided, check that a file exists at it. If a file does not
-	//   exist, create a default config at the given path.
-	// - If a file at the path does exist, parse it as a config file.
-	var tz string
+	var cfg File
 	if strings.TrimSpace(path) == "" {
-		log.Println("Using default config; path to config file not provided.")
+		//The path provided for the config file flag is blank (-config=""). This
+		//should never really happen since the flag defines a default value (a file
+		//named qc.conf in the working directory where binary is being run from).
+		//This simply catches instances where user provides -config="" for some odd
+		//reason. Since a path was not provided, we cannot save a config file
+		//anywhere. In this case, we just use an "in memory" config that uses default
+		//values.
+		log.Println("WARNING! (config) Using built-in default config; path to config file was not provided.")
 
 		//Get default config.
-		cfg, innerErr := newDefaultConfig()
+		defaultConfig, innerErr := newDefaultConfig()
 		if innerErr != nil {
 			return innerErr
 		}
+		cfg = defaultConfig
 
 		//We don't get a random private key encryption key since if the app is
 		//started over and over without a config file path, the encryption key will
 		//be different each time and thus the private keys won't be usable.
 
-		//Save the config to this package for use elsewhere in the app.
-		parsedConfig = cfg
-
-		//Save timezone for configuring below.
-		tz = cfg.Timezone
 	} else if _, err = os.Stat(path); os.IsNotExist(err) {
-		log.Println("WARNING! (config) Creating default config at:", path)
+		//A path was provided to the config file flag but a file does not exist at
+		//the given path. A config file will be saved at the provided path with
+		//default values.
+		//
+		//The path provided to the -config flag could be a user provided value or a
+		//default value (i.e.: flag wasn't provided at all).
+		log.Println("WARNING! (config) Config does not exist, creating default config at:", absPath)
 
 		//Get default config.
-		cfg, innerErr := newDefaultConfig()
+		defaultConfig, innerErr := newDefaultConfig()
 		if innerErr != nil {
 			return innerErr
 		}
+		cfg = defaultConfig
 
 		//Get a random key to encrypt key pair private keys when they are stored
 		//to the db. We prefer to store private keys encrypted in the db for data
 		//security.
 		cfg.PrivateKeyEncryptionKey = getRandomEncryptionKey()
 
-		//Save the config to this package for use elsewhere in the app.
-		parsedConfig = cfg
-
-		//Save timezone for configuring below.
-		tz = cfg.Timezone
-
-		//Save the config to a file.
+		//Save the default config to the file noted in the provided path.
 		innerErr = cfg.write(path)
 		if innerErr != nil {
-			return
+			return innerErr
 		}
 
 		//Unset the os.IsNotExist error since we created the file.
 		err = nil
 	} else {
-		log.Println("Using config from file:", path)
+		//A path was provided to the config file flag and a file exists at the given
+		//path. Parse the file as a config file. If the file isn't a valid config
+		//file, error out, otherwise continue running the app.
+		log.Println("WARNING! (config) Using config from file:", absPath)
 
 		//Read the file at the path.
 		f, innerErr := os.ReadFile(path)
@@ -227,34 +246,35 @@ func Read(path string, print bool) (err error) {
 		}
 
 		//Parse the file as yaml.
-		var cfg File
 		innerErr = yaml.Unmarshal(f, &cfg)
 		if innerErr != nil {
 			return innerErr
 		}
 
-		//Print the config, if needed, as it was parsed from the file. This logs out
-		//the config fields with the user provided data before any validation.
+		//Print the config, if needed, as it was parsed from the file. This logs
+		//out the config fields with the user provided data before any validation.
 		if print {
 			log.Println("***PRINTING CONFIG AS PARSED FROM FILE***")
 			cfg.print(path)
 		}
-
-		//Validate & sanitize the data since it could have been edited by a human.
-		innerErr = cfg.validate()
-		if innerErr != nil {
-			return innerErr
-		}
-
-		//Save the config to this package for use elsewhere in the app.
-		parsedConfig = cfg
-
-		//Save timezone for configuring below.
-		tz = cfg.Timezone
 	}
 
+	//Validate & sanitize the data since it could have been edited by a human. We do
+	//this here, not just for a config file read from a file, so we can catch any
+	//mistakes when a default config is used.
+	err = cfg.validate()
+	if err != nil {
+		return err
+	}
+
+	//Create the directories for storing files, if needed.
+	err = cfg.createDirectories()
+
+	//Save the config to this package for use elsewhere in the app.
+	parsedConfig = cfg
+
 	//Handle timezone configuration.
-	loc, innerErr := time.LoadLocation(tz)
+	loc, innerErr := time.LoadLocation(cfg.Timezone)
 	if innerErr != nil {
 		return innerErr
 	}
@@ -317,93 +337,105 @@ func (conf *File) write(path string) (err error) {
 	file.WriteString("#***Do not delete this file!***\n")
 	file.WriteString("#***Do not change the PrivateKeyEncryptionKey field's value after you have created private keys; any existing private keys will become unusable.!***\n")
 	file.WriteString("\n")
+	file.WriteString("#***On Windows, when providing a path, use forward slashes in place of a back slashes and surround the path in double quotes!***\n")
+	file.WriteString("\n")
 
 	//Write config to file.
 	_, err = file.Write(y)
 	return
 }
 
-// validate handles sanitizing and validation of a config file's data.
+// validate handles sanitizing and validation of a config file's data. Validation
+// will attempt to a default value if the config file does not contain a field. If
+// a field is required and a default is not available, an error will be returned.
+//
+// Rules for showing messages/logging out stuff:
+//  1. If a user/config file did not provide a field and we use a default value, DO
+//     NOT tell the user.
+//     - Example: DBName.
+//  2. If a user/config file provided an invalid value for a field where we have a
+//     default value defined and available, TELL the user we are using the default.
+//     - EXAMPLE: Port.
+//     - Template: log.Printf("WARNING! (config) Port is invalid...")
+//  3. If a user/config file provided an invalid value for a field that is required
+//     and there is no default, RETURN an error causing the app to exit.
+//     - Example: DBUser.
+//     - Template: err = fmt.Errorf("config: DBPath could not be validated... %w")
 func (conf *File) validate() (err error) {
-	//Get defaults to use for cases when user provided invalid input.
+	//Get defaults to use for cases when user/config file field is not provided or
+	//value is invalid and we can safely use a default value.
 	defaults, err := newDefaultConfig()
 	if err != nil {
 		return
+	}
+
+	//Clean all paths, regardless of if they are used.
+	conf.DBPath = filepath.Clean(filepath.ToSlash(strings.TrimSpace(conf.DBPath)))
+	conf.WebFilesPath = filepath.Clean(filepath.ToSlash(strings.TrimSpace(conf.WebFilesPath)))
+
+	//Clean results in empty paths ("") being returned as ".". This is annoying to
+	//deal with; we just want blank strings if the input from the config file field
+	//is blank.
+	if conf.DBPath == "." {
+		conf.DBPath = ""
+	}
+	if conf.WebFilesPath == "." {
+		conf.WebFilesPath = ""
 	}
 
 	//Database related.
 	conf.DBPath = filepath.FromSlash(strings.TrimSpace(conf.DBPath))
 	if conf.DBPath == "" {
 		conf.DBPath = defaults.DBPath
-		log.Println("WARNING! (config) DBPath value was not given, defaulting to " + conf.DBPath + ".")
 	}
 	_, innerErr := os.Stat(conf.DBPath)
 	if os.IsNotExist(innerErr) {
-		log.Println("WARNING! (config) File does not exist at DBPath. If database is being deployed, the file will be created.")
+		log.Println("WARNING! (config) SQLite database file does not exist. If database is being deployed, the file will be created.")
 	} else if innerErr != nil {
-		err = fmt.Errorf("config: could not validate DBPath. %w", err)
-		return
+		return fmt.Errorf("config: DBPath could not be validated %w", err)
 	}
 
-	conf.DBJournalMode = strings.TrimSpace(strings.ToUpper(conf.DBJournalMode))
 	if conf.DBJournalMode == "" {
-		//user did not provide journal mode, use default
 		conf.DBJournalMode = defaults.DBJournalMode
 	} else if !slices.Contains(validJournalModes, conf.DBJournalMode) {
-		//user provided incorrect journal mode, use default
 		conf.DBJournalMode = defaults.DBJournalMode
-		log.Println("WARNING! (config) An invalid value was provided for DBJournalMode, defaulting to '" + conf.DBJournalMode + "'.")
 	}
 
 	//Web server settings.
 	switch conf.WebFilesStore {
 	case WebFilesStoreOnDisk:
-		// log.Println("WARNING! (config) Web files will be served from disk.")
 	case WebFilesStoreOnDiskMemory:
-		// log.Println("WARNING! (config) Web files will be served from disk, cache busting files will be saved and served from memory.")
 	case WebFilesStoreEmbedded:
-		// log.Println("WARNING! (config) Web files will be served from embedded.")
 	default:
 		conf.WebFilesStore = defaults.WebFilesStore
-		log.Println("WARNING! (config) No WebFilesStore set, web files will be served from default (" + conf.WebFilesStore + ").")
 	}
 
-	conf.WebFilesPath = filepath.FromSlash(strings.TrimSpace(conf.WebFilesPath))
 	if conf.WebFilesStore != WebFilesStoreEmbedded {
 		if conf.WebFilesPath == "" {
 			conf.WebFilesPath = defaults.WebFilesPath
-			log.Println("WARNING! (config) WebFilesPath not provided, defaulting to " + conf.WebFilesPath + ".")
 		}
 		_, err = os.Stat(conf.WebFilesPath)
 		if os.IsNotExist(err) {
-			err = fmt.Errorf("config: WebFilesPath is invalid, directory could not be found. %w", err)
-			return
+			return fmt.Errorf("config: WebFilesPath could not be validated, directory could not be found %w", err)
 		} else if err != nil {
-			err = fmt.Errorf("config: Could not validate WebFilesPath. %w", err)
-			return
+			return fmt.Errorf("config: WebFilesPath could not be validated %w", err)
 		}
-	}
-
-	if conf.StaticFileCacheDays < 0 {
-		log.Println("WARNING! (config) StaticFileCacheDays is invalid, caching of static files is disabled. Value should be an integer greater than 0.")
-	} else if conf.StaticFileCacheDays == 0 {
-		conf.StaticFileCacheDays = defaults.StaticFileCacheDays
 	}
 
 	conf.FQDN = strings.TrimSpace(conf.FQDN)
 	if conf.FQDN == "" {
 		conf.FQDN = defaults.FQDN
-		log.Println("WARNING! (config) FQDN not provided, defaulting to \"" + conf.FQDN + "\".")
+		log.Printf("WARNING! (config) FQDN was not provided. Defaulting to '%s'.", conf.FQDN)
 	}
 
 	if conf.Port == 0 {
 		conf.Port = defaults.Port
-	}
-	if conf.Port < portMin || conf.Port > portMax {
-		return errors.New("config: Port must be between " + strconv.Itoa(portMin) + " and " + strconv.Itoa(portMax))
+	} else if conf.Port < portMin || conf.Port > portMax {
+		conf.Port = defaults.Port
+		log.Printf("WARNING! (config) Port is invalid. The value must be between %d and %d. Defaulting to %d.", portMin, portMax, conf.Port)
 	}
 
-	//Login.
+	//User login/sessions related.
 	if conf.LoginLifetimeHours <= 0 {
 		conf.LoginLifetimeHours = defaults.LoginLifetimeHours
 	}
@@ -411,8 +443,9 @@ func (conf *File) validate() (err error) {
 	if conf.TwoFactorAuthLifetimeDays == 0 {
 		conf.TwoFactorAuthLifetimeDays = defaults.TwoFactorAuthLifetimeDays
 	} else if conf.TwoFactorAuthLifetimeDays < 0 {
-		//special case, if a negative number then every time a user logs in they
-		//have to provide 2FA token.
+		//Special case. If a negative number is provided, then every time a user logs
+		//in they have to provide 2FA token. This may be useful for rare circumstances.
+		//
 		//_ = "" to remove "empty branch" staticcheck linter warning. This branch
 		//is here just for the comments to explain why <0 is a special case.
 		_ = ""
@@ -422,15 +455,14 @@ func (conf *File) validate() (err error) {
 	conf.Timezone = strings.TrimSpace(conf.Timezone)
 	if conf.Timezone == "" {
 		conf.Timezone = defaults.Timezone
-		log.Println("WARNING! (config) Timezone not provided, defaulting to " + conf.Timezone + ".")
 	}
-	//we check if timezone provided is valid in Read() time.LoadLocation(conf.Timezone).
+	//We check if timezone provided is valid in Read() time.LoadLocation(conf.Timezone).
 
 	if conf.MinPasswordLength == 0 {
 		conf.MinPasswordLength = defaults.MinPasswordLength
 	} else if conf.MinPasswordLength < defaults.MinPasswordLength {
 		conf.MinPasswordLength = defaults.MinPasswordLength
-		log.Println("WARNING! (config) MinPasswordLength is too short, defaulting to " + strconv.Itoa(conf.MinPasswordLength) + ".")
+		log.Printf("WARNING! (config) MinPasswordLength is invalid. The value must be greater than %d. Defaulting to %d.", defaults.MinPasswordLength, conf.MinPasswordLength)
 	}
 
 	if conf.PrivateKeyEncryptionKey == "" {
@@ -443,15 +475,15 @@ func (conf *File) validate() (err error) {
 	return
 }
 
-// print logs out the configuration file. This is used for diagnostic purposes. This
-// will show all fields from the File struct, even fields that the provided config file
-// omitted (except nonPublishedFields).
+// print logs out the configuration file. This is used for diagnostic purposes.
+// This will show all fields from the File struct, even fields that the provided
+// config file omitted (except nonPublishedFields).
 func (conf File) print(path string) {
-	//Full path to the config file, so if file is in same directory as the executable
-	//and -config flag was not provided we still get the complete path.
+	//Full path to the config file, so if file is in same directory as the
+	//executable and -config flag was not provided we still get the complete path.
 	pathAbs, _ := filepath.Abs(path)
 
-	log.Println("Path to config file (flag):", path)
+	log.Println("Path to config file (-config flag):", path)
 	log.Println("Path to config file (absolute):", pathAbs)
 
 	//Print out config file stuff (actually from parsed struct).
@@ -493,6 +525,16 @@ func getRandomEncryptionKey() (encKey string) {
 	t := time.Now().Format(time.RFC3339Nano)
 	s := sha256.Sum256([]byte(t))
 	encKey = base64.StdEncoding.EncodeToString(s[:])[:l]
+
+	return
+}
+
+// createDirectories creates the directories noted in a config file if needed.
+func (conf File) createDirectories() (err error) {
+	err = os.MkdirAll(filepath.Dir(conf.DBPath), 0755)
+	if err != nil {
+		return fmt.Errorf("config: Could not create DBPath directory. %w", err)
+	}
 
 	return
 }

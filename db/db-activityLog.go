@@ -30,6 +30,7 @@ type ActivityLog struct {
 	UserAgent        string
 	TimeDuration     int64  //milliseconds it took for server to complete the request
 	PostFormValues   string //json encoded form values passed in request
+	Referrer         string //page the user is on that caused this request to be made.
 
 	//either CreatedByUserID or CreatedByAPIKeyID is provided, never both
 	CreatedByUserID   null.Int
@@ -57,6 +58,7 @@ const (
 			UserAgent TEXT NOT NULL,
 			TimeDuration INTEGER NOT NULL DEFAULT 0,
 			PostFormValues TEXT NOT NULL DEFAULT '',
+			Referrer TEXT NOT NULL DEFAULT "",
 			
 			CreatedByUserID INTEGER DEFAULT NULL,
 			CreatedByAPIKeyID INTEGER DEFAULT NULL,
@@ -84,6 +86,7 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 		"PostFormValues",
 		"DatetimeCreated",
 		"TimestampCreated",
+		"Referrer",
 	}
 	b := sqldb.Bindvars{
 		a.Method,
@@ -94,6 +97,7 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 		a.PostFormValues,
 		timestamps.YMDHMS(),
 		time.Now().UnixNano(),
+		a.Referrer,
 	}
 
 	//add fields based on if this action was caused by user or api
@@ -130,41 +134,36 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 	return
 }
 
-// GetActivityLog looks up the activities in the log.  This defaults
-// to returning the last 200 runs if numRows is 0.  This can filter
-// results by user and/or by a search string which performs a wildcard-ed
-// LIKE query on the form values.
-func GetActivityLog(ctx context.Context, userID int64, endpoint, searchFor string, numRows uint16) (aa []ActivityLog, err error) {
+// GetActivityLog looks up the latest activites in the activity log. The results can
+// be filter by a specific user, a specific API key, an endpoint, and/or a string in
+// the form values sent in a request (GET or POST) via a wildcard LIKE. The results
+// can be limited by a date range or a limit, with the latest 200 rows being returned
+// by default if a date range nor a limit is provided.
+func GetActivityLog(ctx context.Context, userID, apiKeyID int64, endpoint, searchFor, startDate, endDate string, numRows uint16) (aa []ActivityLog, err error) {
 	const defaultMaxRows uint16 = 200
+	if numRows <= 0 {
+		numRows = defaultMaxRows
+	}
 
-	//build columns
+	//Build columns.
 	cols := sqldb.Columns{
 		TableActivityLog + ".ID",
 		TableActivityLog + ".Method",
 		TableActivityLog + ".TimeDuration",
 		TableActivityLog + ".URL",
 		TableActivityLog + ".PostFormValues",
+		TableActivityLog + ".Referrer",
 		"IFNULL(" + TableUsers + ".Username, '') AS Username",
 		"IFNULL(" + TableAPIKeys + ".K, '') AS APIKeyK",
 		"IFNULL(" + TableAPIKeys + ".Description, '') AS APIKeyDescription",
+		"datetime(" + TableActivityLog + ".DatetimeCreated) AS DatetimeCreated",
 	}
-
-	//ensure datetimes are returned in same format, yyyy-mm-dd hh:mm:ss, regardless of db type.
-	//This handles the golang sqlite driver returning datetimes in yyyy-mm-ddThh:mm:ssZ.
-	//We are better off returning the same value from the db/driver rather then having to handle
-	//multiple different formats in GetDatetimeInConfigTimezone() or elsewhere.
-	if sqldb.IsMariaDB() {
-		cols = append(cols, TableActivityLog+".DatetimeCreated")
-	} else if sqldb.IsSQLite() {
-		cols = append(cols, "datetime("+TableActivityLog+".DatetimeCreated) AS DatetimeCreated")
-	}
-
 	colString, err := cols.ForSelect()
 	if err != nil {
 		return
 	}
 
-	//build query
+	//Build query.
 	q := `
 		SELECT ` + colString + ` 
 		FROM ` + TableActivityLog + `
@@ -179,6 +178,11 @@ func GetActivityLog(ctx context.Context, userID int64, endpoint, searchFor strin
 		wheres = append(wheres, w)
 		b = append(b, userID)
 	}
+	if apiKeyID > 0 {
+		w := ` (` + TableActivityLog + `.CreatedByAPIKeyID = ?)`
+		wheres = append(wheres, w)
+		b = append(b, userID)
+	}
 	if endpoint != "" {
 		w := ` (` + TableActivityLog + `.URL = ?) `
 		wheres = append(wheres, w)
@@ -190,28 +194,32 @@ func GetActivityLog(ctx context.Context, userID int64, endpoint, searchFor strin
 		b = append(b, "%"+searchFor+"%")
 	}
 
+	useDateRange := false
+	if startDate != "" && endDate != "" {
+		w := `(DATE(` + TableActivityLog + `.DatetimeCreated) >= ? AND DATE(` + TableActivityLog + `.DatetimeCreated) <= ?)`
+		wheres = append(wheres, w)
+		b = append(b, startDate, endDate)
+		useDateRange = true
+	}
+
 	if len(wheres) > 0 {
 		q += " WHERE " + strings.Join(wheres, " AND ")
 	}
 
 	q += ` ORDER BY ` + TableActivityLog + `.TimestampCreated DESC`
-	q += ` LIMIT `
-	if numRows > 0 {
-		q += strconv.FormatInt(int64(numRows), 10)
-	} else {
-		q += strconv.FormatInt(int64(defaultMaxRows), 10)
+
+	if !useDateRange {
+		q += ` LIMIT ` + strconv.FormatInt(int64(numRows), 10)
 	}
 
-	//run query
+	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &aa, q, b...)
 
-	// log.Println(q, b, searchFor)
-
-	//handle converting datetimes to correct timezone
-	//This isn't handled in sql query since mariadb and sqlite differ in how they can
-	//convert a datetime to a different timezone.  Doing it in this manner ensures the
-	//same conversion method is applied so golang does the conversion.
+	//Handle converting datetimes to correct timezone. This isn't handled in sql query
+	//since mariadb and sqlite differ in how they can convert a datetime to a
+	//different timezone. Doing it in this manner ensures the same conversion method
+	//is applied so golang does the conversion.
 	for k, v := range aa {
 		aa[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
 		aa[k].Timezone = config.Data().Timezone

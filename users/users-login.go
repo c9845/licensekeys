@@ -6,9 +6,9 @@ This file specifically deals with a user logging in or maintaining a logged in s
 package users
 
 import (
-	"crypto/sha256"
+	"crypto/rand"
 	"database/sql"
-	"encoding/base32"
+	"encoding/base64"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,7 +18,6 @@ import (
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/pwds"
-	"github.com/c9845/licensekeys/v2/utils"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 )
@@ -267,27 +266,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	//Record login to history. We need to generate a random value to use as the login
-	//ID because we don't want to use the database row ID since it is easily understood
-	//and modified to guess other logins. We generate a random string and append the
-	//user's ID to provide additional collision resistance. We are not using a salt
-	//here since we are not hashing this value before use as it is already random. We
-	//also need to get the expiration date so that we can save it to the db and the
-	//cookie and be sure we used the same value. Note that we record if user had to
-	//provide 2FA token upon login for diagnostics.
-	cv, err := utils.RandString(36)
+	//Record login to history.
+	cv, err := generateUserLoginCookieValue(u.ID)
 	if err != nil {
-		log.Println("users.Login", "could not create random cookie value, using salted hash of timestamp", err)
-		//not exiting on error here since we have another way to generate a random value
-
-		now := time.Now().Unix()
-		nowStr := strconv.FormatInt(now, 10)
-
-		h := sha256.Sum256([]byte(nowStr))
-		cv = strings.ToUpper(base32.StdEncoding.EncodeToString(h[:]))
+		output.Error(err, "Could not initialize user session.", w)
+		return
 	}
-
-	cv = strconv.FormatInt(u.ID, 10) + "_" + cv
 
 	expiration := time.Now().Add(time.Duration(config.Data().LoginLifetimeHours) * time.Hour)
 
@@ -441,4 +425,57 @@ func GetUsernameByRequest(r *http.Request) (username string, err error) {
 	}
 
 	return u.Username, nil
+}
+
+// LatestLogins retrieves the list of the latest user logins.
+func LatestLogins(w http.ResponseWriter, r *http.Request) {
+	//Get inputs.
+	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
+	rows, _ := strconv.ParseInt(r.FormValue("rows"), 10, 64)
+
+	//Validate. Use defaults if not valid.
+	if userID < 0 {
+		userID = 0
+	}
+	if rows < 0 {
+		rows = 50
+	}
+
+	//Get results.
+	logins, err := db.GetUserLogins(r.Context(), userID, uint16(rows))
+	if err != nil {
+		output.Error(err, "Could not look up list of user logins.", w)
+		return
+	}
+
+	output.DataFound(logins, w)
+}
+
+// generateUserLoginCookieValue creates a the value that will be saved in the user's
+// browser to identify this session as well as saved in our database for matching up
+// against. This value is a unique ID to identify this specific user session.
+//
+// The value is the user's ID with a random string appended to it. Prepending the
+// user ID provided a bit of extra collision resistance.
+//
+// We don't want to use the database row ID of this user login as the cookie value
+// since that is easily guessed/incremented.
+func generateUserLoginCookieValue(userID int64) (cv string, err error) {
+	//Get random part of the cookie value, formatted as base 64.
+	const length = 32
+	b := make([]byte, length)
+	_, err = rand.Read(b)
+	if err != nil {
+		return
+	}
+
+	randVal := base64.StdEncoding.EncodeToString(b)
+	if len(randVal) > length {
+		randVal = randVal[:length]
+	}
+
+	//Convert the user's ID to a string and build the full cookie value.
+	cv = strconv.FormatInt(userID, 10) + "_" + randVal
+	return
+
 }

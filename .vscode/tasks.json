@@ -2,7 +2,9 @@
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
     "version": "2.0.0",
+
     "tasks": [
+        //compile ts to js for the app's files
         {
             "label": "Compile TS files to script.js file.",
             "type": "typescript",
@@ -16,6 +18,7 @@
             }
         },
 
+        //minify is https://github.com/tdewolff/minify/tree/master/cmd/minify
         {
             "label": "minify-js",
             "command": "minify -w -v -o website/static/js/script.min.js website/static/js/script.js",
@@ -38,9 +41,9 @@
             "label": "minify-all",
             "dependsOn": ["minify-js", "minify-css"],
             "problemMatcher":[],
-            "runOptions": {
-                "runOn": "folderOpen"
-            }
+            // "runOptions": {
+            //     "runOn": "folderOpen"
+            // }
         },
     ]
 }

@@ -9,6 +9,7 @@ package users
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"image/png"
 	"log"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/utils"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 	"github.com/pquerna/otp"
@@ -231,20 +231,21 @@ func Deactivate2FA(w http.ResponseWriter, r *http.Request) {
 // Everything in ab will be provided except the cookie value which is generated here.
 func save2FABrowserIDCookie(ctx context.Context, w http.ResponseWriter, ab db.AuthorizedBrowser) (err error) {
 	//Get random value to store in cookie to identify this browser/session.
-	cv, err := utils.RandString(32)
+	const length = 32
+	b := make([]byte, length)
+	_, err = rand.Read(b)
 	if err != nil {
-		log.Println("users.save2FABrowserIDCookie", "could not get cookie value for 2fa browser id, defaulting to timetamp", err)
-		cv = strconv.FormatInt(time.Now().UnixNano(), 10)
+		return
 	}
 
-	//Add userID to random value since we do this for login cookie. This provided a bit
-	//of additional collision resistance since the chance of one user getting the exact
-	//same random value generated is higher, although very slightly, then multiple users
-	//getting the same random value. This is probably not necessary. We aren't using a
-	//salt here since we aren't hashing the value before its use and therefore the salt
-	//would just make the cookie value longer without adding any randomness since it
-	//would be the same between cookies.
-	cv = strconv.FormatInt(ab.UserID, 10) + "_" + cv
+	randVal := base64.StdEncoding.EncodeToString(b)
+	if len(randVal) > length {
+		randVal = randVal[:length]
+	}
+
+	//Prepend the user's ID to the random value just to be the same as the user login
+	//session cookie.
+	cv := strconv.FormatInt(ab.UserID, 10) + "_" + randVal
 
 	//Create the cookie.
 	cookie := http.Cookie{

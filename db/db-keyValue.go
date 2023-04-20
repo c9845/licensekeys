@@ -19,7 +19,6 @@ type KeyValue struct {
 	DatetimeCreated  string
 	DatetimeModified string
 	Active           bool
-	CreatedByUserID  int64
 
 	//The actual data being stored
 	K          string //key name
@@ -35,14 +34,11 @@ const (
 			DatetimeCreated DATETIME DEFAULT CURRENT_TIMESTAMP,
 			DatetimeModified DATETIME DEFAULT CURRENT_TIMESTAMP,
 			Active INTEGER NOT NULL DEFAULT 1,
-			CreatedByUserID INTEGER NOT NULL,
 			
 			K TEXT NOT NULL,
 			V TEXT NOT NULL,
 			Type TEXT NOT NULL,
-			Expiration INTEGER NOT NULL,
-
-			FOREIGN KEY(CreatedByUserID) REFERENCES ` + TableUsers + `(ID)
+			Expiration INTEGER NOT NULL
 		)
 	`
 
@@ -97,14 +93,12 @@ func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 
 	//build query
 	cols := sqldb.Columns{
-		"CreatedByUserID",
 		"K",
 		"V",
 		"Type",
 		"Expiration",
 	}
 	b := sqldb.Bindvars{
-		k.CreatedByUserID,
 		k.K,
 		k.V,
 		k.Type,
@@ -160,6 +154,7 @@ func (k *KeyValue) Update(ctx context.Context, tx *sqlx.Tx) (err error) {
 		"V",
 		"Type",
 		"Expiration",
+		"DatetimeModified",
 	}
 	colString, err := cols.ForUpdate()
 	if err != nil {
@@ -179,6 +174,7 @@ func (k *KeyValue) Update(ctx context.Context, tx *sqlx.Tx) (err error) {
 		k.V,
 		k.Type,
 		k.Expiration,
+		k.DatetimeModified,
 
 		k.K,
 	)
