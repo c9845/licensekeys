@@ -86,12 +86,14 @@ func (a *AuthorizedBrowser) Insert(ctx context.Context) (err error) {
 	return
 }
 
-// LookUpAuthorizedBrowser looks up if a browser identified by ip, useragent, and cookie
-// has already been authorized via 2fa.
-func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, ua, cookie string, activeOnly bool) (a AuthorizedBrowser, err error) {
+// LookUpAuthorizedBrowser looks up if a browser identified by ip, and cookie has
+// already been authorized via 2fa.
+func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, cookie string, activeOnly bool) (a AuthorizedBrowser, err error) {
 	//Note, useragent was removed from checking because it changes too frequently and
-	//was causing users to provide their 2fa token often. This is mostly due to browsers
-	//updating frequently and including the browser version number in the useragent string.
+	//was causing users to provide their 2fa token too often. This is mostly due to
+	//browsers updating frequently and including the browser version number in the
+	//useragent string.
+
 	q := `
 		SELECT *
 		FROM ` + TableAuthorizedBrowsers + `
@@ -102,7 +104,7 @@ func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, ua, cookie s
 			AND
 			Cookie = ?
 	`
-	b := sqldb.Bindvars{userID, ip, ua, cookie}
+	b := sqldb.Bindvars{userID, ip, cookie}
 
 	if activeOnly {
 		q += ` AND Active = ?`

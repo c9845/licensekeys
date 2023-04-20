@@ -148,7 +148,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//Cookie found, verify it. If cookie cannot be verified, request 2FA token.
-			authedBrowser, err := db.LookUpAuthorizedBrowser(r.Context(), u.ID, ip, ua, cookie.Value, true)
+			authedBrowser, err := db.LookUpAuthorizedBrowser(r.Context(), u.ID, ip, cookie.Value, true)
+			log.Println(u.ID, ip, ua, cookie.Value)
+
 			if err == sql.ErrNoRows {
 				log.Println("users.Login", "could not find browser for given cookie, this is odd and should never happen", err)
 				output.Success(msgType2FATokenRequired, nil, w)
@@ -165,6 +167,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			//authenticated recently, request 2FA token.
 			authedBrowserAge := time.Since(time.Unix(authedBrowser.Timestamp, 0))
 			maxBrowserAge := time.Duration(config.Data().TwoFactorAuthLifetimeDays * 24 * int(time.Hour))
+
+			log.Println(authedBrowserAge, maxBrowserAge, authedBrowserAge > maxBrowserAge)
+
 			if authedBrowserAge > maxBrowserAge {
 				log.Println("users.Login", "removing expired browser id cookie")
 				delete2FABrowserCookie(w)
