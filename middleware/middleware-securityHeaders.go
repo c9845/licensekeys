@@ -56,6 +56,7 @@ func SecHeaders(next http.Handler) http.Handler {
 		}
 		imgSrc := []string{
 			"'self'",
+			"data:", //for embedding images in printable docs, 2FA QR code.
 			";",
 		}
 
