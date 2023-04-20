@@ -96,6 +96,7 @@ Note that you should *only* access a license's data *after* you have verified th
 1. The file's data is parsed and the signature is decoded.
 1. The data is hashed and compared against the decoded signature using a public key.
 1. The response tells you if the license key is authentic.
+1. Check if the license is still active (not expired).
 
 
 # Development & Contributing
@@ -104,13 +105,14 @@ Note that you should *only* access a license's data *after* you have verified th
   - Code is located in in `.ts` files in the `website/static/js/` directory. 
   - Code is split into different files based on their usage to organize code better.
   - The `.ts` files *must* be combined into one `script.js` file as per the `tsconfig.json` file. 
-  - The `script.js` file *must be* minified per the `gruntfile.js` to `script.min.js`. 
+  - The `script.js` file *must be* minified. [minify](https://github.com/tdewolff/minify) is used for this.
   - Note the tasks in `.vscode/tasks.json` to help automate this.
   - Cache busting is handled by the app itself at runtime.
-  - Uses Vue 2.x but not single file components. Just imports the Vue .js file.
+  - Uses Vue 2.x, but not single file components. Just import the Vue .js file in a `<script>` tag.
 - Client Side CSS:
   - Written in one big CSS file located at `website/static/css/styles.css`.
-  - This file *must be* minified per the `gruntfile.js` to `styles.min.css`.
+  - The `styles.css` file *must be* minified. [minify](https://github.com/tdewolff/minify) is used for this.
+  - Note the task in `.vscode/tasks.json` to help automate this.
   - Cache busting is handled by the app itself at runtime.
 - HTML Templates:
   - Stored in `website/templates/`.
