@@ -44,14 +44,10 @@
                         </div>
 
                         <!-- renewal notices -->
-                        <div v-if="licenseDataRetrieved && licenseData.RenewedFromLicenseID !== null" v-cloak>
+                        <div v-if="licenseDataRetrieved && (licenseData.RenewedFromLicenseID !== null || licenseData.RenewedToLicenseID !== null)" v-cloak>
                             <div class="alert alert-primary">
-                                This license was renewed from license <a v-bind:href="'?id=' + licenseData.RenewedFromLicenseID">[[licenseData.RenewedFromLicenseID]]</a>.
-                            </div>
-                        </div>
-                        <div v-if="licenseDataRetrieved && licenseData.RenewedToLicenseID !== null" v-cloak>
-                            <div class="alert alert-primary">
-                                This license was renewed to license <a v-bind:href="'?id=' + licenseData.RenewedToLicenseID">[[licenseData.RenewedToLicenseID]]</a>.
+                                <span v-if="licenseData.RenewedFromLicenseID !== null">This license was renewed from license <a v-bind:href="'?id=' + licenseData.RenewedFromLicenseID">[[licenseData.RenewedFromLicenseID]]</a>.</span>
+                                <span v-if="licenseData.RenewedToLicenseID !== null"  >This license was renewed to license <a v-bind:href="'?id=' + licenseData.RenewedToLicenseID">[[licenseData.RenewedToLicenseID]]</a>.</span>
                             </div>
                         </div>
                     </div>
@@ -141,7 +137,7 @@
                             <div class="card-footer" v-if="licenseData.Active && licenseData.Verified && !licenseData.Expired">
                                 <div class="btn-group">
                                     <button class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
-                                    <div class="dropdown-menu dropdown-menu-right">
+                                    <div class="dropdown-menu">
                                         {{if $userData.Administrator}}
                                         <button class="dropdown-item" v-on:click="showAdvancedInfo = !showAdvancedInfo">
                                             <span v-if="!showAdvancedInfo">Show Advanced Info</span>
@@ -282,7 +278,7 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <blockquote class="section-description section-description-secondary">
+                        <blockquote class="section-description section-description-danger">
                             <!-- TODO: update text to say something like "license cannot be activated" if this app ever supports license activation. -->
                             <p>A disabled license can no longer be downloaded. This does <i>not</i> prevent previously distributed copies of this license from being used. <span class="text-danger">This cannot be undone.</span></p>
                         </blockquote>
