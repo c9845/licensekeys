@@ -799,22 +799,22 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	cols := sqldb.Columns{
 		db.TableLicenses + ".*",
 	}
-	l, err := db.GetLicense(r.Context(), fromLicenseID, cols)
+	fromLicense, err := db.GetLicense(r.Context(), fromLicenseID, cols)
 	if err != nil {
 		output.Error(err, "Could not look up existing license's data.", w)
 		return
 	}
-	if !l.Active {
+	if !fromLicense.Active {
 		output.ErrorInputInvalid("This license has been disabled and cannot be renewed.", w)
 		return
 	}
-	existingExpireDate, err := time.Parse("2006-01-02", l.ExpireDate)
+	existingExpireDate, err := time.Parse("2006-01-02", fromLicense.ExpireDate)
 	if err != nil {
 		output.Error(err, "Could not confirm if new expiration date is after existing license's expiration date.", w)
 		return
 	}
 	if newExpireDate.Before(existingExpireDate) {
-		output.ErrorInputInvalid("The new expiration date must be after the existing license's expiration date, "+l.ExpireDate+".", w)
+		output.ErrorInputInvalid("The new expiration date must be after the existing license's expiration date, "+fromLicense.ExpireDate+".", w)
 		return
 	}
 
@@ -829,6 +829,9 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Get a copy of the "from" license's data to use for the "to" license.
+	toLicense := fromLicense
+
 	//Get info about who or what is renewing this license. A license can be created
 	//by a user or API key.
 	createdByID, createdBy, err := getCreatedBy(r)
@@ -837,25 +840,25 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if createdBy == byUser {
-		l.CreatedByUserID = null.IntFrom(createdByID)
-		l.CreatedByAPIKeyID = null.IntFrom(0) //unset from old/copy-from license just in case.
+		toLicense.CreatedByUserID = null.IntFrom(createdByID)
+		toLicense.CreatedByAPIKeyID = null.IntFrom(0) //unset from old/copy-from license just in case.
 	} else {
-		l.CreatedByAPIKeyID = null.IntFrom(createdByID)
-		l.CreatedByUserID = null.IntFrom(0) //unset from old/copy-from license just in case.
+		toLicense.CreatedByAPIKeyID = null.IntFrom(createdByID)
+		toLicense.CreatedByUserID = null.IntFrom(0) //unset from old/copy-from license just in case.
 	}
-
-	//Modify existing license data for new license.
-	l.ID = 0                             //this will be populated with the new license's ID in Insert().
-	l.ExpireDate = newExpireDateStr      //new user provided date.
-	l.DatetimeModified = ""              //license hasn't been modified, so unset this to reduce confusion.
-	l.IssueDate = timestamps.YMD()       //
-	l.IssueTimestamp = time.Now().Unix() //
-	l.Signature = ""                     //will be set later...
 
 	//Get DatetimeCreated value. This way we will have the exact same value for the
 	//license, custom field results, and renewal relationship.
 	datetimeCreated := timestamps.YMDHMS()
-	l.DatetimeCreated = datetimeCreated
+
+	//Modify existing license data for new license.
+	toLicense.ID = 0                             //this will be populated with the new license's ID in Insert().
+	toLicense.ExpireDate = newExpireDateStr      //new user provided date.
+	toLicense.DatetimeModified = ""              //license hasn't been modified, so unset this to reduce confusion.
+	toLicense.IssueDate = timestamps.YMD()       //
+	toLicense.IssueTimestamp = time.Now().Unix() //
+	toLicense.Signature = ""                     //will be set later...
+	toLicense.DatetimeCreated = datetimeCreated
 
 	//Start transaction since we are saving multiple things.
 	c := sqldb.Connection()
@@ -869,7 +872,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//Save common data. This will get us the license ID which we need to save the
 	//custom field results and possible for use in the license if required per the
 	//app's details.
-	err = l.Insert(r.Context(), tx)
+	err = toLicense.Insert(r.Context(), tx)
 	if err != nil {
 		output.Error(err, "Could not save renewed license (2).", w)
 		return
@@ -891,7 +894,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 			f.CreatedByUserID = null.IntFrom(0) //unset from old/copy-from license just in case.
 		}
 
-		f.LicenseID = l.ID
+		f.LicenseID = toLicense.ID
 		f.DatetimeCreated = datetimeCreated
 
 		innerErr := f.Insert(r.Context(), tx)
@@ -904,7 +907,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//Create the renewal relationship.
 	relationship := db.RenewalRelationship{
 		FromLicenseID:   fromLicenseID,
-		ToLicenseID:     l.ID,
+		ToLicenseID:     toLicense.ID,
 		DatetimeCreated: datetimeCreated,
 	}
 
@@ -920,6 +923,13 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Disable the "renewed-from" license so that it cannot be mistakenly downloaded.
+	err = db.DisableLicense(r.Context(), fromLicenseID, tx)
+	if err != nil {
+		//Don't return on this error since it isn't the end of the world.
+		log.Println("license.Renew", "could not mark 'from' license as disabled, skipping", err)
+	}
+
 	//
 	//All the db queries needed to copy data have occured, the renewal license now
 	//exists. However, we still need to perform the other "after inserting a license"
@@ -929,7 +939,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//Get key pair data. We need this to get the private key info to sign the license
 	//files since we create the signature now, not when a license is downloaded, for
 	//efficiency purposes.
-	kp, err := db.GetKeyPairByID(r.Context(), l.KeyPairID)
+	kp, err := db.GetKeyPairByID(r.Context(), toLicense.KeyPairID)
 	if err != nil {
 		output.Error(err, "Could not look up signature details.", w)
 		return
@@ -940,7 +950,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Create the renewal license file.
-	f, err := buildLicense(l, ff)
+	f, err := buildLicense(toLicense, ff)
 	if err != nil {
 		output.Error(err, "Could not build license for signing and verification.", w)
 		return
@@ -973,8 +983,8 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Save the signature
-	l.Signature = f.Signature
-	err = l.SaveSignature(r.Context(), tx)
+	toLicense.Signature = f.Signature
+	err = toLicense.SaveSignature(r.Context(), tx)
 	if err != nil {
 		output.Error(err, "Could not save signature.", w)
 		return
@@ -1002,8 +1012,8 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Mark the license as verified.
-	l.Verified = true
-	err = l.MarkVerified(r.Context())
+	toLicense.Verified = true
+	err = toLicense.MarkVerified(r.Context())
 	if err != nil {
 		output.Error(err, "Could not mark license as valid.", w)
 		return
@@ -1014,13 +1024,13 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//isn't needed.
 	if r.FormValue("returnLicenseFile") == "true" {
 		//Set suggested filename.
-		a, err := db.GetAppByID(r.Context(), l.AppID)
+		a, err := db.GetAppByID(r.Context(), toLicense.AppID)
 		if err != nil {
 			output.Error(err, "Could not look up app data to build license filename.", w)
 			return
 		}
 
-		filename := replaceFilenamePlaceholders(a.DownloadFilename, l.ID, a.Name, a.FileFormat)
+		filename := replaceFilenamePlaceholders(a.DownloadFilename, toLicense.ID, a.Name, a.FileFormat)
 		w.Header().Add("X-Download-As-Filename", filename)
 
 		err = f.Write(w)
@@ -1033,9 +1043,9 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		h := db.DownloadHistory{
 			DatetimeCreated:   datetimeCreated,
 			TimestampCreated:  time.Now().UnixNano(),
-			LicenseID:         l.ID,
-			CreatedByUserID:   null.IntFrom(l.CreatedByUserID.Int64),
-			CreatedByAPIKeyID: null.IntFrom(l.CreatedByAPIKeyID.Int64),
+			LicenseID:         toLicense.ID,
+			CreatedByUserID:   null.IntFrom(toLicense.CreatedByUserID.Int64),
+			CreatedByAPIKeyID: null.IntFrom(toLicense.CreatedByAPIKeyID.Int64),
 		}
 
 		err = h.Insert(r.Context())
@@ -1049,7 +1059,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 
 	//Done, renewed license was created and is valid. This will return to the GUI and
 	//the GUI will redirect the user to the renewed license's management page.
-	output.InsertOK(l.ID, w)
+	output.InsertOK(toLicense.ID, w)
 }
 
 // getCreatedBy gets the ID of who/what is creating something. The ID matches either

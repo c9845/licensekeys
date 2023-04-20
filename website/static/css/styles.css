@@ -1,5 +1,5 @@
 :root {
-    --version:              "2.0.0";
+    --version:              "2.1.0";
 
     --footer-height:        80px;
     --footer-margin-top:    20px;
@@ -47,6 +47,9 @@ blockquote.section-description {
 }
 blockquote.section-description.section-description-secondary {
     border-left-color: #6c757d;
+}
+blockquote.section-description.section-description-danger {
+    border-left-color: #dc3545; /*same as bootstrap --danger*/
 }
 blockquote.section-description p { /*pretend like there is no <p> tag, just text inside <blockquote>; blockquote can specify margin*/
     margin-bottom: 0;
