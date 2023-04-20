@@ -31,5 +31,6 @@ The process of reading and verifying a license key file is as follows:
  4. The File is marshalled and the resulting bytes are hashed.
  5. The decoded signature is compared against the hash using a public key.
  6. If the signature is valid, the license key file's data can be used.
+ 7. Check that the license isn't expired.
 */
 package licensefile

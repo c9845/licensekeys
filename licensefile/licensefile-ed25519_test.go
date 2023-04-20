@@ -1,6 +1,9 @@
 package licensefile
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestGenerateKeyPairED25519(t *testing.T) {
 	private, public, err := GenerateKeyPairED25519()
@@ -68,6 +71,7 @@ func TestVerifyED25519(t *testing.T) {
 			"exists":   true,
 			"notabool": 1,
 		},
+		ExpireDate: time.Now().AddDate(0, 0, 10).Format("2006-01-02"),
 	}
 
 	//sign

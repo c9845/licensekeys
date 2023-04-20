@@ -103,13 +103,13 @@ func (f *File) SignECDSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err er
 	return
 }
 
-// VerifyECDSA verifies the File's Signature with the provided ECDSA public key. You
-// must populate the FileFormat field prior per to calling this func.
+// VerifySignatureECDSA checks if a File's signature is valid by checking it against
+// the ECDSA public key. This DOES NOT check if a File is expired.
 //
-// This uses a copy of the File since we are going to remove the Signature field prior
-// to hashing and verification but we don't want to modify the original File so it can
+// This uses a copy of the File since need to remove the Signature field prior to
+// hashing and verification but we don't want to modify the original File so it can
 // be used as it was parsed/unmarshalled.
-func (f File) VerifyECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+func (f File) VerifySignatureECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
 	//Make sure a valid ECDSA algo type was provided.
 	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {
 		err = fmt.Errorf("invalid key pair algorithm, should be one of '%s', got '%s'", keyPairECDSATypes, keyPairAlgo)
@@ -141,6 +141,32 @@ func (f File) VerifyECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err er
 	valid := ecdsa.VerifyASN1(x509Key.(*ecdsa.PublicKey), h[:], decodedSig)
 	if !valid {
 		err = ErrBadSignature
+	}
+
+	return
+}
+
+// VerifyECDSA checks if a File's signature is valid and if the license has expired.
+// This calls VerifySignatureECDSA() and Expired().
+func (f *File) VerifyECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	//Make sure a valid ECDSA algo type was provided.
+	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {
+		err = fmt.Errorf("invalid key pair algorithm, should be one of '%s', got '%s'", keyPairECDSATypes, keyPairAlgo)
+		return
+	}
+
+	//Verify the signature.
+	err = f.VerifySignatureECDSA(publicKey, keyPairAlgo)
+	if err != nil {
+		return
+	}
+
+	//Check if license is expired.
+	expired, err := f.Expired()
+	if err != nil {
+		return
+	} else if expired {
+		err = ErrExpired
 	}
 
 	return

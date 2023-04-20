@@ -8,12 +8,32 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"golang.org/x/exp/slices"
+)
+
+// Errors.
+var (
+	// ErrBadSignature is returned from Verify() or Verify...() when a File's Signature
+	// cannot be verified with the given public key.
+	ErrBadSignature = errors.New("signature invalid")
+
+	// ErrMissingExpireDate is returned when trying to check if a license is expires
+	// or in how long it expires via the Expired() or ExpiresIn() funcs. This error
+	//should really never be returned since the only time these funcs are used are
+	//with an existing license's data.
+	ErrMissingExpireDate = errors.New("missing expire date")
+
+	//ErrExpired is returned when checking if a license's expire date is in the past.
+	//
+	//This is ONLY used for the Verify() func that handles signature verification and
+	//expiration checking since this func only returns an error, not multiple return
+	//values. The Expired() and ExpiresIn() funcs both return a non-error value to
+	//represent an expired license.
+	ErrExpired = errors.New("license expired")
 )
 
 // File defines the format of data stored in a license key file. This is the body of
@@ -53,31 +73,14 @@ type File struct {
 	//imported into your app by the end-user to allow the app's use.
 	Signature string `yaml:"Signature"`
 
-	//Stuff used for signing, verifying, or reverifying a license file. These are never
-	//included in the license key file that is distributed.
+	//Stuff used for signing or verifying a license file. These are never included in
+	//the license key file that is distributed.
 	//
-	//During verification, these fields are populated so that they can be reused if a
-	//license file needs to be reverified. Doing so makes reverification easier since
-	//the user implementing reverification doesn't need to provide this info again (it
-	//was already provided during initial verification of the license).
+	//During verification, these fields are populated just for debugging.
 	fileFormat   FileFormat      //the format a file was unmarshaled from.
 	readFromPath string          //path a license file was read from.
 	publicKey    []byte          //the public key used to verify a license.
 	keyPairAlgo  KeyPairAlgoType //algorithm type of the public key.
-}
-
-// SetFileFormat populates the fileFormat field. This func is needed since the
-// fileFormat field is not exported since it is not distributed/written in a license
-// file.
-func (f *File) SetFileFormat(format FileFormat) {
-	f.fileFormat = format
-}
-
-// FileFormat returns a File's fileFormat field. This func is needed since the
-// fileFormat field is not exported since it is not distributed/writted in a license
-// file.
-func (f *File) FileFormat() FileFormat {
-	return f.fileFormat
 }
 
 // GenerateKeyPair creates and returns a new private and public key.
@@ -129,83 +132,6 @@ func (f *File) Write(out io.Writer) (err error) {
 	return
 }
 
-// Sign creates a signature for a license file. The signature is set in the provided
-// File's Signature field. The private key must be decrypted, if needed, prior to
-// being provided. The signature will be encoded per the File's EncodingType.
-func (f *File) Sign(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	err = keyPairAlgo.Valid()
-	if err != nil {
-		return
-	}
-
-	switch keyPairAlgo {
-	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
-		err = f.SignECDSA(privateKey, keyPairAlgo)
-	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
-		err = f.SignRSA(privateKey, keyPairAlgo)
-	case KeyPairAlgoED25519:
-		err = f.SignED25519(privateKey)
-	}
-
-	return
-}
-
-// ErrBadSignature is returned from Verify() or Verify...() when a File's Signature
-// cannot be verified.
-var ErrBadSignature = errors.New("signature invalid")
-
-// Verify checks if a File is valid. This checks the signature against the File's
-// contents using the provided public key.
-func (f *File) Verify(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	err = keyPairAlgo.Valid()
-	if err != nil {
-		return
-	}
-
-	switch keyPairAlgo {
-	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
-		err = f.VerifyECDSA(publicKey, keyPairAlgo)
-	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
-		err = f.VerifyRSA(publicKey, keyPairAlgo)
-	case KeyPairAlgoED25519:
-		err = f.VerifyED25519(publicKey)
-	}
-
-	//If verification was successful, save the public key info to the license file
-	//since we know the information was correct. We use this in the ReverifyEvery func.
-	if err == nil {
-		f.publicKey = publicKey
-		f.keyPairAlgo = keyPairAlgo
-	}
-
-	return
-}
-
-// ErrMissingExpireDate is returned when trying to calculate the DaysUntilExpired but
-// no expire date is set for the license file. This should never happen since the only
-// time the DaysUntilExpired func is used is when using a license's data and the license
-// file was already created and validated.
-var ErrMissingExpireDate = errors.New("missing expire date")
-
-// DaysUntilExpired calculates the days from now until when a license will be expired.
-func (f *File) DaysUntilExpired() (diffDays int, err error) {
-	if strings.TrimSpace(f.ExpireDate) == "" {
-		return 0, ErrMissingExpireDate
-	}
-
-	now := time.Now().UTC().Truncate(24 * time.Hour)
-	expires, err := time.Parse("2006-01-02", f.ExpireDate)
-	if err != nil {
-		return
-	}
-
-	diff := expires.Sub(now)
-	diffHours := diff.Hours()
-	diffDays = int(diffHours / 24)
-
-	return
-}
-
 // Read reads a license key file from the given path, unmarshals it, and returns it's
 // data as a File. This checks if the file exists and the data is of the correct
 // format, however, this DOES NOT check if the license key file itself (the contents
@@ -229,11 +155,32 @@ func Read(path string, format FileFormat) (f File, err error) {
 	f, err = Unmarshal(contents, format)
 
 	//If unmarshalling was successful, save the path to the license file since we know
-	//the file exists. We use this in the ReverifyEvery func.
+	//the file exists.
 	if err == nil {
 		f.readFromPath = path
 	} else {
 		f.readFromPath = "unknown"
+	}
+
+	return
+}
+
+// Sign creates a signature for a license file. The signature is set in the provided
+// File's Signature field. The private key must be decrypted, if needed, prior to
+// being provided. The signature will be encoded per the File's EncodingType.
+func (f *File) Sign(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	err = keyPairAlgo.Valid()
+	if err != nil {
+		return
+	}
+
+	switch keyPairAlgo {
+	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
+		err = f.SignECDSA(privateKey, keyPairAlgo)
+	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
+		err = f.SignRSA(privateKey, keyPairAlgo)
+	case KeyPairAlgoED25519:
+		err = f.SignED25519(privateKey)
 	}
 
 	return
@@ -317,35 +264,92 @@ func (f *File) decodeSignature() (b []byte, err error) {
 	return
 }
 
-// Reverify performs reverfication of a license. This can be used to make sure a
-// license file hasn't been tampered with. This must be called after Verify() has been
-// called because Verify() saves some information to the File to remove the need for
-// arguments being passed to this func.
-//
-// Typically you will want to run reverification every so often. You may want to wrap
-// this func in a for/while loop that runs every "x" minutes/hours/days.
-// Example:
-//
-//	//_ = f.Verify(...)
-//	//
-//	//go func() {
-//	//  for {
-//	//    time.Sleep(1*time.Hour)
-//	//    err := f.Reverify()
-//	//    if err != nil {
-//	//      log.Println("License file invalid upon reverification.")
-//	//      //do something about tampered with license,: os.Exit(1), log.Fatal(...), etc.
-//	//    }
-//	//  }
-//	//}()
-func (f *File) Reverify() (err error) {
-	//Reread license from file as the stored path.
-	fr, err := Read(f.readFromPath, f.fileFormat)
+// VerifySignature checks if a File's signature is valid by checking it against the
+// publicKey. This DOES NOT check if a File is expired.
+func (f *File) VerifySignature(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	err = keyPairAlgo.Valid()
 	if err != nil {
-		log.Println("reverify path", f.readFromPath)
 		return
 	}
 
-	err = fr.Verify(f.publicKey, f.keyPairAlgo)
+	switch keyPairAlgo {
+	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
+		err = f.VerifySignatureECDSA(publicKey, keyPairAlgo)
+	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
+		err = f.VerifySignatureRSA(publicKey, keyPairAlgo)
+	case KeyPairAlgoED25519:
+		err = f.VerifySignatureED25519(publicKey)
+	}
+
+	//If verification was successful, save the public key info to the license file
+	//since we know the information was correct.
+	if err == nil {
+		f.publicKey = publicKey
+		f.keyPairAlgo = keyPairAlgo
+	}
+
+	return
+}
+
+// Verify checks if a File's signature is valid and if the license has expired. This
+// calls VerifySignature() and Expired().
+func (f *File) Verify(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	//Verify the signature.
+	err = f.VerifySignature(publicKey, keyPairAlgo)
+	if err != nil {
+		return
+	}
+
+	//Check if license is expired.
+	expired, err := f.Expired()
+	if err != nil {
+		return
+	} else if expired {
+		err = ErrExpired
+	}
+
+	return
+}
+
+// Expired returns if a lincense File's expiration date is in the past.
+//
+// You should call Verify() first!
+func (f *File) Expired() (yes bool, err error) {
+	//Make sure a expiration data is provided. It should always be provided since
+	//you would call this func after reading a license file and verifying it's
+	//signature.
+	if strings.TrimSpace(f.ExpireDate) == "" {
+		return false, ErrMissingExpireDate
+	}
+
+	//Check if license is expired.
+	expDate, err := time.Parse("2006-01-02", f.ExpireDate)
+	if err != nil {
+		return
+	}
+
+	yes = expDate.Before(time.Now())
+	return
+}
+
+// ExpiresIn calculates duration until a license File expires. If a license is
+// expired, a negative duration is returned.
+//
+// You should call Verify() first!
+func (f *File) ExpiresIn() (d time.Duration, err error) {
+	//Make sure a expiration data is provided. It should always be provided since
+	//you would call this func after reading a license file and verifying it's
+	//signature.
+	if strings.TrimSpace(f.ExpireDate) == "" {
+		return 0, ErrMissingExpireDate
+	}
+
+	//Get duration until license is expired.
+	expDate, err := time.Parse("2006-01-02", f.ExpireDate)
+	if err != nil {
+		return
+	}
+
+	d = time.Until(expDate)
 	return
 }

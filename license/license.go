@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -614,8 +615,8 @@ func Download(w http.ResponseWriter, r *http.Request) {
 	filename := replaceFilenamePlaceholders(l.AppDownloadFilename, l.ID, l.AppName, l.AppFileFormat)
 
 	//Diagnostic info.
-	days, _ := f.DaysUntilExpired()
-	w.Header().Add("X-Days-Until-Expired", strconv.Itoa(days))
+	d, _ := f.ExpiresIn()
+	w.Header().Add("X-Days-Until-Expired", strconv.FormatFloat(math.Floor(d.Hours()/24), 'f', 0, 64))
 	w.Header().Add("X-Download-As-Filename", filename)
 
 	//Write out the license file.

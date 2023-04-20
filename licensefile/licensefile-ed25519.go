@@ -77,16 +77,16 @@ func (f *File) SignED25519(privateKey []byte) (err error) {
 	return
 }
 
-// VerifyED25519 verifies the File's Signature with the provided ED25519 public key.
-// You must populate the FileFormat field prior per to calling this func.
+// VerifySignatureED25519 checks if a File's signature is valid by checking it against
+// the ED25519 public key. This DOES NOT check if a File is expired.
 //
-// This uses a copy of the File since we are going to remove the Signature field prior
-// to hashing and verification but we don't want to modify the original File so it can
+// This uses a copy of the File since need to remove the Signature field prior to
+// hashing and verification but we don't want to modify the original File so it can
 // be used as it was parsed/unmarshalled.
 //
 // A KeyPairAlgoType is not needed since there is only one version of ED25519 that can
 // be used whereas with ECDSA or RSA there are multiple versions (curve, bitsize).
-func (f File) VerifyED25519(publicKey []byte) (err error) {
+func (f File) VerifySignatureED25519(publicKey []byte) (err error) {
 	//Get the decoded signature and remove the signature from the File.
 	decodedSig, err := f.decodeSignature()
 	if err != nil {
@@ -112,6 +112,26 @@ func (f File) VerifyED25519(publicKey []byte) (err error) {
 	valid := ed25519.Verify(x509Key.(ed25519.PublicKey), h[:], decodedSig)
 	if !valid {
 		err = ErrBadSignature
+	}
+
+	return
+}
+
+// VerifyED25519 checks if a File's signature is valid and if the license has expired.
+// This calls VerifySignatureRSA() and Expired().
+func (f File) VerifyED25519(publicKey []byte) (err error) {
+	//Verify the signature.
+	err = f.VerifySignatureED25519(publicKey)
+	if err != nil {
+		return
+	}
+
+	//Check if license is expired.
+	expired, err := f.Expired()
+	if err != nil {
+		return
+	} else if expired {
+		err = ErrExpired
 	}
 
 	return

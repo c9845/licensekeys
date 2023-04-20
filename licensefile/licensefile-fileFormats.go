@@ -72,11 +72,24 @@ func Unmarshal(in []byte, format FileFormat) (f File, err error) {
 	//If unmarshalling was successful, save the file format to the File's FileFormat
 	//field since we know the correct value. Plus, we will need the FileFormat value
 	//when passed to Verify() or one of the Verify...() funcs to calculate the hash
-	//correctly prior to verifying the signature. We also use this in the ReverifyEvery
-	//func.
+	//correctly prior to verifying the signature.
 	if err == nil {
 		f.fileFormat = format
 	}
 
 	return
+}
+
+// SetFileFormat populates the fileFormat field. This func is needed since the
+// fileFormat field is not exported since it is not distributed/written in a license
+// file.
+func (f *File) SetFileFormat(format FileFormat) {
+	f.fileFormat = format
+}
+
+// FileFormat returns a File's fileFormat field. This func is needed since the
+// fileFormat field is not exported since it is not distributed/writted in a license
+// file.
+func (f *File) FileFormat() FileFormat {
+	return f.fileFormat
 }
