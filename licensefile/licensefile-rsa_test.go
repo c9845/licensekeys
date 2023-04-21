@@ -2,7 +2,6 @@ package licensefile
 
 import (
 	"testing"
-	"time"
 )
 
 func TestGenerateKeyPairRSA(t *testing.T) {
@@ -69,15 +68,10 @@ func TestSignRSA(t *testing.T) {
 	}
 }
 
-func TestVerifyRSA(t *testing.T) {
-	//generate key pair to use
-	private, public, err := GenerateKeyPairRSA(KeyPairAlgoRSA2048)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-
-	//build fake File with file format, hash type, and encoding type set
+func TestVerifySignatureRSA(t *testing.T) {
+	//Build fake File with file format, hash type, and encoding type set.
+	//Note, no expiration date. VerifySignature() doesn't do any checking
+	//of the expiration date!
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
@@ -87,10 +81,16 @@ func TestVerifyRSA(t *testing.T) {
 			"exists":   true,
 			"notabool": 1,
 		},
-		ExpireDate: time.Now().AddDate(0, 0, 10).Format("2006-01-02"),
 	}
 
-	//sign
+	//Generate key pair to use.
+	private, public, err := GenerateKeyPairRSA(KeyPairAlgoRSA2048)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	//Sign.
 	err = f.SignRSA(private, KeyPairAlgoRSA2048)
 	if err != nil {
 		t.Fatal("Error with signing", err)
@@ -101,8 +101,8 @@ func TestVerifyRSA(t *testing.T) {
 		return
 	}
 
-	//verify
-	err = f.VerifyRSA(public, KeyPairAlgoRSA2048)
+	//Verify.
+	err = f.VerifySignatureRSA(public, KeyPairAlgoRSA2048)
 	if err != nil {
 		//This error gets kicked out intermittently when multiple tests are run at
 		//the same time (i.e.: file-level test or package-level tests). This error
@@ -113,18 +113,18 @@ func TestVerifyRSA(t *testing.T) {
 		return
 	}
 
-	//try verifying with an incorrect algo type.
-	err = f.VerifyRSA(public, KeyPairAlgoED25519)
-	if err == nil {
-		t.Fatal("Error about wrong key pair algo should have occured.")
+	//Test with bad signature.
+	f.Signature = ""
+	err = f.VerifySignatureRSA(public, KeyPairAlgoRSA2048)
+	if err != ErrBadSignature {
+		t.Fatal("Error about invalid signature should have been returned.", err)
 		return
 	}
 
-	//set invalid signature and try verifying
-	f.Signature = ""
-	err = f.VerifyRSA(public, KeyPairAlgoRSA2048)
-	if err != ErrBadSignature {
-		t.Fatal("Error about invalid signature should have been returned.")
+	//Test with bad algo.
+	err = f.VerifySignatureRSA(public, KeyPairAlgoED25519)
+	if err == nil {
+		t.Fatal("Error about wrong key pair algo should have occured.")
 		return
 	}
 }

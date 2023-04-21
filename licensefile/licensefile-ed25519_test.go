@@ -2,7 +2,6 @@ package licensefile
 
 import (
 	"testing"
-	"time"
 )
 
 func TestGenerateKeyPairED25519(t *testing.T) {
@@ -53,15 +52,10 @@ func TestSignED25519(t *testing.T) {
 	}
 }
 
-func TestVerifyED25519(t *testing.T) {
-	//generate key pair
-	private, public, err := GenerateKeyPairED25519()
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-
-	//build fake File with file format, hash type, and encoding type set
+func TestVerifySignatureED25519(t *testing.T) {
+	//Build fake File with file format, hash type, and encoding type set.
+	//Note, no expiration date. VerifySignature() doesn't do any checking
+	//of the expiration date!
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
@@ -71,10 +65,16 @@ func TestVerifyED25519(t *testing.T) {
 			"exists":   true,
 			"notabool": 1,
 		},
-		ExpireDate: time.Now().AddDate(0, 0, 10).Format("2006-01-02"),
 	}
 
-	//sign
+	//Generate key pair to use.
+	private, public, err := GenerateKeyPairED25519()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	//Sign.
 	err = f.SignED25519(private)
 	if err != nil {
 		t.Fatal("Error with signing", err)
@@ -85,8 +85,8 @@ func TestVerifyED25519(t *testing.T) {
 		return
 	}
 
-	//verify
-	err = f.VerifyED25519(public)
+	//Verify.
+	err = f.VerifySignatureED25519(public)
 	if err != nil {
 		//This error gets kicked out intermittently when multiple tests are run at
 		//the same time (i.e.: file-level test or package-level tests). This error
@@ -97,11 +97,13 @@ func TestVerifyED25519(t *testing.T) {
 		return
 	}
 
-	//set invalid signature and try verifying
+	//Test with bad signature.
 	f.Signature = ""
-	err = f.VerifyED25519(public)
+	err = f.VerifySignatureED25519(public)
 	if err != ErrBadSignature {
 		t.Fatal("Error about invalid signature should have been returned.")
 		return
 	}
+
+	//Test with bad algo skipped, there is only one ED25519 algo.
 }

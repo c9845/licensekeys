@@ -93,7 +93,10 @@ func (f *File) SignRSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err erro
 }
 
 // VerifySignatureRSA checks if the File's signature is valid by checking it against
-// the RSA public key. This DOES NOT check if a File is expired.
+// the RSA public key.
+//
+// This DOES NOT check if a File is expired. You should call Expired() on the File
+// after calling this func.
 //
 // This uses a copy of the File since need to remove the Signature field prior to
 // hashing and verification but we don't want to modify the original File so it can
@@ -136,28 +139,11 @@ func (f File) VerifySignatureRSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) 
 	return
 }
 
-// VerifyRSA checks if a File's signature is valid and if the license has expired.
-// This calls VerifySignatureRSA() and Expired().
-func (f File) VerifyRSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	//Make sure a valid ECDSA algo type was provided.
-	if !slices.Contains(keyPairRSATypes, keyPairAlgo) {
-		err = fmt.Errorf("invalid key pair algorithm, should be one of '%s', got '%s'", keyPairECDSATypes, keyPairAlgo)
-		return
-	}
-
-	//Verify the signature.
-	err = f.VerifySignatureRSA(publicKey, keyPairAlgo)
-	if err != nil {
-		return
-	}
-
-	//Check if license is expired.
-	expired, err := f.Expired()
-	if err != nil {
-		return
-	} else if expired {
-		err = ErrExpired
-	}
-
-	return
+// VerifyRSA calls VerifySignatureRSA().
+//
+// Deprecated: This func is here just for legacy situations since the old
+// VerifyRSA() func was renamed to VerifySignatureRSA() for better clarity.
+// Use VerifySignatureRSA() instead.
+func (f *File) VerifyRSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	return f.VerifySignatureRSA(publicKey, keyPairAlgo)
 }

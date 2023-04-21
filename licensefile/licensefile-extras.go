@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-// ErrFieldDoesNotExist is returned when trying to retrieve a field with a given name
-// using one of the ExtraAs... type assertion retrieval functions but the field does
-// not exist in the File's Extra map.
+// ErrFieldDoesNotExist is returned when trying to retrieve a field from the Extra
+// map of a File with a given key name using one of the ExtraAs... funcs but the
+// named field does not exist in the map.
 var ErrFieldDoesNotExist = errors.New("extra field does not exist")
 
 // ExtraAsInt returns the value of the Extra field with the given name as an int64.

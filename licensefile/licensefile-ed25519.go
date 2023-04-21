@@ -75,7 +75,10 @@ func (f *File) SignED25519(privateKey []byte) (err error) {
 }
 
 // VerifySignatureED25519 checks if a File's signature is valid by checking it against
-// the ED25519 public key. This DOES NOT check if a File is expired.
+// the ED25519 public key.
+//
+// This DOES NOT check if a File is expired. You should call Expired() on the File
+// after calling this func.
 //
 // This uses a copy of the File since need to remove the Signature field prior to
 // hashing and verification but we don't want to modify the original File so it can
@@ -114,22 +117,11 @@ func (f File) VerifySignatureED25519(publicKey []byte) (err error) {
 	return
 }
 
-// VerifyED25519 checks if a File's signature is valid and if the license has expired.
-// This calls VerifySignatureRSA() and Expired().
-func (f File) VerifyED25519(publicKey []byte) (err error) {
-	//Verify the signature.
-	err = f.VerifySignatureED25519(publicKey)
-	if err != nil {
-		return
-	}
-
-	//Check if license is expired.
-	expired, err := f.Expired()
-	if err != nil {
-		return
-	} else if expired {
-		err = ErrExpired
-	}
-
-	return
+// VerifyED25519 calls VerifySignatureED25519().
+//
+// Deprecated: This func is here just for legacy situations since the old
+// VerifyED25519() func was renamed to VerifySignatureED25519() for better clarity.
+// Use VerifySignatureED25519() instead.
+func (f *File) VerifyED25519(publicKey []byte) (err error) {
+	return f.VerifySignatureED25519(publicKey)
 }

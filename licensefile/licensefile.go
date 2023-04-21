@@ -15,7 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// Errors.
+// Errors when validating a license key file.
 var (
 	// ErrBadSignature is returned from Verify() or Verify...() when a File's Signature
 	// cannot be verified with the given public key.
@@ -26,14 +26,6 @@ var (
 	//should really never be returned since the only time these funcs are used are
 	//with an existing license's data.
 	ErrMissingExpireDate = errors.New("missing expire date")
-
-	//ErrExpired is returned when checking if a license's expire date is in the past.
-	//
-	//This is ONLY used for the Verify() func that handles signature verification and
-	//expiration checking since this func only returns an error, not multiple return
-	//values. The Expired() and ExpiresIn() funcs both return a non-error value to
-	//represent an expired license.
-	ErrExpired = errors.New("license expired")
 )
 
 // File defines the format of data stored in a license key file. This is the body of
@@ -104,66 +96,8 @@ func GenerateKeyPair(k KeyPairAlgoType) (private, public []byte, err error) {
 	return
 }
 
-// Write writes a File to out. This is used to output the complete license key file.
-// This can be used to write the File to a buffer, as is done when creating a license
-// key file, write the File back to the browser as html, or write the File to an actual
-// filesystem file.
-//
-// For use with a buffer:
-//
-//	//b := bytes.Buffer{}
-//	//err := f.Write(&b)
-//
-// Writing to an http.ResponseWriter:
-//
-//	//func handler(w http.ResponseWriter, r *http.Request) {
-//	//  //...
-//	//  err := f.Write(w)
-//	//}
-func (f *File) Write(out io.Writer) (err error) {
-	//Marshal to bytes.
-	b, err := f.Marshal()
-	if err != nil {
-		return
-	}
-
-	//Write.
-	_, err = out.Write(b)
-	return
-}
-
-// Read reads a license key file from the given path, unmarshals it, and returns it's
-// data as a File. This checks if the file exists and the data is of the correct
-// format, however, this DOES NOT check if the license key file itself (the contents
-// of the file and the signature) is valid. You should call Verify() on the returned
-// File immediately after calling this func.
-func Read(path string, format FileFormat) (f File, err error) {
-	//Check if a file exists at the provided path.
-	_, err = os.Stat(path)
-	if os.IsNotExist(err) {
-		return
-	}
-
-	//Read the file at the provided path.
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		return
-	}
-
-	//Unmarshal the file's contents. Upon success, this will set the File's FileFormat
-	//field accordingly.
-	f, err = Unmarshal(contents, format)
-
-	//If unmarshalling was successful, save the path to the license file since we know
-	//the file exists.
-	if err == nil {
-		f.readFromPath = path
-	} else {
-		f.readFromPath = "unknown"
-	}
-
-	return
-}
+//***********************************************************************************
+//The below funcs are used when generating a license key file.
 
 // Sign creates a signature for a license file. The signature is set in the provided
 // File's Signature field. The private key must be decrypted, if needed, prior to
@@ -254,6 +188,73 @@ func (f *File) encodeSignature(b []byte) {
 	f.Signature = base64.StdEncoding.EncodeToString(b)
 }
 
+// Write writes a File to out. This is used to output the complete license key file.
+// This can be used to write the File to a buffer, as is done when creating a license
+// key file, write the File back to the browser as html, or write the File to an actual
+// filesystem file.
+//
+// For use with a buffer:
+//
+//	//b := bytes.Buffer{}
+//	//err := f.Write(&b)
+//
+// Writing to an http.ResponseWriter:
+//
+//	//func handler(w http.ResponseWriter, r *http.Request) {
+//	//  //...
+//	//  err := f.Write(w)
+//	//}
+func (f *File) Write(out io.Writer) (err error) {
+	//Marshal to bytes.
+	b, err := f.Marshal()
+	if err != nil {
+		return
+	}
+
+	//Write.
+	_, err = out.Write(b)
+	return
+}
+
+//***********************************************************************************
+//The below funcs are used when using a license key file in a third-party app.
+
+// Read reads a license key file from the given path, unmarshals it, and returns it's
+// data as a File. This checks if the file exists and the data is of the correct
+// format.
+//
+// This DOES NOT check if the license key file itself (the contents of the file and
+// the signature) is valid nor does this check if the license is expired. You should
+// call VerifySignature() and Expired() on the returned File immediately after calling
+// this func.
+func Read(path string, format FileFormat) (f File, err error) {
+	//Check if a file exists at the provided path.
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		return
+	}
+
+	//Read the file at the provided path.
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	//Unmarshal the file's contents. Upon success, this will set the File's FileFormat
+	//field accordingly.
+	f, err = Unmarshal(contents, format)
+
+	//If unmarshalling was successful, save the path to the license file since we know
+	//the file exists.
+	if err == nil {
+		f.readFromPath = path
+	} else {
+		f.readFromPath = "unknown"
+	}
+
+	return
+}
+
 // decodeSignature returns the File's Signature field as a []byte for use when
 // verifying the license key file with a public key.
 //
@@ -264,13 +265,22 @@ func (f *File) decodeSignature() (b []byte, err error) {
 }
 
 // VerifySignature checks if a File's signature is valid by checking it against the
-// publicKey. This DOES NOT check if a File is expired.
+// publicKey.
+//
+// This DOES NOT check if a File is expired. You should call Expired() on the File
+// after calling this func.
+//
+// Signature verification and expiration date checking were kept separate on purpose
+// so that each step can be handled more deliberately with specific handling of
+// invalid states (i.e.: for more graceful handling).
 func (f *File) VerifySignature(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
+	//Make sure a valid algo type was provided.
 	err = keyPairAlgo.Valid()
 	if err != nil {
 		return
 	}
 
+	//Handle verification of signature based on algo type.
 	switch keyPairAlgo {
 	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
 		err = f.VerifySignatureECDSA(publicKey, keyPairAlgo)
@@ -290,29 +300,23 @@ func (f *File) VerifySignature(publicKey []byte, keyPairAlgo KeyPairAlgoType) (e
 	return
 }
 
-// Verify checks if a File's signature is valid and if the license has expired. This
-// calls VerifySignature() and Expired().
+// Verify calls VerifySignature().
+//
+// Deprecated: This func is here just for legacy situations since the old Verify()
+// func was renamed to VerifySignature() for better clarity. Use VerifySignature()
+// instead.
 func (f *File) Verify(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	//Verify the signature.
-	err = f.VerifySignature(publicKey, keyPairAlgo)
-	if err != nil {
-		return
-	}
-
-	//Check if license is expired.
-	expired, err := f.Expired()
-	if err != nil {
-		return
-	} else if expired {
-		err = ErrExpired
-	}
-
-	return
+	return f.VerifySignature(publicKey, keyPairAlgo)
 }
 
 // Expired returns if a lincense File's expiration date is in the past.
 //
-// You should call Verify() first!
+// You should only call this AFTER calling VerifySignature() otherwise the expiration
+// date in the File is untrustworthy and could have been modified.
+//
+// Signature verification and expiration date checking were kept separate on purpose
+// so that each step can be handled more deliberately with specific handling of
+// invalid states (i.e.: for more graceful handling).
 func (f *File) Expired() (yes bool, err error) {
 	//Make sure a expiration data is provided. It should always be provided since
 	//you would call this func after reading a license file and verifying it's
@@ -331,10 +335,10 @@ func (f *File) Expired() (yes bool, err error) {
 	return
 }
 
-// ExpiresIn calculates duration until a license File expires. If a license is
-// expired, a negative duration is returned.
+// ExpiresIn calculates duration until a license File expires.
 //
-// You should call Verify() first!
+// You should only call this AFTER calling VerifySignature() otherwise the expiration
+// date in the File is untrustworthy and could have been modified.
 func (f *File) ExpiresIn() (d time.Duration, err error) {
 	//Make sure a expiration data is provided. It should always be provided since
 	//you would call this func after reading a license file and verifying it's

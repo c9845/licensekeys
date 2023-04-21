@@ -92,11 +92,40 @@ Note that you should *only* access a license's data *after* you have verified th
 
 # How a License Key File is Verified
 
-1. The license key file is read by a software application.
+1. The license key file is read by your application.
 1. The file's data is parsed and the signature is decoded.
-1. The data is hashed and compared against the decoded signature using a public key.
-1. The response tells you if the license key is authentic.
+1. The data is hashed and compared against the decoded signature using a public key; the response tells you if the license key is authentic.
 1. Check if the license is still active (not expired).
+
+
+# Example of Client-Side Validation of License:
+
+Please also see the example in the `_example/client-app.go`.
+
+```golang
+//Read the license file.
+lic, err := licensefile.Read("/path/to/license.txt", licensefile.FileFormatYAML)
+if err != nil {
+  //Handle error reading file (file doesn't exist, corrupt, etc.)
+}
+
+//Verify the signature.
+err = lic.VerifySignature([]byte(publicKey), licensefile.KeyPairAlgoED25519)
+if err == licensefile.ErrBadSignature {
+  //Handle invalid license file.
+} else if err != nil {
+  //Handle other error.
+}
+
+//Make sure license has not expired.
+expired, err := lic.Expired()
+if err != nil {
+  //Handle error.
+}
+if expired {
+  //Handle expired license
+}
+```
 
 
 # Development & Contributing

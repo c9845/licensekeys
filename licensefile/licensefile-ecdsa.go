@@ -101,7 +101,10 @@ func (f *File) SignECDSA(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err er
 }
 
 // VerifySignatureECDSA checks if a File's signature is valid by checking it against
-// the ECDSA public key. This DOES NOT check if a File is expired.
+// the ECDSA public key.
+//
+// This DOES NOT check if a File is expired. You should call Expired() on the File
+// after calling this func.
 //
 // This uses a copy of the File since need to remove the Signature field prior to
 // hashing and verification but we don't want to modify the original File so it can
@@ -143,28 +146,11 @@ func (f File) VerifySignatureECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType
 	return
 }
 
-// VerifyECDSA checks if a File's signature is valid and if the license has expired.
-// This calls VerifySignatureECDSA() and Expired().
+// VerifyECDSA calls VerifySignatureECDSA().
+//
+// Deprecated: This func is here just for legacy situations since the old
+// VerifyECDSA() func was renamed to VerifySignatureECDSA() for better clarity.
+// Use VerifySignatureECDSA() instead.
 func (f *File) VerifyECDSA(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	//Make sure a valid ECDSA algo type was provided.
-	if !slices.Contains(keyPairECDSATypes, keyPairAlgo) {
-		err = fmt.Errorf("invalid key pair algorithm, should be one of '%s', got '%s'", keyPairECDSATypes, keyPairAlgo)
-		return
-	}
-
-	//Verify the signature.
-	err = f.VerifySignatureECDSA(publicKey, keyPairAlgo)
-	if err != nil {
-		return
-	}
-
-	//Check if license is expired.
-	expired, err := f.Expired()
-	if err != nil {
-		return
-	} else if expired {
-		err = ErrExpired
-	}
-
-	return
+	return f.VerifySignatureECDSA(publicKey, keyPairAlgo)
 }

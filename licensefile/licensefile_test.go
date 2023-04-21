@@ -130,7 +130,9 @@ func TestSign(t *testing.T) {
 }
 
 func TestVerifySignature(t *testing.T) {
-	//build fake File with file format, hash type, and encoding type set
+	//Build fake File with file format, hash type, and encoding type set.
+	//Note, no expiration date. VerifySignature() doesn't do any checking
+	//of the expiration date!
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
@@ -142,7 +144,7 @@ func TestVerifySignature(t *testing.T) {
 		},
 	}
 
-	//Test with ecdsa key pair.
+	//Test with ECDSA key pair.
 	priv, pub, err := GenerateKeyPairECDSA(KeyPairAlgoECDSAP256)
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +167,7 @@ func TestVerifySignature(t *testing.T) {
 		return
 	}
 
-	//Test with rsa key pair.
+	//Test with RSA key pair.
 	priv, pub, err = GenerateKeyPairRSA(KeyPairAlgoRSA2048)
 	if err != nil {
 		t.Fatal(err)
@@ -184,16 +186,11 @@ func TestVerifySignature(t *testing.T) {
 
 	err = f.VerifySignature(pub, KeyPairAlgoRSA2048)
 	if err != nil {
-		//This error gets kicked out intermittently when multiple tests are run at
-		//the same time (i.e.: file-level test or package-level tests). This error
-		//does not get kicked out when func-level test is run. Maybe has something
-		//to do with cyrpto/rand rand.Reader when generating the key pair? Or maybe
-		//with memory reuse when verifying? I really don't know...
 		t.Fatal("Error with verify (see code comments!).", err)
 		return
 	}
 
-	//Test with ed25519 key pair.
+	//Test with ED25519 key pair.
 	priv, pub, err = GenerateKeyPairED25519()
 	if err != nil {
 		t.Fatal(err)
@@ -212,16 +209,11 @@ func TestVerifySignature(t *testing.T) {
 
 	err = f.VerifySignature(pub, KeyPairAlgoED25519)
 	if err != nil {
-		//This error gets kicked out intermittently when multiple tests are run at
-		//the same time (i.e.: file-level test or package-level tests). This error
-		//does not get kicked out when func-level test is run. Maybe has something
-		//to do with cyrpto/rand rand.Reader when generating the key pair? Or maybe
-		//with memory reuse when verifying? I really don't know...
 		t.Fatal("Error with verify (see code comments!).", err)
 		return
 	}
 
-	//test with bad signature
+	//Test with bad signature.
 	f.Signature = base64.StdEncoding.EncodeToString([]byte("bad"))
 	err = f.Verify(pub, KeyPairAlgoED25519)
 	if err == nil {
@@ -229,86 +221,10 @@ func TestVerifySignature(t *testing.T) {
 		return
 	}
 
-	//test with bad algo
+	//Test with bad algo.
 	err = f.VerifySignature(pub, KeyPairAlgoType(""))
 	if err == nil {
 		t.Fatal("Error about bad key pair algo should have occured.")
-		return
-	}
-}
-
-func TestVerify(t *testing.T) {
-	//build fake File with file format, hash type, and encoding type set
-	f := File{
-		CompanyName: "CompanyName",
-		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
-		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
-			"exists":   true,
-			"notabool": 1,
-		},
-		ExpireDate: time.Now().AddDate(0, 0, 10).Format("2006-01-02"),
-	}
-
-	//Test with ecdsa key pair.
-	priv, pub, err := GenerateKeyPairECDSA(KeyPairAlgoECDSAP256)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-
-	err = f.Sign(priv, KeyPairAlgoECDSAP256)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if f.Signature == "" {
-		t.Fatal("Signature not saved to File.")
-		return
-	}
-
-	err = f.Verify(pub, KeyPairAlgoECDSAP256)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-
-	//Expired...
-	f.ExpireDate = time.Now().AddDate(0, 0, -10).Format("2006-01-02")
-
-	err = f.Sign(priv, KeyPairAlgoECDSAP256)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if f.Signature == "" {
-		t.Fatal("Signature not saved to File.")
-		return
-	}
-
-	err = f.Verify(pub, KeyPairAlgoECDSAP256)
-	if err != ErrExpired {
-		t.Fatal("Error about expired license should have occured.")
-		return
-	}
-
-	//Missing expiration date, should never occur.
-	f.ExpireDate = ""
-
-	err = f.Sign(priv, KeyPairAlgoECDSAP256)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if f.Signature == "" {
-		t.Fatal("Signature not saved to File.")
-		return
-	}
-
-	err = f.Verify(pub, KeyPairAlgoECDSAP256)
-	if err != ErrMissingExpireDate {
-		t.Fatal("Error about missing expire date should have occured.")
 		return
 	}
 }
