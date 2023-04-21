@@ -371,6 +371,44 @@ func TestExpiresIn(t *testing.T) {
 	}
 }
 
+func TestExpiresInDays(t *testing.T) {
+	//Future expiration.
+	days := 10
+	futureDate := time.Now().UTC().AddDate(0, 0, days)
+
+	f := File{
+		CompanyName: "CompanyName",
+		PhoneNumber: "123-123-1234",
+		Email:       "test@example.com",
+		fileFormat:  FileFormatJSON,
+		ExpireDate:  futureDate.Format("2006-01-02"),
+	}
+	daysUntilExpiration, err := f.ExpiresInDays()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	if daysUntilExpiration <= 0 {
+		t.Fatal("Days until expiration incorrect.", days, daysUntilExpiration)
+		return
+	}
+
+	//Already expired.
+	days = -10
+	pastDate := time.Now().UTC().AddDate(0, 0, days)
+
+	f.ExpireDate = pastDate.Format("2006-01-02")
+	daysAfterExpiration, err := f.ExpiresInDays()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	if daysAfterExpiration >= 0 {
+		t.Fatal("Days after expiration incorrect.", days, daysAfterExpiration)
+		return
+	}
+}
+
 func TestWriteRead(t *testing.T) {
 	x, err := os.CreateTemp("", "license-key-server-test.txt")
 	if err != nil {
