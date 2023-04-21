@@ -69,10 +69,7 @@ func (f *File) SignED25519(privateKey []byte) (err error) {
 	}
 
 	//Encode the signature and set to the Signature field.
-	err = f.encodeSignature(sig)
-	if err != nil {
-		return
-	}
+	f.encodeSignature(sig)
 
 	return
 }

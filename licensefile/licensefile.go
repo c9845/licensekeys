@@ -250,9 +250,8 @@ func (f *File) hash(keyPairAlgo KeyPairAlgoType) (hash []byte, err error) {
 // value is the signature that will be set in the File's Signature field.
 //
 // base64 is used because it will generate shorter signatures than base32 or hex.
-func (f *File) encodeSignature(b []byte) (err error) {
+func (f *File) encodeSignature(b []byte) {
 	f.Signature = base64.StdEncoding.EncodeToString(b)
-	return
 }
 
 // decodeSignature returns the File's Signature field as a []byte for use when
