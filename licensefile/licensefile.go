@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -335,7 +336,8 @@ func (f *File) Expired() (yes bool, err error) {
 	return
 }
 
-// ExpiresIn calculates duration until a license File expires.
+// ExpiresIn calculates duration until a license File expires. The returned duration
+// will be negative for an expired license.
 //
 // You should only call this AFTER calling VerifySignature() otherwise the expiration
 // date in the File is untrustworthy and could have been modified.
@@ -354,5 +356,23 @@ func (f *File) ExpiresIn() (d time.Duration, err error) {
 	}
 
 	d = time.Until(expDate)
+	return
+}
+
+// ExpiresInDays is a wrapper around ExpiresIn that returns the number of days a
+// license File expires in. The returned days will be negative for an expired
+// license.
+//
+// You should only call this AFTER calling VerifySignature() otherwise the expiration
+// date in the File is untrustworthy and could have been modified.
+func (f *File) ExpiresInDays() (days int, err error) {
+	//Get duration license will expire in.
+	dur, err := f.ExpiresIn()
+	if err != nil {
+		return
+	}
+
+	//Convert to days.
+	days = int(math.Floor(dur.Hours() / 24))
 	return
 }
