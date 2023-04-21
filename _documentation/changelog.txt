@@ -1,9 +1,45 @@
+v2.1.0
+----------
+- Notes:
+    - Improve config file validation and handling of paths.
+    - Update go dependencies.
+    - Add DatetimeModified column to key_value table to be similar to other tables.
+    - Add Referrer column to activity_log table to capture more diagnostic info.
+    - Fix bug with 2FA enrollment QR code not displaying.
+    - Activity log and user login history now use "page plus API call" style to load page and data.
+        - Page loads near instantly with a "loading" message for data, less obvious latency to the end user.
+        - Better filtering options.
+    - Make sure database query statments are closed after use (defer stmt.Close()) to prevent db resource exhaustion.
+    - Use hashfs for serving of static assets, improved caching and cache busting.
+    - Use fs.FS for handling all source GUI files (HTML templates, CSS, JS), easier handling between on-disk and embedded files.
+    - Migrate everything from third-party templates package to internal pages package, one less dependency and easier to manage.
+    - Fix some styling bugs.
+    - Fix some UI interaction bugs.
+    - Rename Verify() to VerifySignature() to be clearer in what this func does. This does not check if a license is expired.
+        - Existing Verify() func is deprecated and just calls VerifySignature().
+    - Better document how to Verify() and then check expiration with Expired().
+        - Client example.
+        - README.
+    - Remove reverify functionality since it wasn't really used. End-users should just implement this as they see fit.
+- New Features:
+    - Add user profile page so users can change their own passwords, they no longer need to speak with an admin.
+    - Define new functionality for checking if a license is expired.
+        - Had a bit of this before, but it wasn't clean.
+        - New Expired(), ExpiresIn(), and ExpiresInDays() funcs to help here.
+
+- DB Schema Update:
+    - New Columns:
+        - key_value:
+            - DatetimeModified DATETIME DEFAULT CURRENT_TIMESTAMP
+        - activity_log:
+            - Referrer TEXT NOT NULL DEFAULT ""
+
 v2.0.0
 ----------
-Notes:
+- Notes:
     - Complete redo of app to allow of open sourcing.
     
-New Features:
+- New Features:
     - Open source-able.
     - Database is deployed up on first run. No need to use -deploy-db flag.
     - Default config file is created if no config file exists at path to config file.
