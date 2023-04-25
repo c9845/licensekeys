@@ -1,3 +1,13 @@
+v2.1.1
+----------
+- Notes:
+    - Fix bug when an numeric value was provided in a text custom field. License could not be created.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable.
+
 v2.1.0
 ----------
 - Notes:
@@ -26,13 +36,18 @@ v2.1.0
     - Define new functionality for checking if a license is expired.
         - Had a bit of this before, but it wasn't clean.
         - New Expired(), ExpiresIn(), and ExpiresInDays() funcs to help here.
-
 - DB Schema Update:
     - New Columns:
         - key_value:
             - DatetimeModified DATETIME DEFAULT CURRENT_TIMESTAMP
         - activity_log:
             - Referrer TEXT NOT NULL DEFAULT ""
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Run executable with --update-db flag. Wait for successful completion.
+    - Restart the app's executable.
 
 v2.0.0
 ----------

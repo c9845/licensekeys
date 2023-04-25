@@ -320,7 +320,7 @@ if (document.getElementById("createLicense")) {
 
                     switch (cf.Type) {
                         case customFieldTypeInteger:
-                            if (isNaN(cf.IntegerValue) || parseInt(cf.IntegerValue.toString()) === NaN || !Number.isInteger(cf.IntegerValue)) {
+                            if (isNaN(cf.IntegerValue) || Number.isNaN(parseInt(cf.IntegerValue.toString())) || !Number.isInteger(cf.IntegerValue)) {
                                 this.msg = "You must provide an integer for the " + cf.Name + " field.";
                                 return;
                             }
@@ -331,7 +331,7 @@ if (document.getElementById("createLicense")) {
                             break;
 
                         case customFieldTypeDecimal:
-                            if (isNaN(cf.DecimalValue) || parseInt(cf.DecimalValue.toString()) === NaN) {
+                            if (isNaN(cf.DecimalValue) || Number.isNaN(parseInt(cf.DecimalValue.toString()))) {
                                 this.msg = "You must provide an number for the " + cf.Name + " field.";
                                 return;
                             }
