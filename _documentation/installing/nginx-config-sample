@@ -41,7 +41,7 @@ server {
     add_header Strict-Transport-Security max-age=15768000;
 
     #DIFFIE-HELLMAN PARAMETER FOR DHE CIPHERSUITES, RECOMMENDED 2048 OR GREATER BITS
-    #GENERATE USING THE COMMAND `openssl dhparam 4096 > ~/dhparam.pem` and copy the output file to `/etc/nginx/dhparam.pem`
+    #Generate using the command `openssl dhparam 4096 > ~/dhparam.pem` and copy the output file to `/etc/nginx/dhparam.pem`
     ssl_dhparam /etc/nginx/dhparam.pem;
 
     #DNS
@@ -55,13 +55,15 @@ server {
             proxy_set_header X-Forwarded-For $remote_addr;
             proxy_set_header Host $host;
 
-            proxy_pass http://127.0.0.1:8005;
+            #Set to the port you app listens on, set in the app's config file.
+            proxy_pass http://127.0.0.1:8007;
     }
 
     #COMPRESSION
     gzip_types text/plain application/javascript application/x-javascript text/javascript text/xml text/css;
 
     #LOGS
+    #Make sure you set up logrotate to rotate these files so they don't grown endlessly!
     error_log /home/my-user/logs/error.log;
     access_log /home/my-user/logs/access.log;
 }

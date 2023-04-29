@@ -1,0 +1,1 @@
+The "_not_public" directory contains files we do not want to distribute as part of a built binary.

@@ -305,6 +305,7 @@ func getVersionFromBinary() (version string, err error) {
 	}
 
 	version = strings.TrimSpace(string(out))
+	version = strings.TrimPrefix(version, "v")
 	return
 }
 
@@ -335,6 +336,7 @@ func getVersionFromChangelog() (version string, err error) {
 
 	//First line may include release date. Strip it.
 	version = strings.TrimSpace(version)
+	version = strings.TrimPrefix(version, "v")
 	version, _, _ = strings.Cut(version, " ")
 	return
 }

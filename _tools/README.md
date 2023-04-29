@@ -1,1 +1,0 @@
-The `_tools` directory stores tooling used for building the software and distributing it. Nothing in this directory should be included with built releases or needed/used by an end-user.

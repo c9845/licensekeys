@@ -1,11 +1,12 @@
 # Intro:
-This document details how to get an HTTPS certificate and set up automatic renewal.
+This document details how to use `certbot` to manage an HTTPS certificate and set up automatic renewal.
 
 
 # Assumptions:
 - You are using Cloudflare as your public DNS provider and have the ability to generate an API Token.
+- You are using and knowledgeable in NGINX, `systemd`, LetsEncrypt, and `certbot`.
 - You are using `systemd` as the system manager.
-- You are using and knowledgeable in Ubuntu, NGINX, LetsEncrypt, and `certbot`.
+- You are using NGINX as your proxy and HTTPS terminator.
 - You have `snap` (snapd) installed.
 
 
@@ -13,9 +14,11 @@ This document details how to get an HTTPS certificate and set up automatic renew
 Setting up HTTPS is a multi-step process.  
 1. Retrieve your initial certificate proving ownership of the domain this app will run on.
 1. Configure NGINX to use the certificate and terminate the HTTPS connection.
-1. Set up automatical renewal the HTTPS certificate since it is only valid for 90 days.
+1. Set up automatic renewal of the HTTPS certificate.
 
-Renewal is done using the "systemd-autorenew-service" and "systemd-autorenew-timer" scripts/unit files. Each of these files will need to be modified as noted below.
+Two files are needed to handle automatic renewal. Each will need to be renamed and moved to a certain location.
+- nginx-certbot-systemd-autorenew-service
+- nginx-certbot-systemd-autorenew-timer
 
 
 # Initial Certificate:
@@ -50,21 +53,22 @@ Renewal is done using the "systemd-autorenew-service" and "systemd-autorenew-tim
       - Provide responses to questions as needed.
       - Wait for successful completion.
 
-1. Update paths in your NGINX configuration to match the paths to the generated certificate files.
-   - See the notes in the "nginx-config-sample" file for more info.
+1. Update the paths in your NGINX configuration to match the paths to the generated certificate files.
+   - See the notes in the nginx-config-sample file for more info.
    - This may be done automatically by `certbot`.
 
 1. Restart NGINX and make sure your app is serving using the new certificate.
+    - `nginx -s reload`
 
 
 # Automatic Renewal:
-1. Create a copy of the "systemd-autorenew-service" renaming it as needed.
+1. Create a copy of the "nginx-certbot-systemd-autorenew-service" file renaming it as you see fit.
     - The file must end in ".service".
     - Move the copy to the `/etc/systemd/user` directory.
 
 1. Read the file to understand what it is doing, however, you do not need to modify anything.
 
-1. Create a copy of the "systemd-autorenew-timer" renaming it as needed.
+1. Create a copy of the "nginx-certbot-systemd-autorenew-timer" renaming it as needed.
     - The file must end in ".timer".
     - The filename must match the name of the ".service" file minus the different extension.
     - Move the copy to `/etc/systemd/user`.

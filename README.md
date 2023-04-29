@@ -71,7 +71,7 @@ A license key is a human readable text file with a signature verifying its authe
 
 The server can be run by cloning this repo and running `go run main.go`. You may prefer to build with `go build` and then run with `./licensekeys`. A default configuration file with be created and the database will be deployed upon first run.
 
-To use the client package to verify a license key in your application, import `github.com/c9845/licensekeys/v2/licensefile` in your `.go` file. See the `client-app.go` example in the `_example` directory at the root of this repo for an idea of how to get started.
+To use the client package to verify a license key in your application, run `go get github.com/c9845/licensekeys/v2/licensefile@latest` in go project's repo. See the `client-app.go` example in the `_example` directory at the root of this repo for an idea of how to get started.
 
 
 # Getting Values From A License Key

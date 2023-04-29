@@ -1,4 +1,4 @@
-v2.1.1
+2.1.1
 ----------
 - Notes:
     - Fix bug when an numeric value was provided in a text custom field. License could not be created.
@@ -8,7 +8,7 @@ v2.1.1
     - Copy and overwrite existing app files.
     - Restart the app's executable.
 
-v2.1.0
+2.1.0
 ----------
 - Notes:
     - Improve config file validation and handling of paths.
@@ -49,7 +49,7 @@ v2.1.0
     - Run executable with --update-db flag. Wait for successful completion.
     - Restart the app's executable.
 
-v2.0.0
+2.0.0
 ----------
 - Notes:
     - Complete redo of app to allow of open sourcing.
