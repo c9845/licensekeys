@@ -20,11 +20,12 @@
 # Things to modify:
 # - ExecStart: path to the license keys executable & configuration file.
 # - User: the name of the user running this app.
+# - After: add or remove nginx.service, caddy.service, or whatever proxy you use.
 
 
 [Unit]
 Description=Run the License Keys app.
-After=mariadb.service nginx.service
+After=nginx.service
 
 [Service]
 Type=simple
@@ -35,4 +36,4 @@ StartLimitBurst=2
 User=manager
 
 [Install]
-WantedBy=mariadb.service nginx.service
+WantedBy=nginx.service
