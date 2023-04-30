@@ -20,7 +20,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/?ref=logout", http.StatusFound)
-	return
 }
 
 // ForceLogout handles requests to force a user to log out of the app. This invalidates

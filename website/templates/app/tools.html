@@ -40,7 +40,17 @@
                                 </blockquote>
                             </div>
                             <div class="card-footer">
-                                <a class="btn btn-primary" href="/diagnostics/">Go</a>
+                                <div class="btn-group">
+                                    <a class="btn btn-primary" href="/diagnostics/">Go</a>
+                                    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-expanded="false">
+                                        <span class="sr-only">Toggle Dropdown</span>
+                                      </button>
+                                    <div class="dropdown-menu dropdown-menu-right">
+                                        <a class="dropdown-item" href="/diagnostics/?format=text">Plain Text</a>
+                                        <a class="dropdown-item" href="/diagnostics/?format=json">JSON</a>
+                                        
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

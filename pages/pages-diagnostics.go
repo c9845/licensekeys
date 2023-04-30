@@ -1,16 +1,20 @@
 package pages
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"reflect"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/version"
+	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 )
 
@@ -171,7 +175,41 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 		Data: *d,
 	}
 
-	Show(w, "app", "diagnostics", pd)
+	//Return data in a specific format, if needed.
+	format := r.FormValue("format")
+	switch format {
+	case "text":
+		//Return data as key:value.
+		for _, key := range d.Order {
+			value := d.Lines[key]
+			fmt.Fprintf(w, "%s: %v\n", key, value)
+		}
+
+	case "json":
+		//Return data as JSON, for parsing by machine. The data is returned in
+		//alphabetical format by field name. This is similar to "text" but
+		//uses JSON data structures and omits the section headers starting with "**"
+		//since these will always be displayed first and out of order.
+		linesWithoutSections := map[lineKey]interface{}{}
+		for k, v := range d.Lines {
+			if !strings.Contains(string(k), "**") {
+				linesWithoutSections[k] = v
+			}
+		}
+
+		j, err := json.MarshalIndent(linesWithoutSections, "", "  ")
+		if err != nil {
+			output.Error(err, "Could not encode data as JSON.", w)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.Write(j)
+
+	default:
+		//Return an HTML page. This is similar to "text" but with some HTML formatting
+		//to make reading the data a bit nicer.
+		Show(w, "app", "diagnostics", pd)
+	}
 }
 
 // getSQLitePragma looks up the value for the named SQLite PRAGMA. The name must match
