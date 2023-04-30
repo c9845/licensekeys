@@ -313,8 +313,9 @@ func main() {
 	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
 
 	//**misc tools/diagnostics
-	r.Handle("/diagnostics/", secHeaders.Then(http.HandlerFunc(pages.Diagnostics))).Methods("GET")
 	r.Handle("/tools/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
+	r.Handle("/diagnostics/", secHeaders.Then(http.HandlerFunc(pages.Diagnostics))).Methods("GET")
+	r.HandleFunc("/healthcheck/", healthcheckHandler)
 
 	//**in-app help docs.
 	help := r.PathPrefix("/help").Subrouter()
@@ -412,14 +413,6 @@ func main() {
 	externalAPI.Handle("/licenses/download/", extAPIMid.Then(http.HandlerFunc(license.Download))).Methods("GET")
 	externalAPI.Handle("/licenses/renew/", extAPIMid.Then(http.HandlerFunc(license.Renew))).Methods("POST")
 	externalAPI.Handle("/licenses/disable/", extAPIMid.Then(http.HandlerFunc(license.Disable))).Methods("POST")
-
-	//Define healthcheck endpoint. This is useful for checking if this app is running
-	//using infrastructure monitoring tools. This is allowable on all http methods
-	//although GET or HEAD is typical.
-	//
-	//This must be located before r.HandleFunc("/{file}"... (for serving root files)
-	//otherwise this endpoint won't work.
-	r.HandleFunc("/healthcheck/", healthcheckHandler)
 
 	//Handle static files served off the root directory. This is typically for robots.txt,
 	//favicon, etc. {file} is placeholder that isn't used, it is there just so that the
