@@ -1123,7 +1123,7 @@ func writeReadVerify(f licensefile.File, keyPairAlgo licensefile.KeyPairAlgoType
 	}
 
 	//Verify the "reread" license.
-	err = reread.Verify(publicKey, keyPairAlgo)
+	err = reread.VerifySignature(publicKey, keyPairAlgo)
 	return
 }
 
