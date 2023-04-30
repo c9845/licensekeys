@@ -1,6 +1,3 @@
-newer ecdh package.
-    - investigate use.
-    - use crypto ecdh instead of crypto/elliptic?
 
 ***
 
