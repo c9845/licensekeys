@@ -1,9 +1,3 @@
-/*
-Package license handles creation and retrieval of license data. This also handles some
-updates to existing licenses.
-
-This file specifically deals with the download history of a license.
-*/
 package license
 
 import (
@@ -15,6 +9,8 @@ import (
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 )
+
+// This file specifically deals with the download history of a license.
 
 func History(w http.ResponseWriter, r *http.Request) {
 	//Make sure a license ID was provided and it is valid.

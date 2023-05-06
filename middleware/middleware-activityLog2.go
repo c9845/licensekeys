@@ -1,10 +1,3 @@
-/*
-Package middleware handles authentication, user permissions, and any other tasks that
-occur with a request to this app.
-
-This file tracks user activity within the app. It saves a record of every page viewed
-or endpoint visited so we can investigate user activity as needed.
-*/
 package middleware
 
 import (
@@ -24,6 +17,9 @@ import (
 	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"
 )
+
+// This file tracks user activity within the app. It saves a record of every page viewed
+// or endpoint visited so we can investigate user activity as needed.
 
 // skippedEndpoints2 are endpoints we don't need to log to the activity log since they
 // would just clog up the log.

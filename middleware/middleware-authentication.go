@@ -1,14 +1,3 @@
-/*
-Package middleware handles authentication, user permissions, and any other tasks that
-occur with a request to this app.
-
-This file checks if a user is already authenticated to the app (has a session set),
-that the user and session are valid, that the user is active, and that the user's
-password hasn't changed.
-
-The Auth func should be called upon every page load or endpoint when a user is logged
-in.
-*/
 package middleware
 
 import (
@@ -26,6 +15,13 @@ import (
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 )
+
+// This file checks if a user is already authenticated to the app (has a session set),
+// that the user and session are valid, that the user is active, and that the user's
+// password hasn't changed.
+//
+// The Auth func should be called upon every page load or endpoint when a user is logged
+// in.
 
 var errLoginNotValid = errors.New("login inactive or expired")
 

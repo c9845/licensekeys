@@ -1,18 +1,14 @@
-/*
-Package middleware handles authentication, user permissions, and any other tasks
-that occur with a request to this app.
-
-This file sets headers for security purposes to protect against cross site scripts,
-clickjacking, etc.
-
-The SecHeaders func should be called upon every page load.
-*/
 package middleware
 
 import (
 	"net/http"
 	"strings"
 )
+
+// This file sets headers for security purposes to protect against cross site scripts,
+// clickjacking, etc.
+//
+// The SecHeaders func should be called upon every page load.
 
 // SecHeaders sets http headers for security purposes.
 func SecHeaders(next http.Handler) http.Handler {

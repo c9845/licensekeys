@@ -1,4 +1,6 @@
-// Package version storees the app's version information for use in diagnostics.
+/*
+Package version storees the app's version information for use in diagnostics.
+*/
 package version
 
 //You can set these fields when building the binary using ldflags as well. For

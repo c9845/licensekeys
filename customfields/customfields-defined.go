@@ -7,8 +7,6 @@ flags for enabling certain features, support information, or really anthing in t
 license file. The data stored in these fields is part of the signed data in the
 license so they cannot be editted by the end-user of your app for which the license
 is for.
-
-This file specifically deals with creating and managing the fields defined for an app.
 */
 package customfields
 
@@ -21,6 +19,9 @@ import (
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 )
+
+// This file specifically deals with creating and managing the fields defined for an
+// app.
 
 // Add saves a new custom field.
 func Add(w http.ResponseWriter, r *http.Request) {

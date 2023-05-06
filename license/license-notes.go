@@ -1,10 +1,3 @@
-/*
-Package license handles creation and retrieval of license data. This also handles some
-updates to existing licenses.
-
-This file specifically deals with the notes for a license. Notes are useful for random
-documentation purposes.
-*/
 package license
 
 import (
@@ -20,6 +13,9 @@ import (
 	"github.com/c9845/sqldb/v2"
 	"gopkg.in/guregu/null.v3"
 )
+
+// This file specifically deals with the notes for a license. Notes are useful for
+// random documentation purposes.
 
 // Notes gets the list of notes for a license.
 func Notes(w http.ResponseWriter, r *http.Request) {

@@ -30,6 +30,9 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
+// This file handles the basic adding of a license, viewing of license data, download
+// of the license, and other basic tasks.
+
 // by is used to differentiate between a user and API action.
 type by string
 

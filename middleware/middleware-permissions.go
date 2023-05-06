@@ -1,13 +1,3 @@
-/*
-Package middleware handles authentication, user permissions, and any other tasks
-that occur with a request to this app.
-
-This file defines functions for checking user permissions. A function must be
-created for each permission to be checked (see users table schema).
-
-Try to keep the funcs in the same order as the permissions in the gui and as defined in
-the user struct. Just easier to lookup and find.
-*/
 package middleware
 
 import (
@@ -21,6 +11,12 @@ import (
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 )
+
+// This file defines functions for checking user permissions. A function must be
+// created for each permission to be checked (see users table schema).
+//
+// Try to keep the funcs in the same order as the permissions in the gui and as defined in
+// the user struct. Just easier to lookup and find.
 
 // errPermissionRefused is returned when a user does not have the correct permission
 // to view a page or endpoint or perform an action.

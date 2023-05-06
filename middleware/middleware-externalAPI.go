@@ -1,9 +1,3 @@
-/*
-Package middleware handles authentication, user permissions, and any other tasks
-that occur with a request to this app.
-
-This file handles external api access to this app using an API key.
-*/
 package middleware
 
 import (
@@ -18,6 +12,8 @@ import (
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 )
+
+// This file handles external API access to this app using an API key.
 
 // errAPIAccessNotAllowed is used when a request is made using and API key but the app
 // is configured to not allow api access. This is a setting in app settings.

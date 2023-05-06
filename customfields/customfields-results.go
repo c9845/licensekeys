@@ -1,15 +1,3 @@
-/*
-Package customfields handles interacting with custom fields that you add to your
-licenses. These are miscellaneous fields not hard-coded by this app that are stored in
-the license file and are defined by a user for an app and values are chosen/provided
-when a license is created. These fields allow for storing data such as max user count,
-flags for enabling certain features, support information, or really anthing in the
-license file. The data stored in these fields is part of the signed data in the
-license so they cannot be editted by the end-user of your app for which the license
-is for.
-
-This file specifically deals looking up the values set for a license.
-*/
 package customfields
 
 import (
@@ -21,6 +9,8 @@ import (
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
 )
+
+//This file specifically deals looking up the values set for a license.
 
 // GetResults looks up the custom field values saved for a license.
 func GetResults(w http.ResponseWriter, r *http.Request) {
