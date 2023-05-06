@@ -1,8 +1,3 @@
-/*
-Package users handles interacting with users of the app.
-
-This file specifically deals with a user logging in or maintaining a logged in session.
-*/
 package users
 
 import (
@@ -172,7 +167,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 			if authedBrowserAge > maxBrowserAge {
 				log.Println("users.Login", "removing expired browser id cookie")
-				delete2FABrowserCookie(w)
+				delete2FACookie(w)
 				output.Success(msgType2FATokenRequired, nil, w)
 				return
 			}
@@ -358,11 +353,11 @@ const loginIDCookieName = "login_id"
 func SetLoginCookieValue(w http.ResponseWriter, cv string, expiration time.Time) {
 	cookie := http.Cookie{
 		Name:     loginIDCookieName,
-		HttpOnly: true,
-		Secure:   false, //this needs to be false for the demo to run since demo will most likely run on http.
-		Domain:   config.Data().FQDN,
-		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,                 //cookie cannot be modified by client-side browser javascript.
+		Secure:   false,                //this needs to be false for the demo to run since demo will most likely run on http.
+		Domain:   config.Data().FQDN,   //period is prepended to FQDN by browsers (sub.example.com becomes .sub.example.com).
+		Path:     "/",                  //all endpoints in app.
+		SameSite: http.SameSiteLaxMode, //SameSiteStrictMode breaks browsing from history in chrome.
 		Value:    cv,
 		Expires:  expiration,
 	}

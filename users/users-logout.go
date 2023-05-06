@@ -16,7 +16,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	DeleteLoginCookie(w)
 
 	if config.Data().TwoFactorAuthLifetimeDays < 0 {
-		delete2FABrowserCookie(w)
+		delete2FACookie(w)
 	}
 
 	http.Redirect(w, r, "/?ref=logout", http.StatusFound)

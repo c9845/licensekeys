@@ -1,9 +1,3 @@
-/*
-Package users handles interacting with users of the app.
-
-This file handles enrolling a user in 2 Factor Authentication (TOTP) using
-a Google Authenticator type app.
-*/
 package users
 
 import (
@@ -25,6 +19,9 @@ import (
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
+
+// This file handles enrolling a user in 2 Factor Authentication (TOTP) using
+// a Google Authenticator type app.
 
 // configuration options
 const (
@@ -247,25 +244,18 @@ func save2FABrowserIDCookie(ctx context.Context, w http.ResponseWriter, ab db.Au
 	//session cookie.
 	cv := strconv.FormatInt(ab.UserID, 10) + "_" + randVal
 
-	//Create the cookie.
-	cookie := http.Cookie{
-		Name:     twoFACookieName,
-		HttpOnly: true,
-		Secure:   false, //this needs to be false for the demo to run since demo will most likely run on http.
-		Domain:   config.Data().FQDN,
-		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Value:    cv,
-	}
-
-	//Only set expiration if it is at least 1 day. If lifetime is 0, that means that
-	//user should provide token each time the log into the app.
+	//Get expiration for cookie.
+	//
+	//Config file value determines how long 2FA cookie should exist for, which
+	//determines how often users will need to provide 2FA token. If config file field
+	//is set to 0, that means user should provide a 2FA token upon each login
+	//attempt and the cookie is only active for this session (until browser is closed).
+	expiration := time.Time{}
 	if config.Data().TwoFactorAuthLifetimeDays > 0 {
-		cookie.Expires = time.Now().AddDate(0, 0, config.Data().TwoFactorAuthLifetimeDays)
+		expiration = time.Now().AddDate(0, 0, config.Data().TwoFactorAuthLifetimeDays)
 	}
 
-	//Set the cookie.
-	http.SetCookie(w, &cookie)
+	set2FACookieValue(w, cv, expiration)
 
 	//Save the authorized browser to the db.
 	ab.Cookie = cv
@@ -273,18 +263,30 @@ func save2FABrowserIDCookie(ctx context.Context, w http.ResponseWriter, ab db.Au
 	return
 }
 
-func delete2FABrowserCookie(w http.ResponseWriter) {
+// set2FACookieValue sets the cookie that identifies this approved 2 Factor
+// Authorization in the browser. This cookie value is used to determine if user needs
+// to provide 2FA token again or if it was provided recently.
+func set2FACookieValue(w http.ResponseWriter, cv string, expiration time.Time) {
 	cookie := http.Cookie{
 		Name:     twoFACookieName,
-		HttpOnly: true,
-		Secure:   false, //this needs to be false for the demo to run.  see session.go for more info.
-		Domain:   config.Data().FQDN,
-		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Value:    "",
-		Expires:  time.Now(),
-		MaxAge:   -1,
+		HttpOnly: true,                 //cookie cannot be modified by client-side browser javascript.
+		Secure:   false,                //this needs to be false for the demo to run since demo will most likely run on http.
+		Domain:   config.Data().FQDN,   //period is prepended to FQDN by browsers (sub.example.com becomes .sub.example.com).
+		Path:     "/",                  //all endpoints in app.
+		SameSite: http.SameSiteLaxMode, //SameSiteStrictMode breaks browsing from history in chrome.
+		Value:    cv,
+	}
+
+	//Only set expiration if needed. If expiration is zero, this cookie will expire
+	//at the end of the user's session (browser is closed).
+	if !expiration.IsZero() {
+		cookie.Expires = expiration
 	}
 
 	http.SetCookie(w, &cookie)
+}
+
+// delete2FACookie deletes the cookie that identifies a browser for 2 Factor Auth.
+func delete2FACookie(w http.ResponseWriter) {
+	set2FACookieValue(w, "", time.Now().Add(-1*time.Second))
 }
