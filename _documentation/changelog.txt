@@ -1,3 +1,16 @@
+2.1.2
+----------
+- Notes:
+    - Return diagnostics page information as plain text or JSON, makes copy-pasting info for sharing easier.
+    - Display link to healthcheck URL on admin tools page so that this endpoint is easier to find.
+    - Set SameSite field for cookies to Lax to stop Chrome from logging users out if they navigate to a page from browser's history.
+    - Implement initial icons/logos.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable.  
+
 2.1.1
 ----------
 - Notes:
