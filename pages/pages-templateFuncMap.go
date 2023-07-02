@@ -27,7 +27,7 @@ var funcMap = template.FuncMap{
 // r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", hashfs.FileServer(staticFilesHashFS)))
 //
 // This was specifically added to support using hashfs. There is no reason for this to
-// be publically documented.
+// be publicly documented.
 func static(originalPath string) string {
 	//If in development mode, just return path as-is. We will serve a non-cache-busted
 	//version of the file since during development we refresh the browser a lot and
