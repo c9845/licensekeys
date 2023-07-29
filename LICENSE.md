@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) [2021-(to-current-year)] [github.com/c9845]
+Copyright (c) 2021 github.com/c9845
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
