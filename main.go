@@ -17,7 +17,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/benbjohnson/hashfs"
+	"github.com/c9845/hashfs"
 	"github.com/c9845/licensekeys/v2/activitylog"
 	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/apps"
@@ -55,10 +55,10 @@ import (
 var embeddedFiles embed.FS
 
 // Vars for handing files stored on-disk or embedded.
-var sourceFilesFS fs.FS          //files from the website/ directory.
-var templateFilesFS fs.FS        //subdirectory of sourceFilesFS for HTML templates.
-var staticFilesFS fs.FS          //subdirectory of sourceFilesFS for static files (js, css, img, etc.).
-var staticFilesHashFS *hashfs.FS //static files for cache busting using hashfs package.
+var sourceFilesFS fs.FS           //files from the website/ directory.
+var templateFilesFS fs.FS         //subdirectory of sourceFilesFS for HTML templates.
+var staticFilesFS fs.FS           //subdirectory of sourceFilesFS for static files (js, css, img, etc.).
+var staticFilesHashFS *hashfs.HFS //static files for cache busting using hashfs package.
 
 func init() {
 	//Parse flags.

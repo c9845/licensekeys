@@ -32,7 +32,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/benbjohnson/hashfs"
+	"github.com/c9845/hashfs"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/users"
 )
@@ -75,7 +75,7 @@ type Config struct {
 	//StaticFiles is the list of static files used to build the GUI (js, css, images).
 	//This is a separate FS that is used for cache busting purposes. See the static()
 	//func for more info.
-	StaticFiles *hashfs.FS
+	StaticFiles *hashfs.HFS
 
 	//Debug prints out debugging information if true.
 	Debug bool

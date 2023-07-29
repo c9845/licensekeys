@@ -39,7 +39,7 @@ func static(originalPath string) string {
 	//Trim the "/static/" from the path since the fs.FS for the embedded files omits
 	//the parent "/static/" directory.
 	trimmedPath := strings.TrimPrefix(originalPath, "/static/")
-	hashFSPath := cfg.StaticFiles.HashName(trimmedPath)
+	hashFSPath := cfg.StaticFiles.GetHashPath(trimmedPath)
 
 	//Have to prefix the path with "/static/" since it was stripped to look up the
 	//file in the hashfs but the path expected by this app's server starts with /static/.
