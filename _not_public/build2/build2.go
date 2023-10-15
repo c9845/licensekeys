@@ -2,6 +2,9 @@
 Package build2 builds the distributable software. This builds the binary and gathers
 other files into a directory, then zips the directory up for easy distributing.
 
+This works off of GOPATH! This was necessary to have a consistent "base" path to use
+to find the resourced noted in the config file to build or include in a distribution.
+
 Note the 0777 permission on MkdirAll and Write. This is needed to get building to
 work properly on MacOS. If 0755 permissions are used, "permission denied" errors
 occur when reading created files. I am sure there is a fix for this, or setting
@@ -23,10 +26,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
+	"slices"
 	"strings"
 
-	"golang.org/x/exp/slices"
+	"gopkg.in/yaml.v2"
 )
 
 // config holds configuration for this building. This is used to allow reuse of this
@@ -34,7 +37,7 @@ import (
 type config struct {
 	//Name is the name the binary will be built as as passed to `go build -o`.
 	//.exe will be added for windows.
-	Name string
+	Name string `yaml:"Name"`
 
 	//Namespace is the subdirectory of GOAPTH where the file holding main() is found.
 	//
@@ -50,83 +53,65 @@ type config struct {
 	//This would require fixing a lot of stuff (embedded paths, etc.) but could
 	//alleviate the need to depend on GOPATH since we would use the build script's
 	//directory as the base path to locate things.
-	Namespace string
+	Namespace string `yaml:"Namespace"`
 
 	//EntrypointFile is the name of the file that holds main() and is used to start
 	//the app via `go run`. This is needed for `go run` to get the version from the
 	//binary via the `-version` flag. Typically main.go.
-	EntrypointFile string
+	EntrypointFile string `yaml:"EntrypointFile"`
 
 	//ChangelogPath is the path to the changelog file based off the namespace. This
 	//will be used to compare the latest version noted in the changelog against the
 	//version retreived from git and the binary. If blank, a version is not retrieved
 	//from this file.
-	ChangelogPath string
+	ChangelogPath string `yaml:"ChangelogPath"`
 
 	//GoBuildTags is anything passed to `go build -tags`.
-	GoBuidTags string
+	//"modernc" so we can build with SQLite statically.
+	GoBuidTags string `yaml:"GoBuidTags"`
 
 	//GoBuildTags is anything passed to `go build -ldflags`. Typically "-s -w".
-	GoBuildLdFlags string
+	GoBuildLdFlags string `yaml:"GoBuildLdFlags"`
 
 	//GoBuildTrimpath determines if the -trimpath flag should be passed to `go build`.
-	GoBuildTrimpath bool
+	GoBuildTrimpath bool `yaml:"GoBuildTrimpath"`
 
 	//UseCGO determines if CGO should be enabled. Typically disabled to allow for
 	//static builds.
-	UseCGO bool
+	UseCGO bool `yaml:"UseCGO"`
 
 	//OutputDir is the directory off of Namespace where builds will be saved to.
-	OutputDir string
+	OutputDir string `yaml:"OutputDir"`
 
 	//IncludeDirs is a list of directories, based off Namespace, to include recursively
 	//in zipped distributions.
-	IncludeDirs []string
+	IncludeDirs []string `yaml:"IncludeDirs"`
 
 	//IgnoreExtensions prevents copying of files in IncludeDirs that end with one of
 	//these extensions. Used for skipping source code (ex.: .ts files but we want to
 	//copy .js files).
-	IgnoreExtensions []string
+	IgnoreExtensions []string `yaml:"IgnoreExtensions"`
 
 	//IgnoreFiles prevents copying of specific files in IncludeDirs. See filepath.Match
 	//for the use of wildcard and matching logic.
-	IgnoreFiles []string
+	IgnoreFiles []string `yaml:"IgnoreFiles"`
 
 	//IncludeRootFiles is a list of files stored at the root of Namespace that should
 	//be included with distributed builds. These files will be copied to the root of
 	//the distributions. Typically copyright, license, readme.
-	IncludeRootFiles []string
+	IncludeRootFiles []string `yaml:"IncludeRootFiles"`
 
 	//PathToPandoc is the path to the Pandoc binary used to convert .md files to .txt
 	//files. If set to -1, conversion will be skipped.
-	PathToPandoc string
+	PathToPandoc string `yaml:"PathToPandoc"`
 
 	//PandocOutputFormat is the format of files to create from markdown inputs.
-	PandocOutputFormat string
+	//Ex.: pdf, txt/plain
+	PandocOutputFormat string `yaml:"PandocOutputFormat"`
 
 	//ZipDistributions determines whether or not to zip the distribution files into
 	//a single zip file.
-	ZipDistributions bool
-}
-
-// cfg stores the configuration we will use to build distributions with.
-var cfg = config{
-	Name:               "licensekeys",
-	Namespace:          filepath.Join("github.com", "c9845", "licensekeys"),
-	EntrypointFile:     "main.go",
-	ChangelogPath:      filepath.Join("_documentation", "changelog.txt"),
-	GoBuidTags:         "modernc", //for sqlite, so we can build staticly.
-	GoBuildLdFlags:     "-s -w",
-	GoBuildTrimpath:    true,
-	UseCGO:             false,
-	OutputDir:          "_builds",
-	IncludeDirs:        []string{"_documentation", "website"},
-	IgnoreExtensions:   []string{".ts"},
-	IgnoreFiles:        []string{"script.js", "*.script.min.js", "styles.css", "*.styles.min.css"},
-	IncludeRootFiles:   []string{"COPYRIGHT.md", "README.md"},
-	PathToPandoc:       "-1", //set in init() based on OS, "-1" means skip pandoc conversion.
-	PandocOutputFormat: "pdf",
-	ZipDistributions:   true,
+	ZipDistributions bool `yaml:"ZipDistributions"`
 }
 
 // osArch is an OS and CPU architecture thata golang binary can be built for.
@@ -156,23 +141,71 @@ var definedOSArchs = []osArch{
 	},
 }
 
-// Define commandline flags.
+// Define command line flags.
 var skipVersionCheck bool
 var verbose bool
+var configFilePath string
+
+// Config file handling.
+const defaultConfigFileName = "build2.yaml" //not using .conf so tab completion of "go build" works right... .conf is "less" than .go so it always gets completed first.
+
+var cfg config
 
 func init() {
 	//Handle flags.
+	flag.StringVar(&configFilePath, "config", "./"+defaultConfigFileName, "Full path to the configuration file.")
 	flag.BoolVar(&skipVersionCheck, "skip-version-check", false, "Skip check to make sure git, binary, and changelog versions match.")
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging.")
 	flag.Parse()
 
-	//Handle Pandoc path based on OS this script is running on.
-	if cfg.PathToPandoc != "-1" {
-		switch runtime.GOOS {
-		case "windows":
-			cfg.PathToPandoc = filepath.Join(os.Getenv("%LOCALAPPDATA%"), "Pandoc", "pandoc.exe")
+	//Read the config file.
+	configFilePath = filepath.Clean(configFilePath)
+	if strings.TrimSpace(configFilePath) == "" {
+		log.Fatalln("No path to config file provided.")
+		return
+	}
+
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		y, err := yaml.Marshal(defaultConfig)
+		if err != nil {
+			log.Fatalln("Could not marshal default config.", err)
+			return
 		}
-	} else {
+
+		f, err := os.Create(configFilePath)
+		if err != nil {
+			log.Fatalln("Could not create file for default config.", err)
+			return
+		}
+		defer f.Close()
+
+		_, err = f.Write(y)
+		if err != nil {
+			log.Fatalln("Could not write default config to file.", err)
+			return
+		}
+
+		log.Fatalln("Default config did not exist, it was created. Please update file before rerunning build2.")
+		return
+	}
+
+	f, err := os.ReadFile(configFilePath)
+	if err != nil {
+		log.Fatalln("Could not read config file from path.", err)
+		return
+	}
+
+	err = yaml.Unmarshal(f, &cfg)
+	if err != nil {
+		log.Println(string(f))
+		log.Fatalln("Could not parse config file as yaml.", err)
+		return
+	}
+
+	cfg.validate()
+
+	//Handle Pandoc path based on OS this script is running on.
+	if cfg.PathToPandoc == "-1" {
 		log.Println("WARNING! Pandoc conversion will be skipped since PathToPandoc is '-1'.")
 	}
 
@@ -399,6 +432,10 @@ func populateCommonDir(commonDir string) (err error) {
 	//Copy each of the directories listed in IncludeDirs, recursively.
 	//IgnoreExtensions and IgnoreFiles are ignored, obviously.
 	for _, dir := range cfg.IncludeDirs {
+		if strings.TrimSpace(dir) == "" {
+			continue
+		}
+
 		src := filepath.Join(cfg.NamespaceAbs(), dir)
 		dst := filepath.Join(commonDir, dir)
 		innerErr := copyDir(src, dst)
@@ -570,9 +607,12 @@ func convertMarkDown(commonDir string) (err error) {
 		cmd.Stderr = &stderr
 		err = cmd.Run()
 		if err != nil {
-			log.Println("MD to TXT error (stdout):", stdout.String())
-			log.Println("MD to TXT error (stderr):", stderr.String())
-			log.Fatalln("MD to TXT error (err):   ", err)
+			log.Println("MD to TXT error (stdout): ", stdout.String())
+			log.Println("MD to TXT error (stderr): ", stderr.String())
+			log.Println("MD to TXT error (PathTo): ", cfg.PathToPandoc)
+			log.Println("MD to TXT error (command):", command)
+			log.Println("MD to TXT error (args):   ", args)
+			log.Fatalln("MD to TXT error (err):    ", err)
 			return err
 		}
 
@@ -893,4 +933,49 @@ func zipAddFS(w *zip.Writer, fsys fs.FS) error {
 		_, err = io.Copy(fw, f)
 		return err
 	})
+}
+
+// validate does some sanitizing and validation of the parsed config file.
+func (c *config) validate() {
+	c.Name = strings.TrimSpace(c.Name)
+	c.Namespace = strings.TrimSpace(c.Namespace)
+	c.EntrypointFile = strings.TrimSpace(c.EntrypointFile)
+	c.ChangelogPath = strings.TrimSpace(c.ChangelogPath)
+	c.GoBuidTags = strings.TrimSpace(c.GoBuidTags)
+	c.GoBuildLdFlags = strings.TrimSpace(c.GoBuildLdFlags)
+	c.OutputDir = strings.TrimSpace(c.OutputDir)
+	c.PathToPandoc = strings.TrimSpace(c.PathToPandoc)
+	c.PandocOutputFormat = strings.TrimSpace(c.PandocOutputFormat)
+
+	c.Namespace = filepath.Clean(filepath.ToSlash(c.Namespace))
+	c.ChangelogPath = filepath.Clean(filepath.ToSlash(c.ChangelogPath))
+}
+
+// defaultConfig is used to write a default config to a file when this script is called
+// with a non-existent config file.
+var defaultConfig = config{
+	Name:             "your-app",
+	Namespace:        "path/to/app/repo",
+	EntrypointFile:   "main.go",
+	ChangelogPath:    "_documentation/changelog.txt",
+	GoBuidTags:       "modernc",
+	GoBuildLdFlags:   "-s -w",
+	GoBuildTrimpath:  true,
+	UseCGO:           false,
+	OutputDir:        "_builds",
+	IncludeDirs:      []string{"_documentation"},
+	IgnoreExtensions: []string{".ts"},
+	IgnoreFiles: []string{
+		"script.js",
+		"*.script.min.js",
+		"styles.css",
+		"*.styles.min.css",
+	},
+	IncludeRootFiles: []string{
+		"COPYRIGHT.md",
+		"README.md",
+	},
+	PathToPandoc:       "-1",
+	PandocOutputFormat: "pdf",
+	ZipDistributions:   true,
 }

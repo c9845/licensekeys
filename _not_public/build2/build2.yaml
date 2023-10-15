@@ -1,0 +1,24 @@
+Name: "licensekeys"
+Namespace: "github.com/c9845/licensekeys"
+EntrypointFile: "main.go"
+ChangelogPath: "_documentation/changelog.txt"
+GoBuidTags: "modernc"
+GoBuildLdFlags: "-s -w"
+GoBuildTrimpath: true
+UseCGO: false
+OutputDir: "_builds"
+IncludeDirs:
+- "_documentation"
+IgnoreExtensions:
+- ".ts"
+IgnoreFiles:
+- "script.js"
+- "*.script.min.js"
+- "styles.css"
+- "*.styles.min.css"
+IncludeRootFiles:
+- "COPYRIGHT.md"
+- "README.md"
+PathToPandoc: "-1"
+PandocOutputFormat: "pdf"
+ZipDistributions: true
