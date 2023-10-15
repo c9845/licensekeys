@@ -175,7 +175,7 @@ func (k *KeyValue) Update(ctx context.Context, tx *sqlx.Tx) (err error) {
 	defer stmt.Close()
 
 	//run query
-	_, err = stmt.ExecContext(
+	res, err := stmt.ExecContext(
 		ctx,
 
 		k.V,
@@ -185,6 +185,12 @@ func (k *KeyValue) Update(ctx context.Context, tx *sqlx.Tx) (err error) {
 
 		k.K,
 	)
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return
+	}
+	k.ID = id
 
 	//finish tx if we generated it in this func
 	if !txProvided {
