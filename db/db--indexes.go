@@ -29,5 +29,4 @@ var createIndexes = []string{
 	createIndexUserLoginsDatetimeCreated,
 	createIndexUsersUsername,
 	createIndexUsersActive,
-	createIndexKeyValueK,
 }

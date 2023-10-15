@@ -42,13 +42,14 @@ const (
 		)
 	`
 
-	createIndexKeyValueK = "CREATE UNIQUE INDEX IF NOT EXISTS " + TableKeyValue + "__K_idx ON " + TableKeyValue + " (K)"
-
 	updateKeyValueDatetimeModified = `ALTER TABLE ` + TableKeyValue + ` ADD COLUMN DatetimeModified DATETIME DEFAULT CURRENT_TIMESTAMP`
 )
 
 // GetValueByKey looks up key/value pair by the key name.
 // This will skip keys that are inactive or expired.
+//
+// This will skip keys that are inactive or expired. This will return the newest key
+// if multiple keys with the same name exist.
 func GetValueByKey(ctx context.Context, keyName string) (k KeyValue, err error) {
 	//build query
 	q := `
@@ -60,6 +61,8 @@ func GetValueByKey(ctx context.Context, keyName string) (k KeyValue, err error) 
 			(Active = ?)
 			AND
 			(Expiration > ? OR Expiration = 0)
+			ORDER BY DatetimeCreated DESC
+			LIMIT 1
 	`
 	b := sqldb.Bindvars{
 		keyName,
