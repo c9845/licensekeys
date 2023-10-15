@@ -290,31 +290,31 @@ func main() {
 	//**login & logout.
 	//  Using HandleFunc here instead of Handle with http.HandlerFunc, as below routes,
 	//  because we don't need any middlewares here that pass back and forth http.Handlers.
-	r.Handle("/", secHeaders.Then(http.HandlerFunc(pages.Login))).Methods("GET")
+	r.Handle("/", secHeaders.ThenFunc(pages.Login)).Methods("GET")
 	r.HandleFunc("/login/", users.Login).Methods("POST")
 	r.HandleFunc("/logout/", users.Logout).Methods("GET")
 
 	//**main app pages.
-	r.Handle("/app/", auth.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/users/", admin.Then(http.HandlerFunc(pages.Users))).Methods("GET")
-	r.Handle("/user-profile/", auth.Then(http.HandlerFunc(pages.UserProfile))).Methods("GET")
-	r.Handle("/api-keys/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/apps/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/licenses/add/", createLics.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
-	r.Handle("/licenses/", viewLics.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/license/", viewLics.Then(http.HandlerFunc(pages.License))).Methods("GET")
+	r.Handle("/app/", auth.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/users/", admin.ThenFunc(pages.Users)).Methods("GET")
+	r.Handle("/user-profile/", auth.ThenFunc(pages.UserProfile)).Methods("GET")
+	r.Handle("/api-keys/", admin.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/apps/", admin.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/licenses/add/", createLics.ThenFunc(pages.AppMapped)).Methods("GET")
+	r.Handle("/licenses/", viewLics.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/license/", viewLics.ThenFunc(pages.License)).Methods("GET")
 
 	//**admin and diagnostic pages.
-	r.Handle("/app-settings/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/user-logins/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/activity-log/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
-	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
-	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.Then(http.HandlerFunc(pages.AppMapped))).Methods("GET")
+	r.Handle("/app-settings/", admin.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/user-logins/", admin.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/activity-log/", admin.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.ThenFunc(pages.AppMapped)).Methods("GET")
+	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.ThenFunc(pages.AppMapped)).Methods("GET")
+	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.ThenFunc(pages.AppMapped)).Methods("GET")
 
 	//**misc tools/diagnostics
-	r.Handle("/tools/", admin.Then(http.HandlerFunc(pages.App))).Methods("GET")
-	r.Handle("/diagnostics/", secHeaders.Then(http.HandlerFunc(pages.Diagnostics))).Methods("GET")
+	r.Handle("/tools/", admin.ThenFunc(pages.App)).Methods("GET")
+	r.Handle("/diagnostics/", secHeaders.ThenFunc(pages.Diagnostics)).Methods("GET")
 	r.HandleFunc("/healthcheck/", healthcheckHandler)
 
 	//**in-app help docs.
@@ -322,83 +322,85 @@ func main() {
 	help.Handle("/", http.HandlerFunc(pages.HelpTableOfContents)).Methods("GET")
 	help.Handle("/{document}/", http.HandlerFunc(pages.Help)).Methods("GET")
 
+	//
+	//
 	//API calls (internal to the app, not accesible with api key or outside of app).
 	api := r.PathPrefix("/api").Subrouter()
 
 	//**users
 	u := api.PathPrefix("/users/").Subrouter()
-	u.Handle("/", auth.Then(http.HandlerFunc(users.GetAll))).Methods("GET")
-	u.Handle("/add/", admin.Then(http.HandlerFunc(users.Add))).Methods("POST")
-	u.Handle("/update/", admin.Then(http.HandlerFunc(users.Update))).Methods("POST")
-	u.Handle("/change-password/", admin.Then(http.HandlerFunc(users.ChangePassword))).Methods("POST")
-	u.Handle("/2fa/get-qr-code/", admin.Then(http.HandlerFunc(users.Get2FABarcode))).Methods("GET")
-	u.Handle("/2fa/verify/", admin.Then(http.HandlerFunc(users.Validate2FACode))).Methods("POST")
-	u.Handle("/2fa/deactivate/", admin.Then(http.HandlerFunc(users.Deactivate2FA))).Methods("POST")
-	u.Handle("/force-logout/", admin.Then(http.HandlerFunc(users.ForceLogout))).Methods("POST")
-	u.Handle("/login-history/clear/", admin.Then(http.HandlerFunc(users.ClearLoginHistory))).Methods("POST")
+	u.Handle("/", auth.ThenFunc(users.GetAll)).Methods("GET")
+	u.Handle("/add/", admin.ThenFunc(users.Add)).Methods("POST")
+	u.Handle("/update/", admin.ThenFunc(users.Update)).Methods("POST")
+	u.Handle("/change-password/", admin.ThenFunc(users.ChangePassword)).Methods("POST")
+	u.Handle("/2fa/get-qr-code/", admin.ThenFunc(users.Get2FABarcode)).Methods("GET")
+	u.Handle("/2fa/verify/", admin.ThenFunc(users.Validate2FACode)).Methods("POST")
+	u.Handle("/2fa/deactivate/", admin.ThenFunc(users.Deactivate2FA)).Methods("POST")
+	u.Handle("/force-logout/", admin.ThenFunc(users.ForceLogout)).Methods("POST")
+	u.Handle("/login-history/clear/", admin.ThenFunc(users.ClearLoginHistory)).Methods("POST")
 
 	u1 := api.PathPrefix("/user").Subrouter()
-	u1.Handle("/", auth.Then(http.HandlerFunc(users.GetOne))).Methods("GET")
+	u1.Handle("/", auth.ThenFunc(users.GetOne)).Methods("GET")
 
 	//**app settings
 	as := api.PathPrefix("/app-settings").Subrouter()
-	as.Handle("/", admin.Then(http.HandlerFunc(appsettings.Get))).Methods("GET")
-	as.Handle("/update/", admin.Then(http.HandlerFunc(appsettings.Update))).Methods("POST")
+	as.Handle("/", admin.ThenFunc(appsettings.Get)).Methods("GET")
+	as.Handle("/update/", admin.ThenFunc(appsettings.Update)).Methods("POST")
 
 	//**api keys
 	ak := api.PathPrefix("/api-keys").Subrouter()
-	ak.Handle("/", admin.Then(http.HandlerFunc(apikeys.GetAll))).Methods("GET")
-	ak.Handle("/generate/", admin.Then(http.HandlerFunc(apikeys.Generate))).Methods("POST")
-	ak.Handle("/revoke/", admin.Then(http.HandlerFunc(apikeys.Revoke))).Methods("POST")
+	ak.Handle("/", admin.ThenFunc(apikeys.GetAll)).Methods("GET")
+	ak.Handle("/generate/", admin.ThenFunc(apikeys.Generate)).Methods("POST")
+	ak.Handle("/revoke/", admin.ThenFunc(apikeys.Revoke)).Methods("POST")
 
 	//**activity log
 	act := api.PathPrefix("/activity-log").Subrouter()
-	act.Handle("/clear/", admin.Then(http.HandlerFunc(activitylog.Clear))).Methods("POST")
-	act.Handle("/latest/", admin.Then(http.HandlerFunc(activitylog.GetLatest))).Methods("GET")
-	act.Handle("/latest/filter-by-endpoints/", admin.Then(http.HandlerFunc(activitylog.GetLatestEndpoints))).Methods("GET")
-	act.Handle("/over-time-of-day/", admin.Then(http.HandlerFunc(activitylog.OverTimeOfDay))).Methods("GET")
-	act.Handle("/max-and-avg-monthly-duration/", admin.Then(http.HandlerFunc(activitylog.MaxAndAvgMonthlyDuration))).Methods("GET")
-	act.Handle("/latest-requests-duration/", admin.Then(http.HandlerFunc(activitylog.LatestRequestsDuration))).Methods("GET")
+	act.Handle("/clear/", admin.ThenFunc(activitylog.Clear)).Methods("POST")
+	act.Handle("/latest/", admin.ThenFunc(activitylog.GetLatest)).Methods("GET")
+	act.Handle("/latest/filter-by-endpoints/", admin.ThenFunc(activitylog.GetLatestEndpoints)).Methods("GET")
+	act.Handle("/over-time-of-day/", admin.ThenFunc(activitylog.OverTimeOfDay)).Methods("GET")
+	act.Handle("/max-and-avg-monthly-duration/", admin.ThenFunc(activitylog.MaxAndAvgMonthlyDuration)).Methods("GET")
+	act.Handle("/latest-requests-duration/", admin.ThenFunc(activitylog.LatestRequestsDuration)).Methods("GET")
 
 	//**user logins
 	ulg := api.PathPrefix("/user-logins").Subrouter()
-	ulg.Handle("/latest/", admin.Then(http.HandlerFunc(users.LatestLogins))).Methods("GET")
+	ulg.Handle("/latest/", admin.ThenFunc(users.LatestLogins)).Methods("GET")
 
 	//**apps
 	app := api.PathPrefix("/apps").Subrouter()
-	app.Handle("/", admin.Then(http.HandlerFunc(apps.Get))).Methods("GET")
-	app.Handle("/add/", admin.Then(http.HandlerFunc(apps.Add))).Methods("POST")
-	app.Handle("/update/", admin.Then(http.HandlerFunc(apps.Update))).Methods("POST")
+	app.Handle("/", admin.ThenFunc(apps.Get)).Methods("GET")
+	app.Handle("/add/", admin.ThenFunc(apps.Add)).Methods("POST")
+	app.Handle("/update/", admin.ThenFunc(apps.Update)).Methods("POST")
 
 	//**keypairs
 	kp := api.PathPrefix("/key-pairs").Subrouter()
-	kp.Handle("/", admin.Then(http.HandlerFunc(keypairs.Get))).Methods("GET")
-	kp.Handle("/add/", admin.Then(http.HandlerFunc(keypairs.Add))).Methods("POST")
-	kp.Handle("/delete/", admin.Then(http.HandlerFunc(keypairs.Delete))).Methods("POST")
-	kp.Handle("/set-default/", admin.Then(http.HandlerFunc(keypairs.Default))).Methods("POST")
+	kp.Handle("/", admin.ThenFunc(keypairs.Get)).Methods("GET")
+	kp.Handle("/add/", admin.ThenFunc(keypairs.Add)).Methods("POST")
+	kp.Handle("/delete/", admin.ThenFunc(keypairs.Delete)).Methods("POST")
+	kp.Handle("/set-default/", admin.ThenFunc(keypairs.Default)).Methods("POST")
 
 	//**custom fields
 	cf := api.PathPrefix("/custom-fields").Subrouter()
 	cfd := cf.PathPrefix("/defined").Subrouter()
-	cfd.Handle("/", admin.Then(http.HandlerFunc(customfields.GetDefined))).Methods("GET")
-	cfd.Handle("/add/", admin.Then(http.HandlerFunc(customfields.Add))).Methods("POST")
-	cfd.Handle("/update/", admin.Then(http.HandlerFunc(customfields.Update))).Methods("POST")
-	cfd.Handle("/delete/", admin.Then(http.HandlerFunc(customfields.DeleteDefined))).Methods("POST")
+	cfd.Handle("/", admin.ThenFunc(customfields.GetDefined)).Methods("GET")
+	cfd.Handle("/add/", admin.ThenFunc(customfields.Add)).Methods("POST")
+	cfd.Handle("/update/", admin.ThenFunc(customfields.Update)).Methods("POST")
+	cfd.Handle("/delete/", admin.ThenFunc(customfields.DeleteDefined)).Methods("POST")
 
 	cfr := cf.PathPrefix("/results").Subrouter()
-	cfr.Handle("/", viewLics.Then(http.HandlerFunc(customfields.GetResults))).Methods("GET")
+	cfr.Handle("/", viewLics.ThenFunc(customfields.GetResults)).Methods("GET")
 
 	//**licenses
 	lics := api.PathPrefix("/licenses").Subrouter()
-	lics.Handle("/", viewLics.Then(http.HandlerFunc(license.One))).Queries("id", "").Methods("GET")
-	lics.Handle("/", viewLics.Then(http.HandlerFunc(license.All))).Methods("GET")
-	lics.Handle("/add/", createLics.Then(http.HandlerFunc(license.Add))).Methods("POST")
-	lics.Handle("/download/", viewLics.Then(http.HandlerFunc(license.Download))).Methods("GET")
-	lics.Handle("/history/", viewLics.Then(http.HandlerFunc(license.History))).Methods("GET")
-	lics.Handle("/notes/", viewLics.Then(http.HandlerFunc(license.Notes))).Methods("GET")
-	lics.Handle("/notes/add/", createLics.Then(http.HandlerFunc(license.AddNote))).Methods("POST")
-	lics.Handle("/disable/", auth.Then(http.HandlerFunc(license.Disable))).Methods("POST")
-	lics.Handle("/renew/", auth.Then(http.HandlerFunc(license.Renew))).Methods("POST")
+	lics.Handle("/", viewLics.ThenFunc(license.One)).Queries("id", "").Methods("GET")
+	lics.Handle("/", viewLics.ThenFunc(license.All)).Methods("GET")
+	lics.Handle("/add/", createLics.ThenFunc(license.Add)).Methods("POST")
+	lics.Handle("/download/", viewLics.ThenFunc(license.Download)).Methods("GET")
+	lics.Handle("/history/", viewLics.ThenFunc(license.History)).Methods("GET")
+	lics.Handle("/notes/", viewLics.ThenFunc(license.Notes)).Methods("GET")
+	lics.Handle("/notes/add/", createLics.ThenFunc(license.AddNote)).Methods("POST")
+	lics.Handle("/disable/", auth.ThenFunc(license.Disable)).Methods("POST")
+	lics.Handle("/renew/", auth.ThenFunc(license.Renew)).Methods("POST")
 
 	//Handle public API endpoints.
 	//These are endpoints that are accessible outside of the app using an API key.
@@ -409,10 +411,10 @@ func main() {
 	//data returned, see the apikeys package.
 	extAPIMid := alice.New(middleware.ExternalAPI, middleware.LogActivity2)
 	externalAPI := api.PathPrefix("/v1").Subrouter()
-	externalAPI.Handle("/licenses/add/", extAPIMid.Then(http.HandlerFunc(license.AddViaAPI))).Methods("POST")
-	externalAPI.Handle("/licenses/download/", extAPIMid.Then(http.HandlerFunc(license.Download))).Methods("GET")
-	externalAPI.Handle("/licenses/renew/", extAPIMid.Then(http.HandlerFunc(license.Renew))).Methods("POST")
-	externalAPI.Handle("/licenses/disable/", extAPIMid.Then(http.HandlerFunc(license.Disable))).Methods("POST")
+	externalAPI.Handle("/licenses/add/", extAPIMid.ThenFunc(license.AddViaAPI)).Methods("POST")
+	externalAPI.Handle("/licenses/download/", extAPIMid.ThenFunc(license.Download)).Methods("GET")
+	externalAPI.Handle("/licenses/renew/", extAPIMid.ThenFunc(license.Renew)).Methods("POST")
+	externalAPI.Handle("/licenses/disable/", extAPIMid.ThenFunc(license.Disable)).Methods("POST")
 
 	//Handle static files served off the root directory. This is typically for robots.txt,
 	//favicon, etc. {file} is placeholder that isn't used, it is there just so that the
