@@ -5,7 +5,7 @@
 
 //version is the version number of the ts/js code in this app
 //this isn't update very frequently and is really only used for debugging
-const version: string = "2.1.0";
+const version: string = "2.1.4";
 
 //defaultTimeout is the time used in setTimeout functions.  This is defined as a const
 //so we always use the same time throughout the app
@@ -13,8 +13,8 @@ const defaultTimeout: number = 2000;
 
 //msgTypes are the types of alerts from bootstrap that we use in the gui
 const msgTypes: { [key: string]: string } = {
-    danger:  'alert-danger',
-    info:    'alert-info',
+    danger: 'alert-danger',
+    info: 'alert-info',
     success: 'alert-success',
     warning: 'alert-warning',
     primary: 'alert-primary',
@@ -142,7 +142,7 @@ function dateAdd(ymd: string, days: number): string {
     let yIn: number = parseInt(split[0]);
     let mIn: number = parseInt(split[1]) - 1; //adjust month to zero based.
     let dIn: number = parseInt(split[2]);
-    
+
     let input: Date = new Date(yIn, mIn, dIn);
     let added: Date = new Date(input.setDate(input.getDate() + days));
 
@@ -197,7 +197,7 @@ function isValidDate(dateString: string): boolean {
     if (parseInt(d) < 1 || parseInt(d) > 31) {
         return false;
     }
-    
+
     //Pass date string through regexp to catch any non-numeric values, formatting 
     //issues, or other errors that would make the date invalid.
     var regEx: RegExp = /^\d{4}-\d{2}-\d{2}$/;

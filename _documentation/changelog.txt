@@ -1,3 +1,16 @@
+2.1.4 (Released 2023-10-15)
+----------
+- Notes:
+    - Revise API key management to very unlikely bug where if numerous duplicate API keys were created, but not saved to database, a success-looking message was returned rather than an error.
+    - Show only partial API key in list of API keys to improve security.
+    - Revise build script to use config file. Easier to modify and update build script as needed.
+    - Remove need for key-value key to be unique, just return latest version of each key.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+
 2.1.3
 ----------
 - Notes:
