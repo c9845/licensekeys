@@ -18,11 +18,10 @@ type APIKey struct {
 	ID               int64
 	DatetimeCreated  string
 	DatetimeModified string
-	CreatedByUserID  int64
 	Active           bool
-
-	Description string //so user can identify what the api key is used for
-	K           string //the actual api key
+	CreatedByUserID  int64
+	Description      string //so user can identify what the api key is used for
+	K                string //the actual api key
 
 	//JOINed fields
 	CreatedByUsername string
@@ -40,7 +39,6 @@ const (
 			DatetimeModified TEXT DEFAULT CURRENT_TIMESTAMP,
 			Active INTEGER NOT NULL DEFAULT 1,
 			CreatedByUserID INTEGER NOT NULL,
-			
 			Description TEXT NOT NULL,
 			K TEXT NOT NULL,
 
@@ -54,13 +52,13 @@ const (
 
 // GetAPIKeys looks up a list of API keys.
 func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa []APIKey, err error) {
-	//build columns
+	//Build columns to select.
 	cols, err := columns.ForSelect()
 	if err != nil {
 		return
 	}
 
-	//build query
+	//Build query.
 	q := `
 		SELECT ` + cols + ` 
 		FROM ` + TableAPIKeys + `
@@ -74,14 +72,11 @@ func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa
 
 	q += ` ORDER BY ` + TableAPIKeys + `.Description`
 
-	//run query
+	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &aa, q, b...)
 
-	//handle converting datetimes to correct timezone
-	//This isn't handled in sql query since mariadb and sqlite differ in how they can
-	//convert a datetime to a different timezone.  Doing it in this manner ensures the
-	//same conversion method is applied so golang does the conversion.
+	//Handle converting datetimes to correct timezone.
 	for k, v := range aa {
 		aa[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
 		aa[k].Timezone = config.Data().Timezone
@@ -90,7 +85,7 @@ func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa
 	return
 }
 
-// GetAPIKeyByKey looks up an api key by its Key.
+// GetAPIKeyByKey looks up an API key's data by its Key.
 func GetAPIKeyByKey(ctx context.Context, key string, columns sqldb.Columns) (a APIKey, err error) {
 	cols, err := columns.ForSelect()
 	if err != nil {
@@ -100,7 +95,8 @@ func GetAPIKeyByKey(ctx context.Context, key string, columns sqldb.Columns) (a A
 	q := `
 		SELECT ` + cols + `
 		FROM ` + TableAPIKeys + `
-		WHERE K=?
+		WHERE 
+			(K = ?)
 	`
 
 	c := sqldb.Connection()
@@ -108,10 +104,9 @@ func GetAPIKeyByKey(ctx context.Context, key string, columns sqldb.Columns) (a A
 	return
 }
 
-// GetAPIKeyByDescription looks up an API key by its Description
-// This is used when adding an API key to verify that a description isn't used
-// for more than one active key. We don't want duplicate descriptions to reduce
-// confusion and mistakes with multiple active API keys for the same usage.
+// GetAPIKeyByDescription looks up an API key by its Description. This is used when
+// adding a new API key to verify a key with the same description doesn't already
+// exist and is active.
 func GetAPIKeyByDescription(ctx context.Context, desc string) (a APIKey, err error) {
 	q := `
 		SELECT ` + TableAPIKeys + `.* 
@@ -127,8 +122,7 @@ func GetAPIKeyByDescription(ctx context.Context, desc string) (a APIKey, err err
 	return
 }
 
-// Insert saves a new api to the database.
-// you should have already performed validation.
+// Insert saves a new API key to the database.
 func (a *APIKey) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"CreatedByUserID",
@@ -161,18 +155,23 @@ func (a *APIKey) Insert(ctx context.Context) (err error) {
 	}
 
 	id, err := res.LastInsertId()
+	if err != nil {
+		return
+	}
+
 	a.ID = id
 	return
 }
 
-// RevokeAPIKey marks an api key as inactive
+// RevokeAPIKey marks an API key as inactive. It cannot be reactivated.
 func RevokeAPIKey(ctx context.Context, id int64) error {
 	q := `
 		UPDATE ` + TableAPIKeys + ` 
 		SET 
 			DatetimeModified = ?,
 			Active = ?
-		WHERE ID = ?
+		WHERE 
+			(ID = ?)
 	`
 
 	c := sqldb.Connection()

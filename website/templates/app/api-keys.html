@@ -3,13 +3,13 @@
 <!DOCTYPE html>
 <html>
 	<head>
-        <title>{{template "html_title_app_name"}} | API Keys</title>
+        <title>{{template "html_title_app_name" .}} | API Key Management</title>
 
 		{{template "html_head" .}}
 	</head>
 	<body>
 		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
+			<p class="text-center text-danger">!! DEV MODE !! </p>
 		{{end}}
 
 		<!-- HEADER -->
@@ -27,43 +27,36 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-sm table-dense">
-                                        <thead class="no-border-top">
-                                            <th>Description</th>
-                                            <th class="d-none d-lg-table-cell whitespace-no-wrap">
-                                                Created At 
-                                                <small class="text-secondary" v-if="keys.length > 0">([[keys[0].Timezone]])</small>
-                                            </th>
-                                            <th class="d-none d-lg-table-cell whitespace-no-wrap">Created By</th>
-                                            <th>Key</th>
-                                            <th class="text-right"></th>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-if="keysRetrieved && keys.length === 0">
-                                                <td colspan="10">No API keys exist yet.</td>
+                                <table class="table table-hover table-sm table-dense">
+                                    <thead class="no-border-top">
+                                        <th>Description</th>
+                                        <th class="d-none d-lg-table-cell whitespace-no-wrap">Datetime Created</th>
+                                        <th class="whitespace-no-wrap ellipsis">Key</th>
+                                        <th></th>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-if="keysRetrieved && keys.length === 0">
+                                            <td colspan="10">No API keys exist yet.</td>
+                                        </tr>
+                                        <template v-else>
+                                            <tr v-for="k in keys" :key="k.ID" v-bind:data-id="k.ID">
+                                                <td>[[k.Description]]</td>
+                                                <td class="d-none d-lg-table-cell whitespace-no-wrap"><span v-bind:title="k.DatetimeCreatedUTC + ' UTC'">[[k.DatetimeCreated]]</span></td>
+                                                <td class="text-monospace">[[k.K.substring(0,9)]]...[[k.K.substring(k.K.length-5, k.K.length)]]</td>
+                                                <td class="text-right">
+                                                    <button 
+                                                        class="btn btn-link btn-sm btn-sm-condensed text-primary" 
+                                                        data-toggle="modal"
+                                                        data-target="#modal-apiKey"
+                                                        v-on:click="passToModal(k)"
+                                                    >
+                                                        <i class="fas fa-cog"></i>
+                                                    </button>
+                                                </td>
                                             </tr>
-                                            <template v-else>
-                                                <tr v-for="(item, index) in keys" :key="index" v-bind:class="{'strikethrough': item.Active === false}">
-                                                    <td>[[item.Description]]</td>
-                                                    <td class="d-none d-lg-table-cell whitespace-no-wrap"><span v-bind:title="item.DatetimeCreated + ' (UTC)'">[[item.DatetimeCreatedTZ]]</span></td>
-                                                    <td class="d-none d-lg-table-cell whitespace-no-wrap">[[item.CreatedByUsername]]</td>
-                                                    <td class="text-monospace">[[item.K]]</td>
-                                                    <td v-if="item.Active" class="text-right">
-                                                        <button 
-                                                            class="btn btn-link btn-sm btn-sm-condensed" 
-                                                            data-toggle="modal" 
-                                                            data-target="#modal-apiKey" 
-                                                            v-on:click="passToModal(item)"
-                                                        >
-                                                            <i class="fas fa-cog"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        </template>
+                                    </tbody>
+                                </table>
                             </div>
                             <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
                                 [[msg]]
@@ -74,89 +67,54 @@
 			</div>
         </main>
         
-        <!-- generate or view an api key -->
+        <!-- Modal to add/generate or edit/view an API key. -->
         <div class="modal fade" id="modal-apiKey">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">
-                            <span v-if="adding">Add API Key</span>
-                            <span v-else       >View API Key</span>
-                        </h5>
+                        <h5 class="modal-title">API Key</h5>
                         <button 
                             type="button" 
                             class="btn btn-sm btn-outline-danger" 
-                            data-dismiss="modal" 
                             v-on:click="revoke"
-                            v-if="!adding"
+                            v-if="key.ID > 0 && !addingNew"
                         >
-                            <i class="fas fa-trash-alt"></i>
+                            <i class="fa-regular fa-trash-can"></i>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div v-if="adding">
-                            <blockquote class="section-description section-description-secondary">
-                                Provide a descriptive name for this API key so you can reference what it is used for.
-                            </blockquote>
-                            <hr class="divider">
-                        </div>
+                        <blockquote class="section-description section-description-secondary">
+                            Provide a descriptive name for where this API key will be used so you can identify it in logs.
+                        </blockquote>
+                        <hr class="divider">
 
-                        <!-- gather info to generate api key -->
-                        <fieldset>
+                        <!-- Gather info to generate API key with, describe app where API key will be used. -->
+                        <section>
                             <div class="form-group">
                                 <label>Description:</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    minlength="3" 
-                                    maxlength="100" 
-                                    v-model.trim="keyData.Description"
-                                    v-bind:disabled="!adding"
-                                >
-                            </div>
-                        </fieldset>
-
-                        <!-- display generated api key for existing API key-->
-                        <fieldset v-if="!adding" v-cloak>
-                            <div class="form-group">
-                                <label>Key:</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control text-monospace" 
-                                    disabled 
-                                    v-model="keyData.K"
-                                >
-                            </div>
-                        </fieldset>
-                        
-                        <!-- display message for generated API key -->
-                        <section v-if="keyGeneratedSuccessfully" v-cloak>
-                            <div class="alert alert-primary">
-                                Your API Key was generated successfully.  Please copy and use the Key exactly as it is displayed.
+                                <input type="text" class="form-control" minlength="3" maxlength="100" v-model.trim="key.Description">
                             </div>
                         </section>
 
-                        <!-- other details for when viewing details of API Key -->
-                        <fieldset v-if="!adding">
+                        <!-- Display generated API key to copy. -->
+                        <section v-if="key.K !== ''">
+                            <div class="form-group">
+                                <label>Key:</label>
+                                <input type="text" class="form-control text-monospace" readonly v-model="key.K">
+                            </div>
+                        </section>
+
+                        <!-- Extra data about an existing key. -->
+                        <section v-if="!addingNew">
                             <div class="form-group">
                                 <label>Created By:</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control"
-                                    v-model="keyData.CreatedByUsername" 
-                                    disabled
-                                >
+                                <input type="text" class="form-control" v-model.trim="key.CreatedByUsername" readonly>
                             </div>
                             <div class="form-group">
-                                <label>Created At:</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control"
-                                    v-bind:value="keyData.DatetimeCreatedTZ + ' (' + keyData.Timezone + ')'"
-                                    disabled
-                                >
+                                <label>Datetime Created <small class="text-secondary">([[key.Timezone]])</small>:</label>
+                                <input type="text" class="form-control" v-model.trim="key.DatetimeCreatedTZ" v-bind:title="key.DatetimeCreated + ' UTC'" readonly>
                             </div>
-                        </fieldset>
+                        </section>
 
                         <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
                             [[msg]]
@@ -165,17 +123,11 @@
                     <div class="modal-footer justify-content-start">
                         <div class="btn-group">
                             <!-- 
-                                Don't show generate button once a description for a new api key has been submitted 
-                                or a key has been generated to prevent generating numerous keys for the same description.
+                                Don't show generate button once a description for a 
+                                new API key has been generated or if an existing key 
+                                is being viewed.
                             -->
-                            <button 
-                                class="btn btn-primary" 
-                                v-on:click="generate" 
-                                v-bind:disabled="submitting"
-                                v-if="adding"
-                            >
-                                Generate
-                            </button>
+                            <button class="btn btn-primary" v-on:click="generate" v-bind:disabled="submitting" v-if="key.K === ''" v-cloak>Generate</button>
                             <button class="btn btn-secondary" data-dismiss="modal">Close</button>
                         </div>
                     </div>

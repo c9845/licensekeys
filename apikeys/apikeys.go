@@ -1,11 +1,24 @@
 /*
-Package apikeys handles generating, revoking, and listing data on api keys. API keys
-are used for authenticating automated access to this app.
+Package apikeys handles generating, revoking, and listing data on api keys.
 
-Only certain endpoints are accessible via an API key, not all of this app's
-functionality is accessible via an outside integration. The limitations are for
-security purposes and because not all functionality needs to be accessible via a
-public API.
+API keys are used for authenticating automated access to this app. In other words,
+other apps accessing this app's data.
+
+The app can store and use multiple API keys. Idealy one API key is used for each
+integration to this app. Doing so allows for revoking one API key without affecting
+other integrations.
+
+Only certain endpoints are accessible via an API key. Not all of this app's data
+is accessible via an outside integration. This is for security purposes.  The list
+of accessible endpoints is noted below in the publicEndpoints slice.
+
+API keys are stored in plain text on the server. This is done since is someone outside
+of and approved user of an API key has access to the API key, they can already perform
+actions of that API key. API keys are not like passwords where they are often reused
+or provided each time. Furthermore, if someone has access to a list of API keys then
+they most likely have access to the database anyway. The best use case for a hashed
+value being stored in the database is that someone browsing the database won't be
+able to use an API key just by looking at the stored value.
 */
 package apikeys
 
@@ -18,6 +31,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -26,24 +40,17 @@ import (
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v2"
-	"golang.org/x/exp/slices"
 )
 
-// keyLength is the length of random part of each API key. This does not include the
-// prefix or the separator!
+// keyLength is the length of random part of the api key that is generated randomly
+// for each key. This does not include the prefix. 40 was chosen as it is the length
+// of an SHA256 hash hex encoded.
 const keyLength = 40
 
-// keyPrefix defines a prefix that gets prepended to each api key so that an API key
-// can be more easily be identified versus just an arbitrary string.
+// keyPrefix defines a prefix that gets prepended to each api key so that
+// the key can be more easily identified versus just an arbitrary hash.
 // https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
-//
-// The keySeparator will be used to separate the prefix and the randomly generated
-// part of the key.
-const keyPrefix = "lks" //License Key Server
-
-// keySeparator is used to separate the keyPrefix from the randomly generated part
-// of an API key.
-const keySeparator = "_"
+const keyPrefix = "lks_"
 
 // publicEndpoints are the list of URLs a user can access via an API key. This list
 // is checked against in middleware to make sure a request using an API key is
@@ -55,11 +62,11 @@ var publicEndpoints = []string{
 	"/api/v1/licenses/disable/",
 }
 
-// ErrNonPublicEndpoint is returned when a request is made via an api key to an
+// ErrNonPublicEndpoint is returned when a request is made via an API key to an
 // endpoint that isn't in the list publicEndpoints.
 var ErrNonPublicEndpoint = errors.New("api: access denied to non-public endpoint")
 
-// GetAll looks up a list of all API keys. This is used on the manage API keys page.
+// GetAll looks up a list of all API keys.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	cols := sqldb.Columns{
 		db.TableAPIKeys + ".ID",
@@ -84,13 +91,16 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	//Get input data.
 	raw := r.FormValue("data")
 
-	//Parse.
+	//Parse into struct.
 	var a db.APIKey
 	err := json.Unmarshal([]byte(raw), &a)
 	if err != nil {
 		output.Error(err, "Could not parse data to generate API Key.", w)
 		return
 	}
+
+	//Sanitize.
+	a.Description = strings.TrimSpace(a.Description)
 
 	//Validate.
 	a.Description = strings.TrimSpace(a.Description)
@@ -111,7 +121,7 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Get user who is creating this new API key.
+	//Get user ID of logged in user who is creating this API key.
 	loggedInUserID, err := users.GetUserIDByRequest(r)
 	if err != nil {
 		output.Error(err, "Could not determine the user making this request.", w)
@@ -119,10 +129,12 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	}
 	a.CreatedByUserID = loggedInUserID
 
-	//Generate and save new API key. This is done in a loop so we can handle the rare
-	//case of a duplicate key being generated. Duplicate keys will be rejected by the
-	//database due to the unique constraint on the column that store the API key.
-	for i := 0; i < 5; i++ {
+	//Generate the new API key.
+	//
+	//This is done in a loop so we can handle cases where a duplicate key is created,
+	//even though a duplicate key being created should rarely, if ever, happen.
+	maxAttempts := 5
+	for i := 0; i < maxAttempts; i++ {
 		//Generate a new API key.
 		a.K = generateKey(r.Context(), a.Description)
 
@@ -132,12 +144,15 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		//to generate the API key and the timestamp will change between loops of this
 		//for block).
 		err := a.Insert(r.Context())
-		if err != nil && strings.Contains(err.Error(), "Duplicate entry") {
+		if err != nil && (strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE constraint failed")) {
+			//Duplicate entry = MariaDB (MariaDB usage is very experimental).
+			//UNIQUE constraint failed = SQLite.
+
 			log.Println("Duplicate API Key generated, trying again...", a.K)
 			continue
 
 		} else if err != nil {
-			output.Error(err, "Could not create and save new api key.", w)
+			output.Error(err, "Could not create and save new API key.", w)
 			return
 
 		} else {
@@ -146,12 +161,20 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		}
 	} //end for: generate API key.
 
-	output.InsertOKWithData(a, w)
+	//Make sure a non-duplicate key was generated and saved. The for loop will exit
+	//without a key being saved if maxAttempts duplicates were generated.
+	if a.ID == 0 {
+		output.Error(errors.New("too many attempts generating API key"), "An API key could not be generated, too many duplicate keys were created. Try again or contact an administrator.", w)
+		return
+	}
+
+	output.InsertOK(a.ID, w)
 }
 
-// generateKey actually creates a new API key. An API key is generated using a seed of
-// a salt, the user provided description, and a timestamp to add some randomness.
+// generateKey generates a new API key from a seed text.
 func generateKey(ctx context.Context, apiKeyDesc string) (key string) {
+	//Salt just helps to add some length to the seed and some extra randomness and
+	//so that we aren't just hashing data stored in the database in plain text.
 	const salt = "xkr8NVwLg$@ENvPj*S&k"
 
 	//Data to use as seed to generate api key
@@ -161,30 +184,25 @@ func generateKey(ctx context.Context, apiKeyDesc string) (key string) {
 		time.Now().String(), //we use time stamp to provide additional randomness so that if user tries to create keys with the same description, the keys won't match.
 	}
 
-	//Generate hash. The hash, trimmed if needed, will be the API key (minus the
-	//prepended API key prefix). The random part of the API key is provided as all
-	//upper case characters to remove confusion between upper- and lower-case
-	//letters.
-	sum := sha256.Sum256([]byte(strings.Join(hashInputItems, "")))
-	hash := strings.ToUpper(hex.EncodeToString(sum[:]))
+	//Generate hash.
+	hashInput := strings.Join(hashInputItems, "")
+	sum := sha256.Sum256([]byte(hashInput))
+	hash := hex.EncodeToString(sum[:])
 
+	//Trim the length of the key if needed.
 	if len(hash) > keyLength {
 		hash = hash[:keyLength]
 	}
 
-	//Prepend the prefix. Prefix is used as-is (lower, upper, or mixed case).
-	//Underscore separates prefix and hash for easily distinguishing between the
-	//two parts.
-	key = buildCompleteAPIKey(hash)
+	//Prepend the prefix.
+	//
+	//Prefix is used as provided (lower, upper, or mixed case).
+	//The hash is all uppercased to reduce confusion between characters.
+	key = keyPrefix + strings.ToUpper(hash)
 	return
 }
 
-// buildCompleteAPIKey builds an API key by prepending the prefix and separator.
-func buildCompleteAPIKey(partialKey string) string {
-	return keyPrefix + keySeparator + partialKey
-}
-
-// Revoke marks an API key as inactive.
+// Revoke marks an API key as inactive. An inactive API key cannot be reactivated.
 func Revoke(w http.ResponseWriter, r *http.Request) {
 	//Get input.
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
@@ -195,7 +213,7 @@ func Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Mark the key as inactive.
+	//Mark the API key as inactive.
 	err := db.RevokeAPIKey(r.Context(), id)
 	if err != nil {
 		output.Error(err, "Could not revoke API key.", w)
@@ -211,10 +229,9 @@ func IsPublicEndpoint(urlPath string) bool {
 	return slices.Contains(publicEndpoints, urlPath)
 }
 
-// KeyLength returns the length of API keys generated inclusive of the key's prefix
-// and key separator. This is used during validation of API requests to simply check
-// if the provided api key is the correct length before looking up the key in the
-// database.
+// KeyLength returns the length of API keys generated inclusive of the key prefix.
+// This is used during validation of API requests to simply check if the provided API
+// key is the correct length before looking up the API key in the database.
 func KeyLength() int {
-	return len(keyPrefix) + len(keySeparator) + keyLength
+	return len(keyPrefix) + keyLength
 }

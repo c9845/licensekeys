@@ -1,14 +1,14 @@
 {
     "compilerOptions": {
         "target": "es5",
-        "outFile": "website/static/js/script.js",
-        "watch": true,
+        // "watch": true,
         "removeComments": false,
         "lib": [
             "es6",
             "dom",
             "es2017",
         ],
+        "outFile": "website/static/js/script.js",
     },
     "include": [
         "website/static/js/*.ts"
