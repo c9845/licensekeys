@@ -78,7 +78,7 @@ if (document.getElementById("activityLog")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLog.msg = 'An unknown error occured. Please try again.';
+                        activityLog.msg = 'An unknown error occurred. Please try again.';
                         activityLog.msgType = msgTypes.danger;
                         return;
                     });
@@ -108,7 +108,7 @@ if (document.getElementById("activityLog")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLog.msg = 'An unknown error occured. Please try again.';
+                        activityLog.msg = 'An unknown error occurred. Please try again.';
                         activityLog.msgType = msgTypes.danger;
                         return;
                     });
@@ -138,7 +138,7 @@ if (document.getElementById("activityLog")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLog.msg = 'An unknown error occured. Please try again.';
+                        activityLog.msg = 'An unknown error occurred. Please try again.';
                         activityLog.msgType = msgTypes.danger;
                         return;
                     });
@@ -170,7 +170,7 @@ if (document.getElementById("activityLog")) {
                     this.msgFilters = "The End Date you provided is not valid.";
                     return
                 }
-                
+
                 //Show loading message.
                 this.msg = "Getting activities...";
                 this.msgType = msgTypes.primary;
@@ -205,7 +205,7 @@ if (document.getElementById("activityLog")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLog.msg = 'An unknown error occured. Please try again.';
+                        activityLog.msg = 'An unknown error occurred. Please try again.';
                         activityLog.msgType = msgTypes.danger;
                         return;
                     });
@@ -218,7 +218,7 @@ if (document.getElementById("activityLog")) {
                 this.prettyPrintJSON = value;
                 return;
             },
-            
+
             //setShowReferrer saves a chosen radio toggle to the Vue object
             setShowReferrer: function (value: boolean) {
                 this.showReferrer = value;

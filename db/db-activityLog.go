@@ -68,17 +68,17 @@ const (
 		)
 	`
 
+	//indexes
 	createIndexActivityLogTimestampCreated = `CREATE INDEX IF NOT EXISTS ` + TableActivityLog + `__TimestampCreated_idx ON ` + TableActivityLog + ` (TimestampCreated)`
 	createIndexActivityLogDatetimeCreated  = `CREATE INDEX IF NOT EXISTS ` + TableActivityLog + `__DatetimeCreated_idx ON ` + TableActivityLog + ` (DatetimeCreated)`
 
-	updateActivityLogReferrer = `ALTER TABLE ` + TableActivityLog + ` ADD COLUMN Referrer TEXT NOT NULL DEFAULT ""`
+	//updates
 )
 
-// Insert saves a log entry to the database for an action performed
-// by a user or via an api key.
-// you should have already performed validation.
+// Insert saves a log entry to the database for an action performed by a user or via
+// an API key.
 func (a *ActivityLog) Insert(ctx context.Context) (err error) {
-	//similar fields between user actions and api actions
+	//Common fields between user and API actions.
 	cols := sqldb.Columns{
 		"Method",
 		"URL",
@@ -102,7 +102,7 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 		a.Referrer,
 	}
 
-	//add fields based on if this action was caused by user or api
+	//Add fields based on if this action was caused by user or API.
 	if a.CreatedByUserID.Int64 > 0 {
 		cols = append(cols, "CreatedByUserID")
 		b = append(b, a.CreatedByUserID.Int64)
@@ -133,6 +133,10 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 	}
 
 	id, err := res.LastInsertId()
+	if err != nil {
+		return
+	}
+
 	a.ID = id
 	return
 }
@@ -149,6 +153,7 @@ func GetActivityLog(ctx context.Context, userID, apiKeyID int64, endpoint, searc
 	}
 
 	//Build columns.
+	offset := config.GetTimezoneOffsetForSQLite()
 	cols := sqldb.Columns{
 		TableActivityLog + ".ID",
 		TableActivityLog + ".Method",
@@ -156,10 +161,12 @@ func GetActivityLog(ctx context.Context, userID, apiKeyID int64, endpoint, searc
 		TableActivityLog + ".URL",
 		TableActivityLog + ".PostFormValues",
 		TableActivityLog + ".Referrer",
+		TableActivityLog + ".DatetimeCreated",
 		"IFNULL(" + TableUsers + ".Username, '') AS Username",
 		"IFNULL(" + TableAPIKeys + ".K, '') AS APIKeyK",
 		"IFNULL(" + TableAPIKeys + ".Description, '') AS APIKeyDescription",
-		"datetime(" + TableActivityLog + ".DatetimeCreated) AS DatetimeCreated",
+
+		`datetime(` + TableActivityLog + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ`,
 	}
 	colString, err := cols.ForSelect()
 	if err != nil {
@@ -199,7 +206,8 @@ func GetActivityLog(ctx context.Context, userID, apiKeyID int64, endpoint, searc
 
 	useDateRange := false
 	if startDate != "" && endDate != "" {
-		w := `(DATE(` + TableActivityLog + `.DatetimeCreated) >= ? AND DATE(` + TableActivityLog + `.DatetimeCreated) <= ?)`
+		w := `(DATE(datetime(` + TableActivityLog + `.DatetimeCreated, '` + offset + `')) BETWEEN ? AND ?)`
+
 		wheres = append(wheres, w)
 		b = append(b, startDate, endDate)
 		useDateRange = true
@@ -218,16 +226,6 @@ func GetActivityLog(ctx context.Context, userID, apiKeyID int64, endpoint, searc
 	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &aa, q, b...)
-
-	//Handle converting datetimes to correct timezone. This isn't handled in sql query
-	//since mariadb and sqlite differ in how they can convert a datetime to a
-	//different timezone. Doing it in this manner ensures the same conversion method
-	//is applied so golang does the conversion.
-	for k, v := range aa {
-		aa[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
-		aa[k].Timezone = config.Data().Timezone
-	}
-
 	return
 }
 
@@ -251,5 +249,10 @@ func ClearActivityLog(ctx context.Context, date string) (rowsDeleted int64, err 
 	}
 
 	rowsDeleted, err = res.RowsAffected()
+	if err != nil {
+		return
+	}
+
+	//Not VACUUMing, call VACUUM manually since it may block the db for a while.
 	return
 }

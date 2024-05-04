@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/utils"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 )
@@ -58,8 +58,8 @@ func GetLatest(w http.ResponseWriter, r *http.Request) {
 	endpoint := strings.TrimSpace(r.FormValue("endpoint"))
 	searchFor := strings.TrimSpace(r.FormValue("searchFor"))
 	rows, _ := strconv.ParseInt(r.FormValue("rows"), 10, 64)
-	startDateFromGUI := strings.TrimSpace(r.FormValue("startDate"))
-	endDateFromGUI := strings.TrimSpace(r.FormValue("endDate"))
+	startDate := strings.TrimSpace(r.FormValue("startDate"))
+	endDate := strings.TrimSpace(r.FormValue("endDate"))
 
 	//Validate.
 	if userID < 0 {
@@ -80,35 +80,28 @@ func GetLatest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Validate date range, if provided.
-	var startDateForQuery, endDateForQuery string
-	if startDateFromGUI != "" || endDateFromGUI != "" {
-		if startDateFromGUI == "" {
-			output.ErrorInputInvalid("You must choose a Start Date since you chose an End Date.", w)
+	//
+	//Date range is optional. If it isn't provided, the most recent results will be
+	//returned.
+	if startDate != "" && endDate != "" {
+		startDateParsed, err := time.Parse("2006-01-02", startDate)
+		if err != nil {
+			output.Error(err, "Could not parse start date.", w)
 			return
 		}
-		if endDateFromGUI == "" {
-			output.ErrorInputInvalid("You must choose an End Date since you chose a Start Date.", w)
+		endDateParsed, err := time.Parse("2006-01-02", endDate)
+		if err != nil {
+			output.Error(err, "Could not parse end date.", w)
 			return
 		}
-
-		sd, ed, errMsg, err := utils.ValidateStartAndEndDate(startDateFromGUI, endDateFromGUI, true)
-		if err != nil && errMsg != "" {
-			output.Error(err, errMsg, w)
-			return
-		} else if err != nil {
-			output.Error(err, "Could not validate the chosen date range.", w)
-			return
-		} else if errMsg != "" {
-			output.ErrorInputInvalid(errMsg, w)
+		if startDateParsed.After(endDateParsed) {
+			output.ErrorInputInvalid("Start date must be before end date.", w)
 			return
 		}
-
-		startDateForQuery = sd
-		endDateForQuery = ed
 	}
 
 	//Get results.
-	activities, err := db.GetActivityLog(r.Context(), userID, apiKeyID, endpoint, searchFor, startDateForQuery, endDateForQuery, uint16(rows))
+	activities, err := db.GetActivityLog(r.Context(), userID, apiKeyID, endpoint, searchFor, startDate, endDate, uint16(rows))
 	if err != nil {
 		output.Error(err, "Could not get latest activities.", w)
 		return
@@ -156,61 +149,100 @@ func GetLatestEndpoints(w http.ResponseWriter, r *http.Request) {
 func OverTimeOfDay(w http.ResponseWriter, r *http.Request) {
 	//Get query.
 	//
-	//Note the "10" in the queries. This defines the time interval/resolution.
+	//Time bracket divides hours into 10 minute intervals. Using 10 minute intervals,
+	//instead of per-minute intervals, just makes viewing the charted data easier.
+	//
+	//Note WITH and secondary query. This was done so that we don't have to rewrite
+	//the queries to get _MinutesRaw, _MinutesRounded, and _HoursRaw over and over,
+	//instead we can just reference them in CASE statements. This is really all about
+	//reducing retyping and possibly typoing something in a retype.
+	//
+	//Note slight differences in queries, especially around CAST statements.
+	const timeBracketSizeMinutes = "10" //string for easier concatting in query.
+	offset := config.GetTimezoneOffsetForSQLite()
 	q := `
+		WITH t AS (
+			SELECT
+				/* Activity/row. */
+				ID,
+				
+				/* Time bracket minutes. */
+				/* Note math to calculate bracket: 
+					1) Multiply by 1.0 to get a decimal so we can do decimal division (46 -> 46.0).
+					2) Divide by 10 to get number as a decimal we can round up/down to whole number.
+					3) Multiply by 10 to get number back to a bracket of 10 minute intervals.
+				*/
+				(strftime("%M", datetime(DatetimeCreated, '` + offset + `'))) AS MinutesRaw,
+				(
+					ROUND(
+						((strftime(
+							"%M",
+							datetime(
+								DatetimeCreated, 
+								'` + offset + `'
+							)
+						) * 1.0) / ` + timeBracketSizeMinutes + `)
+					)* 10
+				) AS MinutesRounded,
+				
+				/* Get hour bracket. */
+				(strftime("%H", datetime(DatetimeCreated, '` + offset + `'))) AS HourRaw
+				
+			FROM activity_log
+		)
+		
 		SELECT
+			/* Count number of activities per time bracket. */
 			COUNT(ID) AS Count,
 			
-			/**Used for diagnostics.**/
-			/* strftime('%H', TIME(DatetimeCreated)) AS Hour_NotModified,*/
-			/* strftime('%M', TIME(DatetimeCreated)) AS Minute_NotModified, */
-
-			/**The following two "lines" are used to compensate for the rounding of minutes to 60, which should increment the hours plus one.**/
-			/**This compensates for having two rows returned such as "hours: 2, minutes: 60" and "hours: 3, minutes: 0" which are understood to be the same point in time.**/
-			(
-				CASE
-					WHEN (round((strftime('%M', TIME(DatetimeCreated)) * 1.0) / 10) * 10) = 60 THEN strftime('%H', TIME(DatetimeCreated)) + 1
-					ELSE strftime('%H', TIME(DatetimeCreated))
-				END
-			) AS Hour,
-			(
-				CASE
-					WHEN (round((strftime('%M', TIME(DatetimeCreated)) * 1.0) / 10) * 10) = 60 THEN 0
-					ELSE (round((strftime('%M', TIME(DatetimeCreated)) * 1.0) / 10) * 10)
-				END
-			) AS Minute,
-
-			/**This value is used for ordering.**/				
-			round(
-				(
-					(
-						(strftime('%H', TIME(DatetimeCreated)) * 60) --Hour
-						+ 
-						(round((strftime('%M', TIME(DatetimeCreated)) * 1.0) / 10) * 10) --MinuteRounded
-					) / 60
-				)
-			, 2) AS HoursDecimal
+			/* Raw data for diagnostics. */
+			MinutesRaw,
+			CAST(MinutesRounded AS INT) AS MinutesRounded,
+			HourRaw,
 			
-		FROM ` + db.TableActivityLog + `
-		
-		GROUP BY HoursDecimal
-		ORDER BY HoursDecimal ASC
+			/* Handle minute bracket round-up to 60, which is the same as the 0 minute bracket for next hour. */
+			/* AKA "hour 2, minutes 60" is the same as "hour 3, minute 0". */
+			(CASE
+				WHEN MinutesRaw = 60 THEN HourRaw + 1
+				ELSE HourRaw
+			END) AS HourBracket,
+			(CASE
+				WHEN MinutesRounded = 60 THEN 0
+				ELSE MinutesRounded
+			END) AS MinuteBracket,
+			
+			/* For ordering. */
+			ROUND(HourRaw + (MinutesRounded / 60), 2) AS HoursMinutesDecimal
+			
+		FROM t
+		GROUP BY HoursMinutesDecimal
+		ORDER BY HoursMinutesDecimal ASC
 	`
 
 	//Define custom struct for retreived data since this data is special just for this
-	//request.
-	type dataReturned struct {
-		Count         int //the number of activities that occured within the time interval
-		Hour          int
-		Minute        int
-		MinuteRounded int
-		HoursDecimal  float64 //the decimal version of hour:minutes (i.e. 2:15 is 2.25)
+	//function.
+	type row struct {
+		//The number of activities that occurred within the time bracket/interval.
+		Count int
+
+		//Raw data for diagnostics.
+		MinutesRaw     int //00 - 60
+		MinutesRounded int //00, 10, 20, 30 40, 50, 60
+		HourRaw        int //00 - 24
+
+		//Calculated time brackets, taking into consideration minute bracket overlap.
+		//AKA hour 2 minute 60 is the same as hour 3 minute 0.
+		HourBracket   int
+		MinuteBracket int
+
+		//Time as a decimal for ordering.
+		HoursMinutesDecimal float64 //3:30 = 3.5
 	}
-	var data []dataReturned
+	reportData := []row{}
 
 	//Run query.
 	c := sqldb.Connection()
-	err := c.SelectContext(r.Context(), &data, q)
+	err := c.SelectContext(r.Context(), &reportData, q)
 	if err != nil {
 		output.Error(err, "Could not look up data.", w)
 		return
@@ -222,7 +254,7 @@ func OverTimeOfDay(w http.ResponseWriter, r *http.Request) {
 	//recently purged).
 	w.Header().Set("Cache-Control", "no-transform,public,max-age="+strconv.Itoa(30))
 
-	output.DataFound(data, w)
+	output.DataFound(reportData, w)
 }
 
 // MaxAndAvgMonthlyDuration retrieves the maximum and average duration of times it
@@ -253,7 +285,7 @@ func MaxAndAvgMonthlyDuration(w http.ResponseWriter, r *http.Request) {
 	q := `
 		SELECT ` + colString + ` 
 		FROM ` + db.TableActivityLog + `
-		GROUP BY strftime("%Y", ` + db.TableActivityLog + `.DatetimeCreated), strftime("%m", ` + db.TableActivityLog + `.DatetimeCreated)`
+		GROUP BY strftime("%Y-%m", ` + db.TableActivityLog + `.DatetimeCreated)`
 
 	//Define custom struct for retreived data since this data is special just for this
 	//request.
@@ -291,8 +323,8 @@ func LatestRequestsDuration(w http.ResponseWriter, r *http.Request) {
 		db.TableActivityLog + `.Method`,
 		db.TableActivityLog + `.URL`,
 		db.TableActivityLog + `.TimeDuration`,
-		db.TableActivityLog + `.TimestampCreated`,
 		`DATE(` + db.TableActivityLog + `.DatetimeCreated) AS DatetimeCreated`,
+		db.TableActivityLog + `.TimestampCreated`,
 	}
 
 	colstring, err := cols.ForSelect()
@@ -331,6 +363,62 @@ func LatestRequestsDuration(w http.ResponseWriter, r *http.Request) {
 	//Allow results to be cached for a short amount of time since this pages takes
 	//a while to load (lots of activities) and doesn't change frequently.
 	w.Header().Set("Cache-Control", "no-transform,public,max-age="+strconv.Itoa(30))
+
+	output.DataFound(data, w)
+}
+
+// DurationByEndpoint gets the duration it took the server/app the response grouped
+// by endpoint. This is useful for identifying the slowest/most latent endpoints.
+func DurationByEndpoint(w http.ResponseWriter, r *http.Request) {
+	//Get query.
+	//
+	//Ignore DatetimeCreated timezone handling here since this data is pretty low-
+	//level and doesn't need to be adjusted.
+	cols := sqldb.Columns{
+		db.TableActivityLog + `.URL`, //endpoint
+		`COUNT(ID) AS EndpointHits`,  //for displaying how popular the endpoint is, infrequently hit endpoints that are slow aren't an issue.
+		`FLOOR(AVG(` + db.TableActivityLog + `.TimeDuration)) AS AverageTimeDuration`,
+		`FLOOR(MAX(` + db.TableActivityLog + `.TimeDuration)) AS MaxTimeDuration`,
+		`FLOOR(MIN(` + db.TableActivityLog + `.TimeDuration)) AS MinTimeDuration`,
+	}
+
+	colstring, err := cols.ForSelect()
+	if err != nil {
+		output.Error(err, "Could not build columns to select", w)
+		return
+	}
+
+	//Build query.
+	q := `
+		SELECT ` + colstring + ` 
+		FROM ` + db.TableActivityLog
+
+	q += ` GROUP BY ` + db.TableActivityLog + `.URL`
+	q += ` ORDER BY MAX(` + db.TableActivityLog + `.TimeDuration) DESC`
+
+	//Define custom struct for retreived data since this data is special just for this
+	//request.
+	type dataReturned struct {
+		URL                 string
+		EndpointHits        int
+		Method              string
+		AverageTimeDuration int
+		MaxTimeDuration     int
+		MinTimeDuration     int
+	}
+	var data []dataReturned
+
+	//Run query.
+	c := sqldb.Connection()
+	err = c.SelectContext(r.Context(), &data, q)
+	if err != nil {
+		output.Error(err, "Could not look up data.", w)
+		return
+	}
+
+	//Allow results to be cached for a short amount of time since this pages takes
+	//a while to load (lots of activities) and doesn't change frequently.
+	w.Header().Set("Cache-Control", "no-transform,public,max-age="+strconv.Itoa(60))
 
 	output.DataFound(data, w)
 }

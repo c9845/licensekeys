@@ -1,0 +1,62 @@
+{{$showDevHeader := .Development}}
+
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>{{template "html_title_app_name" .}} | Activity Log, Duration By Endpoint</title>
+
+		{{template "html_head" .}}
+	</head>
+	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !! </p>
+		{{end}}
+
+		<!-- HEADER -->
+        {{template "header-with-btns" .}}
+
+		<main>
+			<div class="container">
+				<div class="row">
+                   <div class="col">
+                        <div class="card" id="activityLogChartDurationByEndpoint">
+                            <div class="card-header">
+                                <h5>Activity Log, Duration By Endpoint</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-hover table-sm">
+                                    <thead class="no-border-top">
+                                        <th>Endpoint</th>
+                                        <th class="numeric-cell">Hits</th>
+                                        <th class="numeric-cell">Average (ms)</th>
+                                        <th class="numeric-cell">Max. (ms)</th>
+                                        <th class="numeric-cell">Min. (ms)</th>
+                                    </thead>
+                                    <tbody>
+                                        <template v-if="rawData.length > 0">
+                                            <tr v-for="item in rawData">
+                                                <td>[[item.URL]]</td>
+                                                <td class="numeric-cell">[[item.EndpointHits]]</td>
+                                                <td class="numeric-cell">[[item.AverageTimeDuration.toFixed(0)]]</td>
+                                                <td class="numeric-cell">[[item.MaxTimeDuration.toFixed(0)]]</td>
+                                                <td class="numeric-cell">[[item.MinTimeDuration.toFixed(0)]]</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+
+                                <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                    [[msg]]
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+				</div>                   
+			</div>
+        </main>
+
+        {{template "footer"}}
+        {{template "chart-js" .}}
+		{{template "html_scripts" .}}
+	</body>
+</html>

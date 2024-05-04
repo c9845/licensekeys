@@ -154,14 +154,13 @@
                                     </small>
                                 </h5>
                                 <div class="card-header-btn">
-                                    <div class="btn-group">
-                                        <!-- <button class="btn btn-outline-primary btn-sm" v-on:click="showHelp = !showHelp"><i class="fas fa-question"></i></button> -->
-                                        <!-- <button class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown">Charts </button> -->
+                                    <div class="dropdown">
                                         <button class="btn btn-outline-primary btn-sm dropdown-toggle" data-toggle="dropdown">Charts </button>
                                         <div class="dropdown-menu dropdown-menu-right">
-                                            <a class="dropdown-item" href="/activity-log/charts/activity-over-time-of-day/">Activity Over Time of Day</i></a>
-                                            <a class="dropdown-item" href="/activity-log/charts/max-avg-duration-per-month/">Max & Avg. Duration of Requests by Month</i></a>
-                                            <a class="dropdown-item" href="/activity-log/charts/duration-of-latest-requests/">Duration of Latest Requests</i></a>
+                                            <a class="dropdown-item" href="/app/administration/activity-log/activity-over-time-of-day/">Activity Over Time of Day</i></a>
+                                            <a class="dropdown-item" href="/app/administration/activity-log/max-and-avg-duration-by-month/">Max & Avg. Duration of Requests by Month</i></a>
+                                            <a class="dropdown-item" href="/app/administration/activity-log/duration-of-latest-requests/">Duration of Latest Requests</i></a>
+                                            <a class="dropdown-item" href="/app/administration/activity-log/duration-by-endpoint/">Duration By Endpoint</i></a>
                                         </div>
                                     </div>
                                 </div>
@@ -179,12 +178,12 @@
                                             <tr v-if="activitiesRetrieved === false">
                                                 <td colspan="10">Activites not retrieved yet.</td>
                                             </tr>
-                                            <tr v-else-if="activities.length === 0">
+                                            <tr v-else-if="activitiesRetrieved && activities.length === 0">
                                                 <td colspan="10">No data retrieved.</td>
                                             </tr>
                                             <template v-else>
                                                 <tr v-for="a in activities" v-bind:data-activityid="a.ID">
-                                                    <td class="datetime whitespace-no-wrap"><span v-bind:title="a.DatetimeCreatedUTC + ' UTC'">[[a.DatetimeCreated]]</span></td>
+                                                    <td class="datetime whitespace-no-wrap"><span v-bind:title="a.DatetimeCreated + ' UTC'">[[a.DatetimeCreatedInTZ]]</span></td>
                                                     
                                                     <td class="user">
                                                         <span v-if="a.Username !== ''">[[a.Username]]</span>

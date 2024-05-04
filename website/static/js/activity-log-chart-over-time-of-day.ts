@@ -12,11 +12,21 @@
 let activityOverTimeOfDayChart = undefined;
 
 interface activityOverTimeOfDay {
+    //The number of activities that occurred within the time bracket/interval.
     Count: number,
-    Hour: number,
-    Minute: number,
-    MinuteRounded: number,
-    HoursDecimal: number,
+
+    //Raw data for diagnostics.
+    MinutesRaw: number, //00 - 60
+    MinutesRounded: number, //00, 10, 20, 30 40, 50, 60
+    HourRaw: number, //00 - 24
+
+    //Calculated time brackets, taking into consideration minute bracket overlap.
+    //AKA hour 2 minute 60 is the same as hour 3 minute 0.
+    HourBracket: number,
+    MinuteBracket: number,
+
+    //Time as a decimal for ordering.
+    HoursMinutesDecimal: number, //3:30 = 3.5
 }
 
 if (document.getElementById("activityLogChartOverTimeOfDay")) {
@@ -45,7 +55,7 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
             getData: function () {
                 this.msg = "Retrieving data, this may take a while...";
                 this.msgType = msgTypes.primary;
-                
+
                 let reqParams: Object = {};
                 fetch(get(this.urls.overTimeOfDay, reqParams))
                     .then(handleRequestErrors)
@@ -70,7 +80,7 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLogChartOverTimeOfDay.msg = 'An unknown error occured. Please try again.';
+                        activityLogChartOverTimeOfDay.msg = 'An unknown error occurred. Please try again.';
                         activityLogChartOverTimeOfDay.msgType = msgTypes.danger;
                         return;
                     });
@@ -89,14 +99,14 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                 let points = [];
                 for (let r of (this.rawData as activityOverTimeOfDay[])) {
                     let p: object = {
-                        x: r.HoursDecimal,
+                        x: r.HoursMinutesDecimal,
                         y: r.Count,
 
                         //Extra data for tooltips since using HoursDecimal is ugly in 
                         //tooltips. These values represent the time "window"/interval
                         //we grouped data into (default is 10 minute intervals).
-                        hours: r.Hour,
-                        minutes: r.Minute,
+                        hours: r.HourBracket,
+                        minutes: r.MinuteBracket,
                     };
 
                     points.push(p);
@@ -109,7 +119,8 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                             type: 'linear',
                             ticks: {
                                 min: 0,
-                                max: 25,
+                                max: 24,
+                                stepSize: 1,
                             }
                         },
                     },
@@ -123,7 +134,20 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                         tooltip: {
                             callbacks: {
                                 label: function (context) {
-                                    return context.raw.y + " @ " + context.raw.hours + ":" + context.raw.minutes + " UTC";
+                                    //Handle single digit hours and minutes, always
+                                    //use two digits so tooltips are more consistent.
+                                    let hours: string = (context.raw.hours).toString();
+                                    if (hours.length === 1) {
+                                        hours = "0" + hours;
+                                    }
+
+                                    let minutes: string = (context.raw.minutes).toString();
+                                    if (minutes.length === 1) {
+                                        minutes = "0" + minutes;
+                                    }
+
+                                    //Build tooltip content.
+                                    return context.raw.y + " @ " + hours + ":" + minutes;
                                 }
                             }
                         }
@@ -138,9 +162,9 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                         //labels: xAxis,
                         datasets: [
                             {
-                                label: "points",   //label for legend, but legend isn't used
+                                label: "points",        //label for legend, but legend isn't used
                                 data: points,
-                                borderColor: '#007bff',      //primary, to match with app color scheme
+                                borderColor: '#007bff', //primary, to match with app color scheme
                             },
                         ],
                     },

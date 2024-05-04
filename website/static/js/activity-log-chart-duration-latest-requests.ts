@@ -38,8 +38,17 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
                 this.msg = "Retrieving data, this may take a while...";
                 this.msgType = msgTypes.primary;
 
+                //Check if we should ignore PDF creation from data retrieved since
+                //PDF creation takes a while causing data to be skewed.
+                let sp: URLSearchParams = new URLSearchParams(document.location.search);
+                let ignore: boolean = true;
+                if (sp.has("ignorePDF") && sp.get("ignorePDF") === "false") {
+                    ignore = false
+                }
+
+                //Make API request.
                 let reqParams: Object = {
-                    ignorePDF: true,
+                    ignorePDF: ignore,
                 };
                 fetch(get(this.urls.latestDur, reqParams))
                     .then(handleRequestErrors)
@@ -64,7 +73,7 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLogChartLatestRequestsDuration.msg = 'An unknown error occured. Please try again.';
+                        activityLogChartLatestRequestsDuration.msg = 'An unknown error occurred. Please try again.';
                         activityLogChartLatestRequestsDuration.msgType = msgTypes.danger;
                         return;
                     });
@@ -116,7 +125,7 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
                                     let point = activityLogChartLatestRequestsDuration.rawData[index];
                                     return point.Method + ": " + point.URL;
                                 },
-    
+
                                 //this modifies the tooltip label to show the produced lot number or container code when a point is hovered
                                 //Showing this extra info is helpful for figuring out what batch/raw material a point belongs to for diagnosing issues.
                                 label: function (context) {

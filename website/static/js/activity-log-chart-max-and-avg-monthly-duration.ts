@@ -45,8 +45,17 @@ if (document.getElementById("activityLogChartMaxAndAvgMonthlyDuration")) {
                 this.msg = "Retrieving data, this may take a while...";
                 this.msgType = msgTypes.primary;
 
+                //Check if we should ignore PDF creation from data retrieved since
+                //PDF creation takes a while causing data to be skewed.
+                let sp: URLSearchParams = new URLSearchParams(document.location.search);
+                let ignore: boolean = true;
+                if (sp.has("ignorePDF") && sp.get("ignorePDF") === "false") {
+                    ignore = false
+                }
+
+                //Make API request.
                 let reqParams: Object = {
-                    ignorePDF: true,
+                    ignorePDF: ignore,
                 };
                 fetch(get(this.urls.maxAvgDuration, reqParams))
                     .then(handleRequestErrors)
@@ -71,7 +80,7 @@ if (document.getElementById("activityLogChartMaxAndAvgMonthlyDuration")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLogChartMaxAndAvgMonthlyDuration.msg = 'An unknown error occured. Please try again.';
+                        activityLogChartMaxAndAvgMonthlyDuration.msg = 'An unknown error occurred. Please try again.';
                         activityLogChartMaxAndAvgMonthlyDuration.msgType = msgTypes.danger;
                         return;
                     });
@@ -107,22 +116,18 @@ if (document.getElementById("activityLogChartMaxAndAvgMonthlyDuration")) {
                         leftYAxis: {
                             type: "linear",
                             position: "left",
-                            ticks: {
-                                min: 0,
-                            }
+                            min: 0,
                         },
                         rightYAxis: {
                             type: "linear",
                             position: "right",
-                            ticks: {
-                                min: 0,
-                            },
+                            min: 0,
                             grid: {
                                 display: false,
                                 displayOnChartArea: false,
                             }
                         },
-    
+
                     },
                     animation: {
                         duration: 0, //don't animate chart when it is shown for better performance

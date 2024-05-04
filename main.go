@@ -357,10 +357,10 @@ func main() {
 	adm.Handle("/user-logins/", admin.ThenFunc(pages.Page)).Methods("GET")
 	adm.Handle("/tools/", admin.ThenFunc(pages.Page)).Methods("GET")
 
-	r.Handle("/activity-log/", admin.ThenFunc(pages.Page)).Methods("GET")
-	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.ThenFunc(pages.Page)).Methods("GET")
-	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.ThenFunc(pages.Page)).Methods("GET")
-	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/charts/activity-over-time-of-day/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/charts/duration-of-latest-requests/", admin.ThenFunc(pages.Page)).Methods("GET")
 	adm.Handle("/activity-log/duration-by-endpoint/", admin.ThenFunc(pages.Page)).Methods("GET")
 
 	//**diagnostic stuff, accessible without logging in so not on "app" path.
