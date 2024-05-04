@@ -39,7 +39,7 @@ import (
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 // keyLength is the length of random part of the api key that is generated randomly

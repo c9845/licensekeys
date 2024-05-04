@@ -7,7 +7,7 @@ import (
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 //This table stores a history of each time a user logs into the app. This is used for

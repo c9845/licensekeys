@@ -14,7 +14,7 @@ import (
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/pwds"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 // badPasswordAttemptsMax helps determine the maximum delay a user will experience if

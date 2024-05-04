@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"

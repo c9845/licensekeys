@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 //This file specifically handles page that shows the data for a specific license that

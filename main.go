@@ -32,7 +32,7 @@ import (
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/licensekeys/v2/version"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )
@@ -179,34 +179,40 @@ func init() {
 	}
 
 	//Configure the database.
-	cfg := sqldb.Config{
+	cfg := &sqldb.Config{
 		Type:       sqldb.DBTypeSQLite,
 		SQLitePath: config.Data().DBPath,
 		SQLitePragmas: []string{
-			"PRAGMA busy_timeout = 5000", //so mattn and modernc are treated the same, 5000 is default for mattn
+			"PRAGMA busy_timeout = 5000",  //so mattn and modernc are treated the same, 5000 is default for mattn
+			"PRAGMA synchronous = NORMAL", //so mattn and modernc are treated the same, NORMAL is default for mattn
 			"PRAGMA journal_mode = " + config.Data().DBJournalMode,
 			"PRAGMA foreign_keys = ON",
 		},
 		MapperFunc:    sqldb.DefaultMapperFunc,
+		LoggingLevel:  sqldb.LogLevelInfo,
 		DeployQueries: db.DeployQueries,
 		UpdateQueries: db.UpdateQueries,
-		LoggingLevel:  sqldb.LogLevelInfo,
-		UpdateIgnoreErrorFuncs: []sqldb.UpdateIgnoreErrorFunc{
-			sqldb.UFAddDuplicateColumn,
-			sqldb.UFDropUnknownColumn,
-			sqldb.UFModifySQLiteColumn,
-			sqldb.UFIndexAlreadyExists,
+		UpdateQueryErrorHandlers: []sqldb.ErrorHandler{
+			sqldb.IgnoreErrorDuplicateColumn,
+			sqldb.IgnoreErrorDropColumn,
+			sqldb.IgnoreErrorDropForeignKey,
+			sqldb.IgnoreErrorDropTable,
+			sqldb.IgnoreErrorTableDoesNotExist,
+			sqldb.IgnoreErrorColumnDoesNotExist,
+			sqldb.IgnoreErrorSQLiteModify,
+			sqldb.IgnoreErrorRenameDoesNotExist,
+			sqldb.IgnoreErrorTableDoesNotExist,
 		},
 	}
 	if !*dbDontInsertInitialData {
 		cfg.DeployFuncs = db.DeployFuncs
 	}
 
-	sqldb.Save(cfg)
+	sqldb.Use(cfg)
 
 	//Deploy the database if requested by --deploy-db flag.
 	if *dbDeploySchema {
-		err := sqldb.DeploySchema()
+		err := sqldb.DeploySchema(nil)
 		if err != nil {
 			log.Fatalln("Error during db deploy.", err)
 			return
@@ -214,6 +220,7 @@ func init() {
 	}
 
 	//Update the database if requested by the --update-db flag.
+	//
 	//Updating does not deploy the db! We did this once but it causes issues when
 	//deploying a table index for a table that already exists but the column does not
 	//exist (if table is already defined, the CREATE TABLE query doesn't check if
@@ -221,37 +228,40 @@ func init() {
 	//query. In this case, the CREATE INDEX runs before the ADD COLUMN and thus causes
 	//an issue.
 	//This "deploy as part of updating" functionality was really done to address adding
-	//of new tables to schema. Handle this instead by adding createTable... query to
+	//of new tables to schema. Handle this instead by adding createTable... queries to
 	//the list of update queries.
 	if *dbUpdateSchema {
-		err = sqldb.UpdateSchema()
+		err = sqldb.UpdateSchema(nil)
 		if err != nil {
 			log.Fatalln("Error during db update.", err)
 			return
 		}
 	}
 
-	//Exit app if user passed the deploy or update flags. This is done so that user
-	//doesn't just run the binary with either flag hardcoded (i.e.: in a service
-	//file) which could cause issues if the app is updated and restarted (we want
-	//users to be very apparent/involved to deploys or updates).
+	//Exit app if user passed the deploy or update flags.
+	//
+	//This is done so that user doesn't just run the binary with either flag
+	//hardcoded (i.e.: in a service file) which could cause issues if the app is
+	//updated and restarted (we want users to be very apparent/involved to deploys or
+	//updates).
 	if *dbDeploySchema || *dbUpdateSchema {
 		os.Exit(0)
 		return
 	}
 
 	//Connect to the database.
+	//
 	//If the database doesn't exist, it will be created. This "create if doesn't exist"
 	//functionality was added to simplify first run of the app (user doesn't have to
 	//pass the --deploy-db flag) similar to the creating of a default config file if
 	//none exists.
 	err = sqldb.Connect()
 	if os.IsNotExist(err) {
-		log.Println("WARNING! (main) Database file does not exist at given path, database will be deployed.")
+		log.Println("WARNING! (main) Database file does not exist at given path, file will be created and database will be deployed.")
 
-		err := sqldb.DeploySchema()
+		err := sqldb.DeploySchema(nil)
 		if err != nil {
-			log.Fatalln("Error during db deploy.", err)
+			log.Fatalln("Error deploying non-existent database.", err)
 			return
 		}
 

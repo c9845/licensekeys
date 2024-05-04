@@ -15,7 +15,7 @@ import (
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )

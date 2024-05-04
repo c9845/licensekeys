@@ -1,11 +1,13 @@
 module github.com/c9845/licensekeys/v2
 
-go 1.20
+go 1.21
+
+toolchain go1.22.2
 
 require (
 	github.com/c9845/hashfs v1.0.0
 	github.com/c9845/output v1.0.0
-	github.com/c9845/sqldb/v2 v2.5.1
+	github.com/c9845/sqldb/v3 v3.0.1
 	github.com/gorilla/mux v1.8.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/justinas/alice v1.2.0

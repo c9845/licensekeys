@@ -1,6 +1,6 @@
 package db
 
-import "github.com/c9845/sqldb/v2"
+import "github.com/c9845/sqldb/v3"
 
 // DeployQueries is the list of queries to deploy the database schema. This only includes
 // CREATE TABLE queries.
@@ -27,7 +27,7 @@ var DeployQueries = []string{
 	createTableRenewalRelationships,
 }
 
-var DeployFuncs = []sqldb.DeployFunc{
+var DeployFuncs = []sqldb.QueryFunc{
 	insertInitialUser,
 	insertInitialAppSettings,
 

@@ -16,7 +16,7 @@ import (
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/utils"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 // Clear handles deleting rows from the activity log table. This is only done from the

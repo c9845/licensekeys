@@ -7,7 +7,7 @@ import (
 
 	"github.com/c9845/licensekeys/v2/licensefile"
 	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 //Apps stores the applications you generate license keys for.

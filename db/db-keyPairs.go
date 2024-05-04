@@ -8,7 +8,7 @@ import (
 
 	"github.com/c9845/licensekeys/v2/licensefile"
 	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 //This table stores the public/private keypair used for generating license signatures.

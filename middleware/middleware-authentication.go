@@ -13,7 +13,7 @@ import (
 	"github.com/c9845/licensekeys/v2/pages"
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 // This file checks if a user is already authenticated to the app (has a session set),

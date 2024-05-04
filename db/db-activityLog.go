@@ -9,7 +9,7 @@ import (
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 	"gopkg.in/guregu/null.v3"
 )
 

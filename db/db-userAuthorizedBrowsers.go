@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 )
 
 //This table stores browser data for browsers a user has logged into this app on with

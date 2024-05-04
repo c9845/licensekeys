@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 )
 
