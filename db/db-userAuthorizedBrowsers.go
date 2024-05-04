@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"strings"
 
 	"github.com/c9845/sqldb/v3"
 )
@@ -18,11 +19,12 @@ type AuthorizedBrowser struct {
 	ID              int64
 	DatetimeCreated string
 	UserID          int64
-	RemoteIP        string
-	UserAgent       string
-	Cookie          string //a token saved to user's cookie so that if user resets browser we reprompt for 2fa token
-	Timestamp       int64  //so we can force asking for a 2fa code after so much time regardless if browser is trusted
 	Active          bool
+
+	RemoteIP  string
+	UserAgent string
+	Cookie    string //a token saved to user's cookie so that if user resets browser we reprompt for 2fa token
+	Timestamp int64  //so we can force asking for a 2fa code after so much time regardless if browser is trusted
 }
 
 const (
@@ -31,11 +33,12 @@ const (
 			ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			DatetimeCreated TEXT DEFAULT CURRENT_TIMESTAMP,
 			UserID INTEGER NOT NULL,
+			Active INTEGER NOT NULL DEFAULT 1,
+
 			RemoteIP TEXT NOT NULL,
 			UserAgent TEXT NOT NULL,
 			Cookie TEXT NOT NULL,
 			Timestamp INTEGER NOT NULL,
-			Active INTEGER NOT NULL DEFAULT 1,
 
 			FOREIGN KEY(UserID) REFERENCES ` + TableUsers + ` (ID)
 		)
@@ -43,10 +46,10 @@ const (
 
 	createIndexAuthorizedBrowsersRemoteIP     = `CREATE INDEX IF NOT EXISTS ` + TableAuthorizedBrowsers + `__RemoteIP_idx ON ` + TableAuthorizedBrowsers + ` (RemoteIP)`
 	createIndexAuthorizedBrowsersCookieUnique = `CREATE UNIQUE INDEX IF NOT EXISTS ` + TableAuthorizedBrowsers + `__Cookie_idx ON ` + TableAuthorizedBrowsers + ` (Cookie)`
+	createIndexAuthorizedBrowsersCookie       = `CREATE INDEX IF NOT EXISTS ` + TableAuthorizedBrowsers + `__Cookie_idx2 ON ` + TableAuthorizedBrowsers + ` (Cookie)`
 )
 
 // Insert saves a row to the database.
-// you should have already performed validation.
 func (a *AuthorizedBrowser) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
 		"UserID",
@@ -82,33 +85,51 @@ func (a *AuthorizedBrowser) Insert(ctx context.Context) (err error) {
 	}
 
 	id, err := res.LastInsertId()
+	if err != nil {
+		return
+	}
+
 	a.ID = id
 	return
 }
 
-// LookUpAuthorizedBrowser looks up if a browser identified by ip, and cookie has
-// already been authorized via 2fa.
-func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, cookie string, activeOnly bool) (a AuthorizedBrowser, err error) {
-	//Note, useragent was removed from checking because it changes too frequently and
-	//was causing users to provide their 2fa token too often. This is mostly due to
-	//browsers updating frequently and including the browser version number in the
-	//useragent string.
-
+// GetAuthorizedBrowser looks up an authorized browser for a user by their ID, the
+// client's IP address, and the 2FA cookie value. This is used to check if the user
+// has already provided a 2FA token recently for the system they are trying to log in
+// from.
+//
+// IP address and cookie are used to identify browser. We used to use useragent as
+// part of identifying browser too, but it changes too frequently (browser updates)
+// and caused 2FA token to be required a lot.
+func GetAuthorizedBrowser(ctx context.Context, userID int64, ip, cookie string, activeOnly bool) (a AuthorizedBrowser, err error) {
 	q := `
 		SELECT *
 		FROM ` + TableAuthorizedBrowsers + `
-		WHERE
-			UserID = ?
-			AND
-			RemoteIP = ?
-			AND
-			Cookie = ?
 	`
-	b := sqldb.Bindvars{userID, ip, cookie}
+
+	var wheres []string
+	var b sqldb.Bindvars
+
+	w := `(UserID = ?)`
+	wheres = append(wheres, w)
+	b = append(b, userID)
+
+	w = `(RemoteIP = ?)`
+	wheres = append(wheres, w)
+	b = append(b, ip)
+
+	w = `(Cookie = ?)`
+	wheres = append(wheres, w)
+	b = append(b, cookie)
 
 	if activeOnly {
-		q += ` AND Active = ?`
+		w := `(Active = ?)`
+		wheres = append(wheres, w)
 		b = append(b, true)
+	}
+
+	if len(wheres) > 0 {
+		q += ` WHERE ` + strings.Join(wheres, " AND ")
 	}
 
 	c := sqldb.Connection()
@@ -121,15 +142,12 @@ func LookUpAuthorizedBrowser(ctx context.Context, userID int64, ip, cookie strin
 // all authorized browsers so user has to provide 2FA token again.  This func is called
 // in db-users.go ForceUserLogout().
 func DisableAllAuthorizedBrowsers(ctx context.Context, userID int64) (err error) {
-	//filtering by Active = true so we don't look up rows that
-	//are already set to false.
 	q := `
 		UPDATE ` + TableAuthorizedBrowsers + ` 
-		SET Active = ? 
+		SET 
+			Active = ? 
 		WHERE 
-			Active = ?
-			AND
-			UserID = ?
+			(UserID = ?)
 	`
 
 	c := sqldb.Connection()
@@ -143,7 +161,6 @@ func DisableAllAuthorizedBrowsers(ctx context.Context, userID int64) (err error)
 		ctx,
 
 		false, //set active to...
-		true,  //where active is...
 
 		userID,
 	)
@@ -151,12 +168,16 @@ func DisableAllAuthorizedBrowsers(ctx context.Context, userID int64) (err error)
 }
 
 // ClearAuthorizedBrowsers deletes rows from the authorized browsers table prior to a
-// given date. This is used as part of the admin tool to delete user login history.
+// given date.
+//
+// This is used from the admin tools page to clean up old entries and shrink the
+// database size.
 func ClearAuthorizedBrowsers(ctx context.Context, date string) (rowsDeleted int64, err error) {
 	//Delete rows from table.
 	q := `
 		DELETE FROM ` + TableAuthorizedBrowsers + ` 
-		WHERE DatetimeCreated < ?
+		WHERE 
+			(DatetimeCreated < ?)
 	`
 
 	c := sqldb.Connection()

@@ -143,9 +143,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//Cookie found, verify it. If cookie cannot be verified, request 2FA token.
-			authedBrowser, err := db.LookUpAuthorizedBrowser(r.Context(), u.ID, ip, cookie.Value, true)
-			log.Println(u.ID, ip, ua, cookie.Value)
-
+			authedBrowser, err := db.GetAuthorizedBrowser(r.Context(), u.ID, ip, cookie.Value, true)
 			if err == sql.ErrNoRows {
 				log.Println("users.Login", "could not find browser for given cookie, this is odd and should never happen", err)
 				output.Success(msgType2FATokenRequired, nil, w)
@@ -194,8 +192,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			//First, we do some simple checks for format since we know the 2FA token
 			//is 6 numbers. Then, we verify the token itself. If token is not valid,
 			//return an error telling user to try again.
-			if len(twoFAToken) != twoFATokenLength {
-				output.ErrorInputInvalid("The 2 Factor Authentication code you provided is not the correct length. It must be exactly "+strconv.Itoa(twoFATokenLength)+" numbers long.", w)
+			if len(twoFAToken) != twoFATokenLength.Length() {
+				output.ErrorInputInvalid("The 2 Factor Authentication code you provided is not the correct length. It must be exactly "+strconv.Itoa(twoFATokenLength.Length())+" numbers long.", w)
 				return
 			}
 			if _, err := strconv.Atoi(twoFAToken); err != nil {

@@ -25,6 +25,7 @@ var createIndexes = []string{
 	createIndexAPIKeysActive,
 	createIndexAuthorizedBrowsersRemoteIP,
 	createIndexAuthorizedBrowsersCookieUnique,
+	createIndexAuthorizedBrowsersCookie,
 	createIndexUserLoginsValueUnique,
 	createIndexUserLoginsDatetimeCreated,
 	createIndexUsersUsername,
