@@ -4,25 +4,36 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/c9845/licensekeys/v2/pwds"
 	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/sqldb/v2"
+	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 )
 
 // TableUsers is the name of the table
 const TableUsers = "users"
 
-// default stuff to insert upon creating table
-const (
-	InitialUserUsername = "admin@example.com"
-	initialUserPassword = "admin@example.com"
-)
+// InitialUserUsername is the username of the default user that is created when
+// --deploy-db is run for the first time.
+const InitialUserUsername = "admin@example.com"
+
+// InitialUserPassword is populated by insertInitialUser() for the default user when
+// the database is deployed. This value is then logged out when --deploy-db is done
+// running.
+//
+// This was implemented so that we can have a random password upon each deploy instead
+// of having a hardcoded default password. This forces users to not use the default
+// user.
+var InitialUserPassword = ""
 
 // User is used to interact with the table
 type User struct {
@@ -84,30 +95,42 @@ const (
 )
 
 func insertInitialUser(c *sqlx.DB) (err error) {
-	//check if user already exists
+	//Check if the default initial user already exists.
 	ctx := context.Background()
 	_, err = GetUserByUsername(ctx, InitialUserUsername, sqldb.Columns{"ID"})
 	if err == nil {
-		log.Println("insertInitialUser...already exists")
+		log.Println("insertInitialUser...skipping, default initial user already exists")
 		return
-	} else if err != nil && err != sql.ErrNoRows {
+	} else if err != sql.ErrNoRows {
 		return
 	}
 
-	//initial user doens't exist, check if any other users exist
-	//The initial user's username could have been changed so we don't
-	//want to insert another initial user if other users already exist.
+	//Default user doesn't exist. Check if other users exist. This handles if the
+	//default initial user's username was changed so we don't recreate the default
+	//user for no reason.
 	uu, err := GetUsers(ctx, true)
 	if err != nil {
 		return
-	}
-	if len(uu) > 0 {
-		log.Println("insertInitialUser...other active users already exist")
+	} else if len(uu) > 0 {
+		log.Println("insertInitialUser...skipping, other users already exist")
 		return
 	}
 
-	//insert initial data
-	hashedPwd, err := pwds.Create(initialUserPassword)
+	//No users exist in the database, as expected for an initial deploy of the app.
+	//Create the default initial user.
+	b := make([]byte, 21)
+	_, err = rand.Read(b)
+	if err == nil {
+		InitialUserPassword = base64.StdEncoding.EncodeToString(b)
+
+	} else {
+		log.Println("insertInitialUser...failed creating random password for default initial user, falling back to less-random password", err)
+
+		now := time.Now().UnixNano()
+		InitialUserPassword = strconv.FormatInt(now, 10)
+	}
+
+	hashedPwd, err := pwds.Create(InitialUserPassword)
 	if err != nil {
 		return
 	}

@@ -217,6 +217,18 @@ func init() {
 			log.Fatalln("Error during db deploy.", err)
 			return
 		}
+
+		//Log out default user credential is user was created.
+		if db.InitialUserPassword != "" {
+			log.Println("*********************************************")
+			log.Println("Initial User Credentials:")
+			log.Println(" Username:", db.InitialUserUsername)
+			log.Println(" Password:", db.InitialUserPassword)
+			log.Println("*********************************************")
+
+			//Unset the password now that we have logged it out, for security.
+			db.InitialUserPassword = ""
+		}
 	}
 
 	//Update the database if requested by the --update-db flag.
@@ -263,6 +275,18 @@ func init() {
 		if err != nil {
 			log.Fatalln("Error deploying non-existent database.", err)
 			return
+		}
+
+		//Log out default user credential is user was created.
+		if db.InitialUserPassword != "" {
+			log.Println("*********************************************")
+			log.Println("Initial User Credentials:")
+			log.Println(" Username:", db.InitialUserUsername)
+			log.Println(" Password:", db.InitialUserPassword)
+			log.Println("*********************************************")
+
+			//Unset the password now that we have logged it out, for security.
+			db.InitialUserPassword = ""
 		}
 
 		//Now that database is created, we can connect to it. The connection used in
