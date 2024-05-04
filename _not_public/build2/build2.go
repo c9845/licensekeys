@@ -777,8 +777,7 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 		defer zw.Close()
 
 		sourceDir := os.DirFS(distributionDirAbs)
-
-		innerErr = createZip(zw, sourceDir)
+		innerErr = zw.AddFS(sourceDir)
 		if innerErr != nil {
 			return fmt.Errorf("error creating zip %w", innerErr)
 		}
@@ -786,25 +785,6 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 		//Close the zipper since it was created successfully. Need to do this before
 		//reading zip to create checksum.
 		zw.Close()
-
-		//Github issue version zipping. Reference: https://github.com/golang/go/issues/54898
-		/*
-			zipFileAbs2 := distributionDirAbs + "-2" + ".zip"
-			zipFile2, innerErr := os.Create(zipFileAbs2)
-			if innerErr != nil {
-				return fmt.Errorf("error creating zip file (2) %w", innerErr)
-			}
-
-			zw2 := zip.NewWriter(zipFile2)
-			defer zw2.Close()
-
-			innerErr = zipAddFS(zw2, sourceDir)
-			if innerErr != nil {
-				return fmt.Errorf("error creating zip (zipAddFS) %w", innerErr)
-			}
-
-			zw2.Close()
-		*/
 
 		//Delete the source un-zipped directory of files.
 		innerErr = os.RemoveAll(distributionDirAbs)
@@ -846,93 +826,6 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 	} //end for: loop through osArches
 
 	return
-}
-
-// createZip creates a zip from the directory tree at f and writes it to zw.
-func createZip(zw *zip.Writer, f fs.FS) (err error) {
-	//Zip up files.
-	err = fs.WalkDir(f, ".", func(path string, d fs.DirEntry, err error) error {
-		//Error with path.
-		if err != nil {
-			return fmt.Errorf("error with path %w", err)
-		}
-
-		//Skip directories. Directories will be created automatically from paths to
-		//each file to zip up.
-		if d.IsDir() {
-			return nil
-		}
-
-		//Handle formatting path name properly for use in zip file. Paths must
-		//use forward slashes, even on Windows.
-		//See: https://pkg.go.dev/archive/zip#Writer.Create
-		//
-		//Directories are created automatically based on the subdirectories provided
-		//in each file's path.
-		path = filepath.ToSlash(path)
-
-		//Open the path to read from.
-		f, err := f.Open(path)
-		if err != nil {
-			return fmt.Errorf("could not open file %w", err)
-		}
-		defer f.Close()
-
-		//Create the file in the zip.
-		w, err := zw.Create(path)
-		if err != nil {
-			return fmt.Errorf("could not create file in zip %w", err)
-		}
-
-		//Write the source file into the zip at path noted in Create().
-		_, err = io.Copy(w, f)
-		if err != nil {
-			return fmt.Errorf("could not copy file to zip %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-// zipAddFS is a Github-issue related version of my createZip function. See Github
-// issue: https://github.com/golang/go/issues/54898
-//
-//lint:ignore U1000 this func is here for testing.
-func zipAddFS(w *zip.Writer, fsys fs.FS) error {
-	return fs.WalkDir(fsys, ".", func(name string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		h, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return err
-		}
-		h.Name = name
-		h.Method = zip.Deflate
-		fw, err := w.CreateHeader(h)
-		if err != nil {
-			return err
-		}
-		f, err := fsys.Open(name)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		_, err = io.Copy(fw, f)
-		return err
-	})
 }
 
 // validate does some sanitizing and validation of the parsed config file.
