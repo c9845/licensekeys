@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -169,6 +170,17 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 
 	tzName, _ := time.Now().Zone()
 	d.set("SytemTimezone (app)", tzName)
+	//Golang stuff...
+	d.set("**BUILDINFO**", "******************************")
+	b, ok := debug.ReadBuildInfo()
+	if ok {
+		d.set("GoVersion", b.GoVersion)
+
+		s := b.Settings
+		for _, v := range s {
+			d.set("Go"+v.Key, v.Value)
+		}
+	}
 
 	//return data to build page
 	pd := PageData{
