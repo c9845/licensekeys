@@ -25,15 +25,8 @@ import (
 
 // configuration options
 const (
-	//secretLength is the length of the shared secret
-	//20 is 160 bytes which is the recommended length per RFC4226
-	secretLength = 20
-
 	//default stuff for uri
 	defaultIssuer = "License Keys"
-
-	//the length of the one time codes provided for 2 factor auth
-	twoFATokenLength = 6
 
 	//the maximum number we use to build the delay for bad 2fa attempts
 	max2FABadAttemps = 4
@@ -44,6 +37,9 @@ const (
 	twoFACookieName = "2fa_browser_id"
 )
 
+// easier reuse, and easier identifying of what variable is for.
+var twoFATokenLength = otp.DigitsSix
+
 // Get2FABarcode generates a QR code for enrolling a user in 2FA. This returns the QR
 // code as a base64 string that will be embedded into an <img> tag using data: type
 // in src. This only returns a QR code if user is not currently enrolled in 2FA.
@@ -53,11 +49,23 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 
 	//Validate.
 	if userID < 0 {
-		output.ErrorInputInvalid("Could not determine which user's password you are changing.", w)
+		output.ErrorInputInvalid("Could not determine which user you are trying to manage 2 Factor Authentication for.", w)
 		return
 	}
 
-	//Check if 2fa is allowed and exit if 2fa is not allowed.
+	//Check if this user can manage this user's 2FA enrollment. Admins can manage any
+	//users' enrollment, but non-admins can only manager their own enrollment.
+	loggedInUserData, err := GetUserDataByRequest(r)
+	if err != nil {
+		output.Error(err, "Could not determine the user making this request.", w)
+		return
+	}
+	if !loggedInUserData.Administrator && loggedInUserData.ID != userID {
+		output.ErrorInputInvalid("You cannot manage the 2FA enrollment of another user.", w)
+		return
+	}
+
+	//Check if 2FA is allowed and exit if 2fa is not allowed.
 	as, err := db.GetAppSettings(r.Context())
 	if err != nil {
 		log.Println("pages.getPageConfigData", "Could not look up app settings.", err)
@@ -95,16 +103,17 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 		issuer = issuer + "_dev"
 	}
 
-	//Generate the 2fa key.
-	//key is the url to be encoded in a qr code.
-	//secret is generated automatically and retrieved from the key for storing in db.
+	//Generate the 2FA key.
+	//
+	//key is the URL to be encoded in a QR code.
+	//secret is the shared secret used to validate 2FA codes. It is stored in our db.
 	keyOpts := totp.GenerateOpts{
 		Issuer:      issuer,
 		AccountName: user.Username,
 		Period:      30,
-		SecretSize:  secretLength,
 		Digits:      otp.DigitsSix,
-		Algorithm:   otp.AlgorithmSHA512,
+		Algorithm:   otp.AlgorithmSHA1,
+		// Algorithm:   otp.AlgorithmSHA512, //Google Authenticator as of 10/2023 (I imagine since the newest major update, doesn't work with anything by SHA1)
 	}
 	key, err := totp.Generate(keyOpts)
 	if err != nil {
@@ -134,7 +143,7 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 	//Save the secret for the user.
 	err = db.Save2FASecret(r.Context(), userID, key.Secret())
 	if err != nil {
-		output.Error(err, "Could not save secret data for 2 Factor Authentication.  Investigate the logs.", w)
+		output.Error(err, "Could not save secret data for 2 Factor Authentication. Please ask an administrator to investigate the logs.", w)
 		return
 	}
 
@@ -142,8 +151,8 @@ func Get2FABarcode(w http.ResponseWriter, r *http.Request) {
 }
 
 // Validate2FACode takes the 6 character 1-time code provided by a user and checks if
-// it is valid given the 2fa info we have saved for the user. This is used to make sure
-// that enrollment in 2fa is successful.
+// it is valid given the 2FA info we have saved for the user. This is used to make
+// sure that enrollment in 2FA is successful.
 func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 	//Get inputs.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -151,19 +160,31 @@ func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 
 	//Validate.
 	if userID < 0 {
-		output.ErrorInputInvalid("Could not determine which user's password you are changing.", w)
+		output.ErrorInputInvalid("Could not determine which user you are trying to manage 2 Factor Authentication for.", w)
 		return
 	}
 	if _, err := strconv.Atoi(token); err != nil {
 		output.ErrorInputInvalid("Validation code must be numbers only.", w)
 		return
 	}
-	if len(token) != twoFATokenLength {
-		output.ErrorInputInvalid("Validation codes are exactly "+strconv.Itoa(twoFATokenLength)+" characters long.", w)
+	if len(token) != twoFATokenLength.Length() {
+		output.ErrorInputInvalid("Validation codes are exactly "+strconv.Itoa(twoFATokenLength.Length())+" characters long.", w)
 		return
 	}
 
-	//Get 2fa secret for this user.
+	//Check if this user can manage this user's 2FA enrollment. Admins can manage any
+	//users' enrollment, but non-admins can only manager their own enrollment.
+	loggedInUserData, err := GetUserDataByRequest(r)
+	if err != nil {
+		output.Error(err, "Could not determine the user making this request.", w)
+		return
+	}
+	if !loggedInUserData.Administrator && loggedInUserData.ID != userID {
+		output.ErrorInputInvalid("You cannot manage the 2FA enrollment of another user.", w)
+		return
+	}
+
+	//Look up the 2FA secret for this user.
 	cols := sqldb.Columns{"TwoFactorAuthSecret"}
 	user, err := db.GetUserByID(r.Context(), userID, cols)
 	if err != nil {
@@ -171,14 +192,14 @@ func Validate2FACode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Validate 2fa code.
+	//Validate 2FA code.
 	valid := validate2FA(token, user.TwoFactorAuthSecret)
 	if !valid {
-		output.ErrorInputInvalid("The provided Validation Code is not valid.  Please try again or refresh the page and generate a new QR code.", w)
+		output.ErrorInputInvalid("The provided Validation Code is not valid. Please try again or refresh the page and generate a new QR code.", w)
 		return
 	}
 
-	//Code is valid, set 2fa as enabled for this user.
+	//Code is valid, set 2FA as enabled for this user.
 	err = db.Enable2FA(r.Context(), userID, true)
 	if err != nil {
 		output.Error(err, "Could not enable 2 Factor Authentication for this user.", w)
@@ -206,9 +227,22 @@ func Deactivate2FA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Turn 2fa off.
-	//No need to wipe the secret since it will be regenerated anyway if 2fa is re-enabled.
-	err := db.Enable2FA(r.Context(), userID, false)
+	//Check if this user can manage this user's 2FA enrollment. Admins can manage any
+	//users' enrollment, but non-admins can only manager their own enrollment.
+	loggedInUserData, err := GetUserDataByRequest(r)
+	if err != nil {
+		output.Error(err, "Could not determine the user making this request.", w)
+		return
+	}
+	if !loggedInUserData.Administrator && loggedInUserData.ID != userID {
+		output.ErrorInputInvalid("You cannot manage the 2FA enrollment of another user.", w)
+		return
+	}
+
+	//Turn 2FA off.
+	//
+	//No need to wipe the secret since it will be regenerated if 2FA is re-enabled.
+	err = db.Enable2FA(r.Context(), userID, false)
 	if err != nil {
 		output.Error(err, "Could not deactivate 2 Factor Authentication for this user.", w)
 		return
