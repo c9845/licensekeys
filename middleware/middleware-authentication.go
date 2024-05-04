@@ -137,7 +137,7 @@ func Auth(next http.Handler) http.Handler {
 				UserData: u,
 				Data:     "Your user account is not active.  Please contact an administrator.",
 			}
-			pages.Show(w, "app", "error", pd)
+			pages.Show(w, "/app/error.html", pd)
 			return
 		}
 

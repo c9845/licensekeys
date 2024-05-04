@@ -23,12 +23,14 @@ import (
 var errPermissionRefused = errors.New("middleware: user does not have permission to this page or to perfom this action")
 
 // refuseAccess sends back the correct form of permission denied error message based
-// upon what kind of request this is. We have to handle two types of requests: api/ajax
-// requests or gui page requests.
+// upon what kind of request this is. We have to handle two types of requests: API/ajax
+// requests or GUI page requests.
 func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u db.User) {
-	msg := "You do not have the '" + permission + "' permission. Please contact an administrator."
+	log.Println("middleware.refuseAccess", r.URL.Path, permission, u.Username)
 
-	//Determine if this request is for a page or api endpoint and send back error
+	msg := "You do not have the '" + permission + "' permission.  Please contact an administrator."
+
+	//Determine if this request is for a page or API endpoint and send back error
 	//formatted correctly for request type.
 	if strings.Contains(r.URL.Path, "api") {
 		output.Error(errPermissionRefused, msg, w)
@@ -39,7 +41,7 @@ func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u d
 		UserData: u,
 		Data:     msg,
 	}
-	pages.Show(w, "app", "permission-error", pd)
+	pages.Show(w, "/app/permission-error.html", pd)
 }
 
 // verifyAccessError returns an error when an error occurs when trying to verify a

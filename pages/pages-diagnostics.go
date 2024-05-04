@@ -208,7 +208,7 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	default:
 		//Return an HTML page. This is similar to "text" but with some HTML formatting
 		//to make reading the data a bit nicer.
-		Show(w, "app", "diagnostics", pd)
+		Show(w, "/diagnostics.html", pd)
 	}
 }
 

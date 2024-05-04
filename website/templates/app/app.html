@@ -1,6 +1,7 @@
 {{$showDevHeader := .Development}}
 {{$userData := .InjectedData.UserData}}
 {{$appSettings := .InjectedData.AppSettings}}
+{{$data := .InjectedData.Data}}
 
 <!DOCTYPE html>
 <html>
@@ -18,6 +19,16 @@
 		{{template "header-with-btns" .}}	
 
 		<main>
+            <div class="container">
+                <!-- alerts for stuff -->
+
+                {{if $data.IsInitialDefaultUserActive}}
+                <div class="alert alert-warning">
+                    <b>Warning!</b> The default initial user, admin@example.com, is still active. You should deactivate this user, change the user's password, and turn off all permissions for improved security.
+                </div>
+                {{end}}
+            </div>
+
 			<div class="container">
                 
                 <div class="row justify-content-center stretch-cards">

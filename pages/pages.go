@@ -6,31 +6,22 @@ Most pages in the app are just a basic shell, with data being injected by API ca
 This was done so that pages are more reactive to filters and user activity. The API
 calls are done via js/ts and Vue objects.
 
-Most pages are returned via the App() or AppMapped() funcs. If a page needs to use,
-validate, or handle a specific URL query parameter, inject some custom data, etc.
-then a separate func in this package is defined. Since most pages are just HTML shells
-with Vue/API calls populating pages, most pages use App() and AppMapped().
-
-***
-
-The below App and AppMapped funcs were defined to clean up having to define a separate
-handler func for each basic page endpoint. For the pages that use App or AppMapped,
-the handler funcs were near identical except the HTML template to show or the HTTP
-router endpoint used. This resulted in a LOT of duplicate code defining handler funcs
-all just to serve an HTML template. These funcs clean this up a lot.
+Most pages are returned via the Page() or Show() funcs. Page is used for most
+pages, see the router in main.go. Show() is used when Page() isn't used and we
+defined a special http handler for the endpoint. Show() is when we aren't just
+returning a base HTML page and we are doing some validation or gathering data to
+inject into a template with Golang templating.
 */
 package pages
 
 import (
-	"errors"
 	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"path"
-	"path/filepath"
-	"strconv"
+	"sort"
+	"strings"
 
 	"github.com/c9845/hashfs"
 	"github.com/c9845/licensekeys/v2/db"
@@ -38,44 +29,39 @@ import (
 )
 
 // Config is the set of configuration settings for working with HTML templates. This
-// also stores the parsed HTML templates after Build() is called and that can be shown
-// with Show().
+// also stores the parsed HTML templates after ParseTemplates() is called.
 type Config struct {
 	//Development is passed to each template when rendering the HTML to be sent to
 	//the user so that the HTML can be altered based on if you are running your app
-	//in a development mode/enviroment. Typically this is used to show a banner on
-	//the page, loads extra diagnostic libraries or tools, and uses non-cache busted
+	//in a development mode/enviroment.
+	//
+	//Typically this is used to show a banner on the page, loads extra diagnostic
+	//third-party libraries (Vue with devtools support), and uses non-cache busted
 	//static files.
 	Development bool
 
 	//UseLocalFiles is passed to each template when rendering the HTML to be sent to
 	//the user so that the HTML can be altered to use locally hosted third party
 	//libraries (JS, CSS) versus libraries retrieve from the internet.
+	//
+	//This is typically set via config file field.
 	UseLocalFiles bool
 
 	//Extension is the extension you use for your template files. The default is
-	//"html".
+	//".html".
 	Extension string
 
 	//TemplateFiles is the fs.FS filesystem that holds the HTML templates to be read
-	//and used.
+	//and used. This is from os.DirFS or embed.
 	TemplateFiles fs.FS
-
-	//templates holds the list of parsed files constructed into golang templates.
-	//
-	//Templates are organized by subdirectory since that is how they are organized on
-	//disk and this allows for filenames, or {{define}} blocks, to only need to be
-	//unique within a subdirectory. This is where a specific template is looked up when
-	//Show() is called to actually show and return the HTML to a user and their browser.
-	//
-	//Note that this only allows for a single tier of subdirectories, subs-of-subs are
-	//not allowed!
-	templates map[string]*template.Template
 
 	//StaticFiles is the list of static files used to build the GUI (js, css, images).
 	//This is a separate FS that is used for cache busting purposes. See the static()
 	//func for more info.
 	StaticFiles *hashfs.HFS
+
+	//templates holds the list of parsed files constructed into Golang templates.
+	templates *template.Template
 
 	//Debug prints out debugging information if true.
 	Debug bool
@@ -86,94 +72,129 @@ const (
 	defaultExtension = ".html"
 )
 
-// cfg is the package level saved config. It is populated when you call Build().
+// cfg is the package level saved config. It is populated when you call
+// ParseTemplates().
 var cfg Config
 
-// Build parses each of the HTML files into a golang template, saves the parsed
-// templates for future use, and saves the config. Build() must be called before Show()
-// is called.
-//
-// Templates are build for the root directory in the given FS, as well as each sub-
-// directory of the root (only one tier of subdirectories is built). Files from the
-// root directory are inherited into each subdirectory, to allow for common
-// files/partials (header, footer, html head, etc.) to be reused between subdirectories.
-func (c *Config) Build() (err error) {
+// ParseTemplates parses HTML templates from the config's TemplateFiles and saves
+// the parsed templates for use with Show().
+func (c *Config) ParseTemplates() (err error) {
 	//Some validation.
 	if c.Extension == "" {
 		c.Extension = defaultExtension
 	}
 
-	//Empty out map that holds built templates in case Build() is called more than
-	//once.
-	c.templates = make(map[string]*template.Template)
-
-	//Parse root files. Root files can be used by themselves (via "" as the subdirectory
-	//name to Show()) and be inherited into subdirectories for reuse.
-	rootFilesPattern := path.Clean(path.Join(".", "*"+c.Extension))
-	rootTemplates, err := template.New("").Funcs(funcMap).ParseFS(c.TemplateFiles, rootFilesPattern)
-	if err != nil {
-		return
-	}
-	c.templates[""] = rootTemplates
-
-	if c.Debug {
-		log.Println("pages.Build", "parsed root files")
-	}
-
-	//Parse each subdirectory, including root files.
-	items, err := fs.ReadDir(c.TemplateFiles, ".")
-	if err != nil {
+	//Make sure this func is only called once.
+	if c.templates != nil {
+		log.Fatalln("pages.ParseTemplates has already been called, it can only be called once")
 		return
 	}
 
-	for _, i := range items {
-		if !i.IsDir() {
-			continue
+	//Define a blank template store to start working with. As we parse templates
+	//in WalkDir below, the parsed templates will be added to this same template
+	//store
+	t := template.New("").Funcs(funcMap)
+
+	//Parse the templates by walking the fs.FS recursively.
+	//
+	//The c.TemplatesFiles fs.FS is "inside" the website/ directory. I.e., the
+	//subdirectories of c.TemplateFiles are root, static, templates.
+	//
+	//We don't use ParseFS() here because that doesn't allow us to have the same
+	//template or filename multiple times. Using Parse() allows us to have duplicate
+	//names (think app vs help docs) because we name the template using the path to
+	//the template, not just the filename. We used to use ParseFS() in conjunction
+	//with a single-level subdirectory handling, but it created a mess of files in
+	//one subdirectory that were organized by prefixed filenames that then required
+	//a mapping func to map URL endpoints to files (see pre-v11 code).
+	err = fs.WalkDir(c.TemplateFiles, ".", func(p string, d fs.DirEntry, err error) error {
+		//Handle odd path errors.
+		if err != nil {
+			return err
 		}
 
-		subDirName := i.Name()
-		subDirFilesPattern := path.Clean(path.Join(".", subDirName, "*"+c.Extension))
-		patterns := []string{rootFilesPattern, subDirFilesPattern}
-		subDirTemplates, innerErr := template.New("").Funcs(funcMap).ParseFS(c.TemplateFiles, patterns...)
-		if innerErr != nil {
-			err = innerErr
-			return
+		//Don't parse directory listing as a template, for obvious reasons.
+		if d.IsDir() {
+			return nil
 		}
-		c.templates[subDirName] = subDirTemplates
+
+		//Ignore non-template files. Template files end in a known provided extension,
+		//most likely .html.
+		if path.Ext(p) != c.Extension {
+			return nil
+		}
 
 		if c.Debug {
-			log.Println("pages.Build", "parsed subdirectory '"+subDirName+"' files")
+			log.Println("walking path...", p, "...found template file")
 		}
+
+		//Read the template file from the fs.FS.
+		f, err := fs.ReadFile(c.TemplateFiles, p)
+		if err != nil {
+			return err
+		}
+
+		//Create name for template that will be used in template store based on the
+		//file's path in the fs.FS. This name is the file's "on-disk" path. This will
+		//also be the name we use to lookup the template when we need to serve it and
+		//will match the URL endpoint being requested.
+		//
+		//This name must be unique among all parsed templates!
+		//
+		//We have to add a starting slash because r.URL.Path returns a string starting
+		//with a slash and that is how we will match up endpoints to templates.
+		name := path.Join("/", p)
+
+		//Parse the template.
+		_, err = t.New(name).Funcs(funcMap).Parse(string(f))
+		if err != nil {
+			return err
+		}
+
+		if c.Debug {
+			log.Println(p, "stored as", name)
+		}
+
+		//Done, continue walking directory tree.
+		return nil
+	})
+	if err != nil {
+		return
 	}
 
+	//Diagnostics.
 	if c.Debug {
-		log.Println("pages.Build", "Templates parsed for:")
-		for k := range c.templates {
-			log.Println(" - " + k)
+		//Not use .DefinedTemplates() here because the data is a bit messy. Our
+		//method below is cleaner and more organized.
+
+		x := t.Templates()
+		names := []string{}
+		for _, y := range x {
+			names = append(names, y.Name())
+		}
+
+		log.Println("##################################################################")
+		sort.Strings(names)
+		for _, s := range names {
+			log.Println(s)
 		}
 	}
 
 	//Save the config, with now parsed templates, for future use.
+	c.templates = t
 	cfg = *c
-
-	return
+	return nil
 }
 
-// Show renders a template as HTML and writes it to w. This works by taking a
-// subdirectory's name and the name of a template file, looks up the template that
-// was parsed earlier in Build(), and returns it with any injected data available at
-// {{.Data}} in HTML templates.
+// Show renders a template as HTML and writes it to w. ParseTemplates() must have
+// been called first. injectedData is available within the template at the .Data field.
+// templateName should be the path to a template file such as /app/suppliers.html.
 //
-// This does not work with {{defined}}{{end}} named templates. Templates must be files.
-// However, a named template can include {{defined}}{{end}} and {{template}}{{end}}
-// blocks.
+// The path must match a parsed template name. AKA, does the URL being requested match
+// a file within the website/templates/ directory.
 //
-// InjectedData is any custom data you want to return to use in the template, but
-// is typically PageData{}. We allow for any type of data to be used though since it
-// is more flexible.
-//
-// To serve files stored at the root of the templates fs.FS, use "" as the subdir.
-func Show(w http.ResponseWriter, subdir, filename string, injectedData any) {
+// If you don't need to inject any data into the page, call Page() instead.
+func Show(w http.ResponseWriter, templateName string, injectedData any) {
 	//Organize data to render template. Some of the config data is provided for
 	//debugging or development purposes.
 	data := struct {
@@ -186,69 +207,100 @@ func Show(w http.ResponseWriter, subdir, filename string, injectedData any) {
 		InjectedData:  injectedData,
 	}
 
+	//Clean to make sure we don't have trailing slash before we append file extension.
+	templateName = path.Clean(templateName)
+
 	//Add the extension to the template (file) name if needed. This handles instances
 	//where Show() was called without the extension (which is semi-expected since it
 	//shortens up the Show() call and removes the need to provide the extension each
 	//time). We need the extension since that was the name of the file when it was
 	//parsed to cache the templates.
-	if filepath.Ext(filename) == "" {
-		filename += cfg.Extension
+	if path.Ext(templateName) == "" {
+		templateName += cfg.Extension
 	}
 
-	//Serve the correct template based on the subdirectory. Remember, you could have
-	//the same template name in multiple subdirectories!
+	//Make sure a template with the name p exists, or check if a template files exists
+	//in a subdirectory.
 	//
-	//While we could return the error here (return errror.New...), we don't because
-	//we assume that anyone developing using this package is acutely aware of their
-	//subdirectory name(s) and will test this prior.
-	t, ok := cfg.templates[subdir]
-	if !ok {
-		err := errors.New("pages.Show: invalid subdirectory '" + subdir + "'")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	//This handles something like "index.html" existing in a subdirectory and index
+	//being served if the path to the directory is given. Except, we don't want to
+	//use files named "index.html" because it makes finding or opening files harded
+	//in development (many index.html files).
+	exists := cfg.templates.Lookup(templateName)
+	if exists == nil {
+		//Create the name to the "index" template, which is simply the end of the
+		//provided path doubled (last directory and filename are the same).
+		//ex:
+		// - /app/activity-log.html -> /app/activity-log/activity-log.html
+		index := strings.TrimSuffix(templateName, path.Ext(templateName))
+		index = path.Join(index, path.Base(index))
+		index += path.Ext(templateName)
+		index = path.Clean(index)
 
-		//log errors out since they may not always show up in gui
-		log.Println("pages.Show: invalid subdirectory", err)
+		if cfg.Debug {
+			log.Println("pages.Show", "template at path could not be found, trying in same-named subdirectory")
+			log.Println(" before:", templateName)
+			log.Println(" after: ", index)
+		}
 
-		return
+		exists = cfg.templates.Lookup(index)
+		if exists == nil {
+			log.Fatalln("pags.Show", "could not find template", index)
+			return
+		}
+
+		templateName = index
 	}
 
-	if err := t.ExecuteTemplate(w, filename, data); err != nil {
+	err := cfg.templates.ExecuteTemplate(w, templateName, data)
+	if err != nil {
 		//handle displaying of the templates if some kind of error occurs.
 		http.Error(w, err.Error(), http.StatusNotFound)
 
 		//log errors out since they may not always show up in gui
-		log.Println("pages.Show: error during execute", err)
+		log.Println("pages.Show", "error during execute", err)
 
 		return
 	}
 }
 
-// PrintFSFileList prints out the list of files in an fs.FS.
-//
-// This is used ONLY for diagnostic/debug/development purposes and it typically paired
-// with embedded files (go:embed).
-func PrintFSFileList(e fs.FS) {
-	//the directory "." means the root directory of the embedded file.
-	const startingDirectory = "."
+// Page builds and returns a template to w based on the URL path provided in r. This
+// func is used directly in r.Handle() in main.go for pages that don't require any
+// page-specific data to be injected into them. If you need to inject page-specific
+// data, call Show() directly.
+func Page(w http.ResponseWriter, r *http.Request) {
+	//Get path.
+	//
+	//Clean will removed the trailing slash.
+	//ex.: /app/company/ -> /app/company
+	p := path.Clean(r.URL.Path)
 
-	err := fs.WalkDir(e, startingDirectory, func(path string, d fs.DirEntry, err error) error {
-		log.Println(path)
-		return nil
-	})
+	//Debug logging.
+	if cfg.Debug {
+		log.Println("pages.Page", "request:", r.URL.Path, "-- cleaned:", p)
+	}
+
+	//If we are showing a help page, just display the page. We don't need to
+	//get any data from the database or session for help pages.
+	if strings.Contains(p, "/help/") {
+		Show(w, p, nil)
+		return
+	}
+
+	//User is requesting a logged-in page. Get data to build page properly.
+	//Mostly, we need user permissions to show/hide certain elements.
+	pd, err := getPageConfigData(r)
 	if err != nil {
-		log.Fatalln("pages.PrintFSFileList", "error walking embedded directory", err)
+		log.Println("pages.Page", "error getting page config data", err)
 		return
 	}
 
-	//exit after printing since you should never need to use this function outside of testing
-	//or development.
-	log.Println("pages.PrintFSFileList", "os.Exit() called, remove or skip PrintFSFileList to continue execution.")
-	os.Exit(0)
+	Show(w, p, pd)
 }
 
-// PageData is the format of our data we inject into a template to render it or show
-// data. This struct is used so we always have a consistent format of data being
-// injected into templates for easy parsing.
+// PageData is the format of our data that we inject into a template. This struct is
+// used so we always have a consistent format of data being injected into templates
+// for easy parsing.
 //
 // This is provided to the injectedData field of Show().
 //
@@ -289,100 +341,4 @@ func getPageConfigData(r *http.Request) (pd PageData, err error) {
 	pd.UserData = u
 	pd.AppSettings = as
 	return
-}
-
-// App serves a template based upon the last piece of the path exactly matching an HTML
-// template's filename. This is used for serving basic pages where no computations
-// or functionality needs to be performed prior to showing the page.
-//
-// You would not use this when you need to provide more data to an HTML template, need
-// to perform some kind of computation or validation prior to showing a template, or
-// if you are serving the filename on a different URL path.
-func App(w http.ResponseWriter, r *http.Request) {
-	//Get last element of path.
-	u := r.URL.Path
-	last := path.Base(u)
-
-	//Get basic page data we use for all HTML pages.
-	pd, err := getPageConfigData(r)
-	if err != nil {
-		log.Println("Error getting page config data", err)
-		return
-	}
-
-	//Cache HTML in the browser since it rarely changes (app updates). This just makes
-	//the GUI load a tiny bit quicker. Data for pages is loaded via API calls so this
-	//just caches the base HTML.
-	//
-	//Pages with URL parameters (i.e.: ?lot=49112) will not be cached by browsers.
-	setBaseHTMLCacheHeaders(w)
-
-	//Serve the HTML template.
-	Show(w, "app", last, pd)
-}
-
-// AppMapped serves a template from the "app" subdirectory of templates by matching up
-// the full request URL path to an HTML template's filename. This is used for serving
-// basic pages where no computations or functionality needs to be performed prior to
-// showing the page, but where the last element in the path does not match the
-// template's filename exactly (due to more complex path, url vs filename differences,
-// etc.)
-//
-// For example: request is sent to "/licenses/reports/some-page/" but
-// the HTML template is named "some-license-report-page". The path last element
-// and name does not match because each fits and organization method based upon its
-// use (HTTP router vs filesystem).
-func AppMapped(w http.ResponseWriter, r *http.Request) {
-	//List of URL paths to HTML filenames.
-	m := map[string]string{
-		"/licenses/add/": "create-license",
-
-		"/activity-log/charts/activity-over-time-of-day/":   "activity-log-chart-over-time-of-day",
-		"/activity-log/charts/max-avg-duration-per-month/":  "activity-log-chart-max-and-avg-monthly-duration",
-		"/activity-log/charts/duration-of-latest-requests/": "activity-log-chart-latest-requests-duration",
-	}
-
-	//Get the path being accessed.
-	path := r.URL.Path
-
-	//Get matching filename.
-	filename, ok := m[path]
-	if !ok {
-		ep := ErrorPage{
-			PageTitle: "Unable to Find Path",
-			Topic:     "Could not find file to build page with.",
-			Solution:  "Please contact an administrator and tell them what page you were trying to visit.",
-		}
-		ShowError(w, r, ep)
-		return
-	}
-
-	//Get basic page data we use for all HTML pages.
-	pd, err := getPageConfigData(r)
-	if err != nil {
-		log.Println("Error getting page config data", err)
-		return
-	}
-
-	//Cache HTML in the browser since it rarely changes (app updates). This just makes
-	//the GUI load a tiny bit quicker. Data for pages is loaded via API calls so this
-	//just caches the base HTML.
-	setBaseHTMLCacheHeaders(w)
-
-	//Serve the HTML template.
-	Show(w, "app", filename, pd)
-}
-
-// setBaseHTMLCacheHeaders sets the headers to tell a user's browser to cache the base
-// HTML for pages. This should only be used for serving pages from the pages.App,
-// pages.AppMapped and help pages since there isn't any page-specific data injected
-// into the HTML via golang templating.
-//
-// This was functionized so we only have to change the cache time in one place.
-func setBaseHTMLCacheHeaders(w http.ResponseWriter) {
-	//Hours to cache HTML in user's browsers.
-	const hours = 1
-
-	//Set headers.
-	w.Header().Add("Cache-Control", "no-transform,public,max-age="+strconv.Itoa(60*60*hours))
 }

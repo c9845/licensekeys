@@ -56,16 +56,19 @@ func License(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get data to build gui
-	//Send back the license ID to embed in HTML hidden input so it can be read
-	//by Vue to use in api calls.
+	//Get data to build GUI.
 	pd, err := getPageConfigData(r)
 	if err != nil {
 		log.Println("Error getting page config data", err)
 		return
 	}
+
+	//Send back the license ID to embed in HTML hidden input so it can be read
+	//by Vue to use in api calls.
+	//
+	//TODO: remove this, just get license ID from URL via JS.
 	pd.Data = licenseID
 
 	//show page
-	Show(w, "app", "license", pd)
+	Show(w, "/app/licenses/license.html", pd)
 }

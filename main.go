@@ -136,11 +136,23 @@ func init() {
 	//embedded files in the same manner elsewhere (templates, cache busting, root
 	//files).
 	if config.Data().WebFilesStore == config.WebFilesStoreEmbedded {
-		//We need to get the subdirectory "website" that we embed from, because the
-		//embedded files start at "." with the first subdirectory being "website".
-		//This is different than using on-disk files where we are getting the files
-		//that are children/"subs" of the website directory. This makes it so the
-		//sourceFilesFS has the same structure for embedded or on-disk files.
+		//Get the website/ subdirectory of the embedded files. This is because embed
+		//starts at a root "." directory with website being a subdirectory, whereas
+		//os.DirFS treats the path/to/website as the root and thus we are "inside"
+		//the website/ directory already. This makes handling of embeded versus on-
+		//disk files the same.
+		//
+		//embed:
+		// .
+		// - website
+		//   - static
+		//   - templates
+		//   - ...
+		//
+		//on-disk:
+		// - static
+		// - templates
+		// - ...
 		sourceFilesFS, err = fs.Sub(embeddedFiles, "website")
 		if err != nil {
 			log.Fatalln("Could not read website directory", err)
@@ -162,17 +174,16 @@ func init() {
 		return
 	}
 
-	//Handle cache busting of static files for GUI (js, css).
+	//Handle HTML templates and cache busting.
 	staticFilesHashFS = hashfs.NewFS(staticFilesFS)
 
-	//Handle HTML templates and cache busting.
 	pageConfig := pages.Config{
 		Development:   config.Data().Development,
 		UseLocalFiles: config.Data().UseLocalFiles,
 		TemplateFiles: templateFilesFS,
 		StaticFiles:   staticFilesHashFS,
 	}
-	err = pageConfig.Build()
+	err = pageConfig.ParseTemplates()
 	if err != nil {
 		log.Fatalln("Could not build templates to build GUI with.", err)
 		return
@@ -329,32 +340,37 @@ func main() {
 	r.HandleFunc("/logout/", users.Logout).Methods("GET")
 
 	//**main app pages.
-	r.Handle("/app/", auth.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/users/", admin.ThenFunc(pages.Users)).Methods("GET")
-	r.Handle("/user-profile/", auth.ThenFunc(pages.UserProfile)).Methods("GET")
-	r.Handle("/api-keys/", admin.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/apps/", admin.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/licenses/add/", createLics.ThenFunc(pages.AppMapped)).Methods("GET")
-	r.Handle("/licenses/", viewLics.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/license/", viewLics.ThenFunc(pages.License)).Methods("GET")
+	a := r.PathPrefix("/app").Subrouter()
+	a.Handle("/", auth.ThenFunc(pages.Main)).Methods("GET")
+	a.Handle("/user-profile/", auth.ThenFunc(pages.UserProfile)).Methods("GET")
 
-	//**admin and diagnostic pages.
-	r.Handle("/app-settings/", admin.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/user-logins/", admin.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/activity-log/", admin.ThenFunc(pages.App)).Methods("GET")
-	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.ThenFunc(pages.AppMapped)).Methods("GET")
-	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.ThenFunc(pages.AppMapped)).Methods("GET")
-	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.ThenFunc(pages.AppMapped)).Methods("GET")
+	a.Handle("/apps/", admin.ThenFunc(pages.Page)).Methods("GET")
+	a.Handle("/licenses/add/", createLics.ThenFunc(pages.Page)).Methods("GET")
+	a.Handle("/licenses/", viewLics.ThenFunc(pages.Page)).Methods("GET")
+	a.Handle("/license/", viewLics.ThenFunc(pages.License)).Methods("GET")
 
-	//**misc tools/diagnostics
-	r.Handle("/tools/", admin.ThenFunc(pages.App)).Methods("GET")
+	//*admin stuff and settings
+	adm := a.PathPrefix("/administration").Subrouter()
+	adm.Handle("/users/", admin.ThenFunc(pages.Users)).Methods("GET")
+	adm.Handle("/app-settings/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/api-keys/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/user-logins/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/tools/", admin.ThenFunc(pages.Page)).Methods("GET")
+
+	r.Handle("/activity-log/", admin.ThenFunc(pages.Page)).Methods("GET")
+	r.Handle("/activity-log/charts/activity-over-time-of-day/", admin.ThenFunc(pages.Page)).Methods("GET")
+	r.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.ThenFunc(pages.Page)).Methods("GET")
+	r.Handle("/activity-log/charts/duration-of-latest-requests/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/duration-by-endpoint/", admin.ThenFunc(pages.Page)).Methods("GET")
+
+	//**diagnostic stuff, accessible without logging in so not on "app" path.
 	r.Handle("/diagnostics/", secHeaders.ThenFunc(pages.Diagnostics)).Methods("GET")
 	r.HandleFunc("/healthcheck/", healthcheckHandler)
 
-	//**in-app help docs.
+	//**help docs
 	help := r.PathPrefix("/help").Subrouter()
 	help.Handle("/", http.HandlerFunc(pages.HelpTableOfContents)).Methods("GET")
-	help.Handle("/{document}/", http.HandlerFunc(pages.Help)).Methods("GET")
+	help.Handle("/{document}/", http.HandlerFunc(pages.Page)).Methods("GET")
 
 	//
 	//
@@ -437,18 +453,19 @@ func main() {
 	lics.Handle("/renew/", auth.ThenFunc(license.Renew)).Methods("POST")
 
 	//Handle public API endpoints.
+	//
 	//These are endpoints that are accessible outside of the app using an API key.
-	//These endpoints are listed here for easy reference for finding what an API key
-	//can actually access. Endpoints listed here MUST be listed in the publicEndpoints
-	//variable in the apikeys package. This is done to limit what endpoints API keys
-	//can actually be used on. For details of what each endpoint is used for, or the
-	//data returned, see the apikeys package.
-	extAPIMid := alice.New(middleware.ExternalAPI, middleware.LogActivity2)
-	externalAPI := api.PathPrefix("/v1").Subrouter()
-	externalAPI.Handle("/licenses/add/", extAPIMid.ThenFunc(license.AddViaAPI)).Methods("POST")
-	externalAPI.Handle("/licenses/download/", extAPIMid.ThenFunc(license.Download)).Methods("GET")
-	externalAPI.Handle("/licenses/renew/", extAPIMid.ThenFunc(license.Renew)).Methods("POST")
-	externalAPI.Handle("/licenses/disable/", extAPIMid.ThenFunc(license.Disable)).Methods("POST")
+	//Only some functionality is available via the public API to prevent any data
+	//corruption or other broken functionality.
+	//
+	//This list of endpoints must match the list defined in middleware-externalAPI.go
+	//that checks permissions for the API key being used to access the endpoint.
+	externalAPI := alice.New(middleware.ExternalAPI, middleware.LogActivity2)
+	extAPI := api.PathPrefix("/v1").Subrouter()
+	extAPI.Handle("/licenses/add/", externalAPI.ThenFunc(license.AddViaAPI)).Methods("POST")
+	extAPI.Handle("/licenses/download/", externalAPI.ThenFunc(license.Download)).Methods("GET")
+	extAPI.Handle("/licenses/renew/", externalAPI.ThenFunc(license.Renew)).Methods("POST")
+	extAPI.Handle("/licenses/disable/", externalAPI.ThenFunc(license.Disable)).Methods("POST")
 
 	//Handle static files served off the root directory. This is typically for robots.txt,
 	//favicon, etc. {file} is placeholder that isn't used, it is there just so that the

@@ -12,6 +12,9 @@ import (
 //config file.
 
 // Users shows the page to manage users.
+//
+// This does not use Page() since we need to get the minimum password length to build
+// the GUI with.
 func Users(w http.ResponseWriter, r *http.Request) {
 	//Get data to build gui.
 	pd, err := getPageConfigData(r)
@@ -26,7 +29,8 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	}{config.Data().MinPasswordLength}
 	pd.Data = data
 
-	Show(w, "app", "users", pd)
+	//Show page.
+	Show(w, "/app/administration/users.html", pd)
 }
 
 // UserProfile shows the page where a user can view and manage their own user account
@@ -34,7 +38,7 @@ func Users(w http.ResponseWriter, r *http.Request) {
 // them to be able to change permissions (for obvious reasons) or alerts (so they get
 // alerts for what admin's deem important).
 //
-// This does not use App() since we need to get the minimum password length to build
+// This does not use Page() since we need to get the minimum password length to build
 // the GUI with.
 func UserProfile(w http.ResponseWriter, r *http.Request) {
 	//Get basic data to build GUI.
@@ -51,5 +55,5 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 	pd.Data = data
 
 	//Show page.
-	Show(w, "app", "user-profile", pd)
+	Show(w, "/app/user-profile.html", pd)
 }
