@@ -1,14 +1,10 @@
 /*
-Package config handles configuration of the app. The config data is used for low-level
+Package config handles configuration of the app. The configuration can simply be
+a default, or a config file can be provided. The config data is used for low-level
 settings of the app and can be used elsewhere in this app.
 
 The config file is in yaml format for easy readability. However, the file does not
 need to end in the yaml extension.
-
-A config file can either be manually created, see template in _documenation, or it can
-be created upon first-run of this app if no config file exists at the given path. A
-default config will be used if no path to a config file is provided, although this
-should not really be used.
 
 This package must not import any other packages from within this app to prevent
 import loops (besides minor utility packages).
@@ -237,7 +233,7 @@ func Read(path string, print bool) (err error) {
 		//A path was provided to the config file flag and a file exists at the given
 		//path. Parse the file as a config file. If the file isn't a valid config
 		//file, error out, otherwise continue running the app.
-		log.Println("WARNING! (config) Using config from file:", absPath)
+		log.Println("Using config from file:", absPath)
 
 		//Read the file at the path.
 		f, innerErr := os.ReadFile(path)
@@ -389,10 +385,10 @@ func (conf *File) validate() (err error) {
 		conf.DBPath = defaults.DBPath
 	}
 	_, innerErr := os.Stat(conf.DBPath)
-	if os.IsNotExist(innerErr) {
-		log.Println("WARNING! (config) SQLite database file does not exist. If database is being deployed, the file will be created.")
-	} else if innerErr != nil {
-		return fmt.Errorf("config: DBPath could not be validated %w", err)
+	if innerErr != nil && !os.IsNotExist(innerErr) {
+		//Don't handle non existing database file here, it will be logged and
+		//handled in main.go and database file will be created.
+		return fmt.Errorf("config: DBPath could not be validated %w", innerErr)
 	}
 
 	if conf.DBJournalMode == "" {
