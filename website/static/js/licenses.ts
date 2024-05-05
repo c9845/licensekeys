@@ -15,23 +15,23 @@ if (document.getElementById("licenses")) {
         el: '#licenses',
         data: {
             //filters
-            apps:           [] as app[],
-            appsRetrieved:  false,
-            appSelectedID:  0,
-            rowLimit:       20, //just a default value
-            activeOnly:     false, //not settable in gui (yet)
+            apps: [] as app[],
+            appsRetrieved: false,
+            appSelectedID: 0,
+            rowLimit: 20, //just a default value
+            activeOnly: false, //not settable in gui (yet)
 
             //retrieved data
-            licenses:           [] as license[],
-            licensesRetrieved:  false,
-            
-            submitting:     false,
-            msg:            '',
-            msgType:        '',
+            licenses: [] as license[],
+            licensesRetrieved: false,
+
+            submitting: false,
+            msg: '',
+            msgType: '',
 
             //endpoints
             urls: {
-                getApps:     "/api/apps/",
+                getApps: "/api/apps/",
                 getLicenses: "/api/licenses/",
             }
         },
@@ -42,67 +42,67 @@ if (document.getElementById("licenses")) {
                     activeOnly: true,
                 };
                 fetch(get(this.urls.getApps, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        licenses.msgLoad =     err;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            licenses.msgLoad = err;
+                            licenses.msgLoadType = msgTypes.danger;
+                            return;
+                        }
+
+                        //save data to display in gui
+                        licenses.apps = j.Data || [];
+                        licenses.appsRetrieved = true;
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        licenses.msgLoad = 'An unknown error occured. Please try again.';
                         licenses.msgLoadType = msgTypes.danger;
                         return;
-                    }
-    
-                    //save data to display in gui
-                    licenses.apps =           j.Data || [];
-                    licenses.appsRetrieved =  true;
-    
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    licenses.msgLoad =     'An unknown error occured. Please try again.';
-                    licenses.msgLoadType = msgTypes.danger;
-                    return;
-                });
-    
+                    });
+
                 return;
             },
 
             //getLicenses looks up the list of licenses.
-            getLicenses: function() {
+            getLicenses: function () {
                 //validate
                 if (this.appSelectedID < 0) {
                     this.appSelectedID = 0;
                 }
 
                 let data: Object = {
-                    appID:      this.appSelectedID,
-                    limit:      this.rowLimit,
+                    appID: this.appSelectedID,
+                    limit: this.rowLimit,
                     activeOnly: this.activeOnly,
                 };
                 fetch(get(this.urls.getLicenses, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        licenses.msgLoad =      err;
-                        licenses.msgLoadType =  msgTypes.danger;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            licenses.msgLoad = err;
+                            licenses.msgLoadType = msgTypes.danger;
+                            return;
+                        }
+
+                        licenses.licenses = j.Data || [];
+                        licenses.licensesRetrieved = true;
                         return;
-                    }
-    
-                    licenses.licenses =             j.Data || [];
-                    licenses.licensesRetrieved =    true;
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    licenses.msgLoad =      'An unknown error occured.  Please try again.';
-                    licenses.msgLoadType =  msgTypes.danger;
-                    return;
-                });
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        licenses.msgLoad = 'An unknown error occured.  Please try again.';
+                        licenses.msgLoadType = msgTypes.danger;
+                        return;
+                    });
 
                 return;
             },

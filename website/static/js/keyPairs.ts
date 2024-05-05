@@ -4,7 +4,6 @@
  * signing the license file data.
  */
 
-
 /// <reference path="common.ts" />
 /// <reference path="fetch.ts" />
 /// <reference path="types.ts" />
@@ -22,12 +21,12 @@ if (document.getElementById("listKeyPairs")) {
             appSelectedID: 0,
 
             //List of key pairs for this app.
-            keyPairs:           [] as keyPair[],
-            keyPairsRetrieved:  false,
+            keyPairs: [] as keyPair[],
+            keyPairsRetrieved: false,
 
             //errors
-            msgLoad:        '',
-            msgLoadType:    '',
+            msgLoad: '',
+            msgLoadType: '',
 
             collapseUI: false, //collapse the card to take up less screen space.
 
@@ -40,16 +39,16 @@ if (document.getElementById("listKeyPairs")) {
             //setAppID sets the appSelectedID value in this vue object. This is called from
             //manageApps.setAppInOtherVueObjects() when an app is chosen from the list of
             //defined apps. This then retrieves the list of key pairs for this app.
-            setAppID: function(appID: number) {
+            setAppID: function (appID: number) {
                 this.appSelectedID = appID;
-                
+
                 //handle adding a new app.
                 if (appID === 0) {
                     this.keyPairs = [];
-                    this.msgLoad =  "";
+                    this.msgLoad = "";
                     return;
                 }
-                
+
                 this.getKeyPairs();
                 return;
             },
@@ -57,34 +56,34 @@ if (document.getElementById("listKeyPairs")) {
             //getKeyPairs gets the list of key pairs that have been defined for this app.
             getKeyPairs: function () {
                 let data: Object = {
-                    appID:      this.appSelectedID,
+                    appID: this.appSelectedID,
                     activeOnly: true,
                 };
                 fetch(get(this.urls.get, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        listKeyPairs.msgLoad =     err;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            listKeyPairs.msgLoad = err;
+                            listKeyPairs.msgLoadType = msgTypes.danger;
+                            return;
+                        }
+
+                        //save data to display in gui
+                        listKeyPairs.keyPairs = j.Data || [];
+                        listKeyPairs.keyPairsRetrieved = true;
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        listKeyPairs.msgLoad = 'An unknown error occured. Please try again.';
                         listKeyPairs.msgLoadType = msgTypes.danger;
                         return;
-                    }
-    
-                    //save data to display in gui
-                    listKeyPairs.keyPairs =             j.Data || [];
-                    listKeyPairs.keyPairsRetrieved =    true;
-    
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    listKeyPairs.msgLoad =     'An unknown error occured. Please try again.';
-                    listKeyPairs.msgLoadType = msgTypes.danger;
-                    return;
-                });
-    
+                    });
+
                 return;
             },
 
@@ -97,7 +96,7 @@ if (document.getElementById("listKeyPairs")) {
             //
             //Note that this does not open the modal. Opening of the modal is handled through
             //bootstrap data-toggle and data-target attributes.
-            passToModal: function(item: keyPair | undefined) {
+            passToModal: function (item: keyPair | undefined) {
                 modalKeyPair.setModalData(item);
                 return
             },
@@ -124,21 +123,21 @@ if (document.getElementById("modal-keyPair")) {
             keyPairData: {} as keyPair,
 
             //options to choose from when adding and default
-            algorithmTypes:         keyPairAlgoTypes,
-            defaultAlgorithmType:   keyPairAlgoED25519,
+            algorithmTypes: keyPairAlgoTypes,
+            defaultAlgorithmType: keyPairAlgoED25519,
 
             showPublicKey: false, //true upon button click to show public key in textarea for copying
-            
+
             //errors
-            submitting:     false,
-            msgSave:        '',
-            msgSaveType:    '',
+            submitting: false,
+            msgSave: '',
+            msgSaveType: '',
 
             //endpoints
             urls: {
-                add:            "/api/key-pairs/add/",
-                delete:         "/api/key-pairs/delete/",
-                setDefault:     "/api/key-pairs/set-default/",
+                add: "/api/key-pairs/add/",
+                delete: "/api/key-pairs/delete/",
+                setDefault: "/api/key-pairs/set-default/",
             }
         },
         computed: {
@@ -150,14 +149,14 @@ if (document.getElementById("modal-keyPair")) {
                 if (this.keyPairData.ID === undefined || this.keyPairData.ID < 1) {
                     return true;
                 }
-    
+
                 return false;
             },
 
             //publicKeyNumLines returns the number of lines in the public key and is
             //used to set the "rows" attribute on the textarea so that the entire
             //public key is visible for ease of copying.
-            publicKeyNumLines: function() {
+            publicKeyNumLines: function () {
                 if (this.keyPairData.PublicKey === undefined || this.keyPairData.PublicKey.trim() === "") {
                     return 2; //default safe value
                 }
@@ -172,7 +171,7 @@ if (document.getElementById("modal-keyPair")) {
             //setAppID sets the appSelectedID value in this vue object. This is called from
             //manageApps.setAppInOtherVueObjects() when an app is chosen from the list of
             //defined apps.
-            setAppID: function(appID: number) {
+            setAppID: function (appID: number) {
                 this.appSelectedID = appID;
                 return;
             },
@@ -180,40 +179,40 @@ if (document.getElementById("modal-keyPair")) {
             //setModalData is used to populate the modal with data from the clicked keypair
             //in the list of keypairs. This is also used to reset the modal to a clean state
             //when adding a new keypair.
-            setModalData: function(item: keyPair | undefined) {
+            setModalData: function (item: keyPair | undefined) {
                 //Always reset.
                 this.resetModal();
-                
+
                 //User wants to add a new keypair.
                 if (item === undefined) {
                     return;
                 }
-                
+
                 //user is viewing details of a keypair.
-                this.keyPairData =  item
+                this.keyPairData = item
                 return;
             },
 
             //resetModal sets the modal back to a clean state for adding a new keypair.
-            resetModal: function() {
+            resetModal: function () {
                 this.keyPairData = {
-                    ID:             0,
-                    DatetimeCreated:    "", //wont be set, just to match type.
-                    DatetimeModified:   "", //" " "
-                    CreatedByUserID:    0,  //" " "
-                    Active:             true,
-                    AppID:              this.appSelectedID,
-                    Name:               "",
-                    AlgorithmType:      this.defaultAlgorithmType,
-                    PublicKey:          "",
-                    IsDefault:          false,
+                    ID: 0,
+                    DatetimeCreated: "", //wont be set, just to match type.
+                    DatetimeModified: "", //" " "
+                    CreatedByUserID: 0,  //" " "
+                    Active: true,
+                    AppID: this.appSelectedID,
+                    Name: "",
+                    AlgorithmType: this.defaultAlgorithmType,
+                    PublicKey: "",
+                    IsDefault: false,
                 } as keyPair;
 
                 this.showPublicKey = false;
 
-                this.submitting =   false;
-                this.msgSave =      "";
-                this.msgSaveType =  "";
+                this.submitting = false;
+                this.msgSave = "";
+                this.msgSaveType = "";
                 return;
             },
 
@@ -221,10 +220,10 @@ if (document.getElementById("modal-keyPair")) {
             //will create the new keypair and save it to this app's database. You can then 
             //download the public key. The list of keypairs will also be updated (in parent
             //card).
-            add: function() {
+            add: function () {
                 //make sure data isn't already being submitted
                 if (this.submitting) {
-                    console.log("already submitting...");                
+                    console.log("already submitting...");
                     return;
                 }
 
@@ -240,167 +239,167 @@ if (document.getElementById("modal-keyPair")) {
                 }
 
                 //validation ok
-                this.msgSave =      "Generating key pair...";
-                this.msgSaveType =  msgTypes.primary;
-                this.submitting =   true;
+                this.msgSave = "Generating key pair...";
+                this.msgSaveType = msgTypes.primary;
+                this.submitting = true;
 
                 //perform api call
                 let data: Object = {
                     data: JSON.stringify(this.keyPairData),
                 };
                 fetch(post(this.urls.add, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        modalKeyPair.msgSave =        err;
-                        modalKeyPair.msgSaveType =    msgTypes.danger;
-                        modalKeyPair.submitting =     false;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            modalKeyPair.msgSave = err;
+                            modalKeyPair.msgSaveType = msgTypes.danger;
+                            modalKeyPair.submitting = false;
+                            return;
+                        }
+
+                        //Update the local key pair data with data from the server. This
+                        //includes the keypair's ID and public key. We do this, instead
+                        //of just getting the keypair's ID back so that we can display
+                        //the public key for copying without having to make another API
+                        //call to retrieve the data.
+                        modalKeyPair.keyPairData = j.Data;
+
+                        //Refresh the list of keypairs so that this new keypair is shown.
+                        listKeyPairs.getKeyPairs();
+
+                        //Show success message briefly.
+                        modalKeyPair.msgSave = "Added!";
+                        modalKeyPair.msgSaveType = msgTypes.success;
+                        modalKeyPair.submitting = false;
+                        setTimeout(function () {
+                            modalKeyPair.msgSave = '';
+                            modalKeyPair.msgSaveType = '';
+                        }, defaultTimeout);
+
                         return;
-                    }
-
-                    //Update the local key pair data with data from the server. This
-                    //includes the keypair's ID and public key. We do this, instead
-                    //of just getting the keypair's ID back so that we can display
-                    //the public key for copying without having to make another API
-                    //call to retrieve the data.
-                    modalKeyPair.keyPairData = j.Data;
-
-                    //Refresh the list of keypairs so that this new keypair is shown.
-                    listKeyPairs.getKeyPairs();
-
-                    //Show success message briefly.
-                    modalKeyPair.msgSave =        "Added!";
-                    modalKeyPair.msgSaveType =    msgTypes.success;
-                    modalKeyPair.submitting =     false;
-                    setTimeout(function () {
-                        modalKeyPair.msgSave =        '';
-                        modalKeyPair.msgSaveType =    '';
-                    }, defaultTimeout);
-
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    modalKeyPair.msgSave =        'An unknown error occured.  Please try again.';
-                    modalKeyPair.msgSaveType =    msgTypes.danger;
-                    modalKeyPair.submitting =     false;
-                    return;
-                });
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        modalKeyPair.msgSave = 'An unknown error occured.  Please try again.';
+                        modalKeyPair.msgSaveType = msgTypes.danger;
+                        modalKeyPair.submitting = false;
+                        return;
+                    });
 
                 return;
             },
 
             //remove marks a keypair as inactive. Inactive keypair will no long show up in
             //the list of keypairs or be available for use when creating a new license.
-            remove: function() {
+            remove: function () {
                 //make sure data isn't already being submitted
                 if (this.submitting) {
-                    console.log("already submitting...");                
+                    console.log("already submitting...");
                     return;
                 }
-                
+
                 //Make sure we know what field we are deleting.
                 if (isNaN(this.keyPairData.ID) || this.keyPairData.ID === '' || this.keyPairData.ID < 1) {
-                    this.msgSave =      "Could not determine which key pair you are trying to delete. Please refresh the page and try again.";
-                    this.msgSaveType =  msgTypes.danger;
+                    this.msgSave = "Could not determine which key pair you are trying to delete. Please refresh the page and try again.";
+                    this.msgSaveType = msgTypes.danger;
                     return;
                 }
-    
+
                 //validation ok
-                this.msgSave =      "Deleting...";
-                this.msgSaveType =  msgTypes.primary;
-                this.submitting =   true;
-    
+                this.msgSave = "Deleting...";
+                this.msgSaveType = msgTypes.primary;
+                this.submitting = true;
+
                 //perform api call
                 let data: Object = {
                     id: this.keyPairData.ID,
                 };
                 fetch(post(this.urls.delete, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        modalKeyPair.msgSave =        err;
-                        modalKeyPair.msgSaveType =    msgTypes.danger;
-                        return;
-                    }
-                    
-                    //refresh the list of keypairs in table. The modal will
-                    //be closed by the data-dismiss on the button clicked.
-                    listKeyPairs.getKeyPairs();
-                    modalKeyPair.submitting = false;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            modalKeyPair.msgSave = err;
+                            modalKeyPair.msgSaveType = msgTypes.danger;
+                            return;
+                        }
 
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    modalKeyPair.msgSave =        'An unknown error occured. Please try again.';
-                    modalKeyPair.msgSaveType =    msgTypes.danger;
-                    modalKeyPair.submitting =     false;
-                    return;
-                });
+                        //refresh the list of keypairs in table. The modal will
+                        //be closed by the data-dismiss on the button clicked.
+                        listKeyPairs.getKeyPairs();
+                        modalKeyPair.submitting = false;
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        modalKeyPair.msgSave = 'An unknown error occured. Please try again.';
+                        modalKeyPair.msgSaveType = msgTypes.danger;
+                        modalKeyPair.submitting = false;
+                        return;
+                    });
                 return;
             },
 
             //setDefault marks this keypair as the default for the app. This can only be
             //done for non-default keypairs.
-            setDefault: function() {
+            setDefault: function () {
                 //make sure data isn't already being submitted
                 if (this.submitting) {
-                    console.log("already submitting...");                
+                    console.log("already submitting...");
                     return;
                 }
-                
+
                 //Make sure we know what field we are deleting.
                 if (isNaN(this.keyPairData.ID) || this.keyPairData.ID === '' || this.keyPairData.ID < 1) {
-                    this.msgSave =      "Could not determine which key pair you want to set as default. Please refresh the page and try again.";
-                    this.msgSaveType =  msgTypes.danger;
+                    this.msgSave = "Could not determine which key pair you want to set as default. Please refresh the page and try again.";
+                    this.msgSaveType = msgTypes.danger;
                     return;
                 }
-    
+
                 //validation ok
-                this.msgSave =      "Setting default...";
-                this.msgSaveType =  msgTypes.primary;
-                this.submitting =   true;
-    
+                this.msgSave = "Setting default...";
+                this.msgSaveType = msgTypes.primary;
+                this.submitting = true;
+
                 //perform api call
                 let data: Object = {
                     id: this.keyPairData.ID,
                 };
                 fetch(post(this.urls.setDefault, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        modalKeyPair.msgSave =        err;
-                        modalKeyPair.msgSaveType =    msgTypes.danger;
-                        return;
-                    }
-                    
-                    //set the default field for this keypair to update gui.
-                    //also refresh the list of keypairs to show the default
-                    //tag next to the correct keypair
-                    listKeyPairs.getKeyPairs();
-                    modalKeyPair.keyPairData.IsDefault = true;
-                    modalKeyPair.submitting = false;
-                    modalKeyPair.msgSave = "";
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            modalKeyPair.msgSave = err;
+                            modalKeyPair.msgSaveType = msgTypes.danger;
+                            return;
+                        }
 
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    modalKeyPair.msgSave =        'An unknown error occured. Please try again.';
-                    modalKeyPair.msgSaveType =    msgTypes.danger;
-                    modalKeyPair.submitting =     false;
-                    return;
-                });
+                        //set the default field for this keypair to update gui.
+                        //also refresh the list of keypairs to show the default
+                        //tag next to the correct keypair
+                        listKeyPairs.getKeyPairs();
+                        modalKeyPair.keyPairData.IsDefault = true;
+                        modalKeyPair.submitting = false;
+                        modalKeyPair.msgSave = "";
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        modalKeyPair.msgSave = 'An unknown error occured. Please try again.';
+                        modalKeyPair.msgSaveType = msgTypes.danger;
+                        modalKeyPair.submitting = false;
+                        return;
+                    });
                 return;
             }
         },

@@ -5,7 +5,7 @@
  * tooltips doesn't work since Vue loads the data after the GUI is built.
  */
 
- const bsTooltip = (el, binding) => {
+const bsTooltip = (el, binding) => {
     const t = []
 
     if (binding.modifiers.focus) t.push('focus')
@@ -27,21 +27,21 @@
 
     //@ts-ignore tooltip doesn't exist
     $(el).tooltip({
-        title:      binding.value,
-        
-        //https://vuejs.org/guide/reusability/custom-directives.html#:~:text=arg%3A%20The%20argument%20passed%20to%20the%20directive%2C%20if%20any.%20For%20example%20in%20v%2Dmy%2Ddirective%3Afoo%2C%20the%20arg%20would%20be%20%22foo%22.
-        placement:  binding.arg || 'top',
+        title: binding.value,
 
-        trigger:    t.join(' '),
-        html:       useHTML,
+        //https://vuejs.org/guide/reusability/custom-directives.html#:~:text=arg%3A%20The%20argument%20passed%20to%20the%20directive%2C%20if%20any.%20For%20example%20in%20v%2Dmy%2Ddirective%3Afoo%2C%20the%20arg%20would%20be%20%22foo%22.
+        placement: binding.arg || 'top',
+
+        trigger: t.join(' '),
+        html: useHTML,
     });
 }
 
 //@ts-ignore cannot find name vue
 Vue.directive('tooltip', {
-    bind:   bsTooltip,
+    bind: bsTooltip,
     update: bsTooltip,
-    unbind (el) {
+    unbind(el) {
         //@ts-ignore tooltip doesn't exist
         $(el).tooltip('dispose')
     }

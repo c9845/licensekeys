@@ -6,21 +6,21 @@
 //ResponseData is the format of the data that is sent back from the api
 //data can hold anything but is usually an object or an array of object
 interface ResponseData {
-    OK:         boolean;
-    Type:       string; //dataFound, insertOK, updateOK, etc.
-    Datetime:   string; //YYYY-MM-DD HH:MM:SS.sssZ UTC
-    
+    OK: boolean;
+    Type: string; //dataFound, insertOK, updateOK, etc.
+    Datetime: string; //YYYY-MM-DD HH:MM:SS.sssZ UTC
+
     //only one of these should be set
     //Data should only be set if OK is true.
     //ErrorData should only be set if OK is false.
-    Data?:      any;
+    Data?: any;
     ErrorData?: ErrorData;
 }
 
 //ErrorData is the format of the data that is detail of the error that occured in an api call
 interface ErrorData {
-    Error:      string; //simple error message more for diagnostics.
-    Message:    string; //a human readable and displayable message.
+    Error: string; //simple error message more for diagnostics.
+    Message: string; //a human readable and displayable message.
 }
 
 //objectToString converts an object into a url encoded string for submitting in a form.
@@ -30,7 +30,7 @@ interface ErrorData {
 //for each endpoint depending on what data in the JSON payload was sent up.
 //This func returns a string in the form of key=value&key2=value2,...
 function objectToString(obj: Object): string {
-    var params = Object.keys(obj).map(function(key) {
+    var params = Object.keys(obj).map(function (key) {
         return key + '=' + encodeURIComponent(obj[key]);
     }).join('&');
 
@@ -57,9 +57,9 @@ function get(url: string, formValues: Object): Request {
 
     //build the request
     let r: RequestInit = {
-        method:         'GET',
-        credentials:    'same-origin',
-        headers:{
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
             "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
         },
     };
@@ -83,9 +83,9 @@ function post(url: string, formValues: Object): Request {
 
     //build the request
     let r: RequestInit = {
-        method:         'POST',
-        credentials:    'same-origin',
-        headers:{
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
             "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
         },
     };
@@ -110,9 +110,9 @@ function postFile(url: string, fileData: FormData): Request {
 
     //build the request config
     let r: RequestInit = {
-        method:         'POST',
-        credentials:    'same-origin',
-        body:           fileData
+        method: 'POST',
+        credentials: 'same-origin',
+        body: fileData
     };
 
     //return the object to use in fetch request
@@ -134,7 +134,7 @@ function handleRequestErrors(response: Response): Response {
         //@ts-ignore promise only refers to type but is being used as a value
         return Promise.reject(new Error(response.statusText));
     }
-    
+
     //everything ok, move to next promise
     //@ts-ignore promise only refers to type but is being used as a value
     return Promise.resolve(response)

@@ -6,7 +6,6 @@
  * features, etc.
  */
 
-
 /// <reference path="common.ts" />
 /// <reference path="fetch.ts" />
 /// <reference path="types.ts" />
@@ -24,20 +23,20 @@ if (document.getElementById("listCustomFieldsDefined")) {
             appSelectedID: 0,
 
             //List of custom fields for this app.
-            fields:             [] as customFieldDefined[],
-            fieldsRetrieved:    false,
+            fields: [] as customFieldDefined[],
+            fieldsRetrieved: false,
 
             //need these for v-if in html
-            customFieldTypeInteger:     customFieldTypeInteger,
-            customFieldTypeDecimal:     customFieldTypeDecimal,
-            customFieldTypeText:        customFieldTypeText,
-            customFieldTypeBoolean:     customFieldTypeBoolean,
+            customFieldTypeInteger: customFieldTypeInteger,
+            customFieldTypeDecimal: customFieldTypeDecimal,
+            customFieldTypeText: customFieldTypeText,
+            customFieldTypeBoolean: customFieldTypeBoolean,
             customFieldTypeMultiChoice: customFieldTypeMultiChoice,
-            customFieldTypeDate:        customFieldTypeDate,
+            customFieldTypeDate: customFieldTypeDate,
 
             //errors
-            msgLoad:        '',
-            msgLoadType:    '',
+            msgLoad: '',
+            msgLoadType: '',
 
             collapseUI: false, //collapse the card to take up less screen space.
 
@@ -50,13 +49,13 @@ if (document.getElementById("listCustomFieldsDefined")) {
             //setAppID sets the appSelectedID value in this vue object. This is called from
             //manageApps.setAppInOtherVueObjects() when an app is chosen from the list of
             //defined apps. This then retrieves the list of custom fields for this app.
-            setAppID: function(appID: number) {
+            setAppID: function (appID: number) {
                 this.appSelectedID = appID;
 
                 //handle adding a new app.
                 if (appID === 0) {
                     this.fields = [];
-                    this.msgLoad =  "";
+                    this.msgLoad = "";
                     return;
                 }
 
@@ -68,34 +67,34 @@ if (document.getElementById("listCustomFieldsDefined")) {
             //app.
             getCustomFields: function () {
                 let data: Object = {
-                    appID:      this.appSelectedID,
+                    appID: this.appSelectedID,
                     activeOnly: true,
                 };
                 fetch(get(this.urls.get, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        listCustomFieldsDefined.msgLoad =     err;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            listCustomFieldsDefined.msgLoad = err;
+                            listCustomFieldsDefined.msgLoadType = msgTypes.danger;
+                            return;
+                        }
+
+                        //save data to display in gui
+                        listCustomFieldsDefined.fields = j.Data || [];
+                        listCustomFieldsDefined.fieldsRetrieved = true;
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        listCustomFieldsDefined.msgLoad = 'An unknown error occured. Please try again.';
                         listCustomFieldsDefined.msgLoadType = msgTypes.danger;
                         return;
-                    }
-    
-                    //save data to display in gui
-                    listCustomFieldsDefined.fields =            j.Data || [];
-                    listCustomFieldsDefined.fieldsRetrieved =   true;
-    
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    listCustomFieldsDefined.msgLoad =     'An unknown error occured. Please try again.';
-                    listCustomFieldsDefined.msgLoadType = msgTypes.danger;
-                    return;
-                });
-    
+                    });
+
                 return;
             },
 
@@ -108,7 +107,7 @@ if (document.getElementById("listCustomFieldsDefined")) {
             //
             //Note that this does not open the modal. Opening of the modal is handled through
             //bootstrap data-toggle and data-target attributes.
-            passToModal: function(item: keyPair | undefined) {
+            passToModal: function (item: keyPair | undefined) {
                 modalCustomFieldDefined.setModalData(item);
                 return
             },
@@ -137,25 +136,25 @@ if (document.getElementById("modal-customFieldDefined")) {
             customFieldTypes: customFieldTypes,
 
             //need these for v-if in html
-            customFieldTypeInteger:     customFieldTypeInteger,
-            customFieldTypeDecimal:     customFieldTypeDecimal,
-            customFieldTypeText:        customFieldTypeText,
-            customFieldTypeBoolean:     customFieldTypeBoolean,
+            customFieldTypeInteger: customFieldTypeInteger,
+            customFieldTypeDecimal: customFieldTypeDecimal,
+            customFieldTypeText: customFieldTypeText,
+            customFieldTypeBoolean: customFieldTypeBoolean,
             customFieldTypeMultiChoice: customFieldTypeMultiChoice,
-            customFieldTypeDate:        customFieldTypeDate,
+            customFieldTypeDate: customFieldTypeDate,
 
             separator: ";", //separator for multichoice options
-            
+
             //errors
-            submitting:     false,
-            msgSave:        '',
-            msgSaveType:    '',
+            submitting: false,
+            msgSave: '',
+            msgSaveType: '',
 
             //endpoints
             urls: {
-                add:            "/api/custom-fields/defined/add/",
-                update:         "/api/custom-fields/defined/update/",
-                delete:         "/api/custom-fields/defined/delete/",
+                add: "/api/custom-fields/defined/add/",
+                update: "/api/custom-fields/defined/update/",
+                delete: "/api/custom-fields/defined/delete/",
             }
         },
         computed: {
@@ -167,13 +166,13 @@ if (document.getElementById("modal-customFieldDefined")) {
                 if (this.fieldData.ID === undefined || this.fieldData.ID < 1) {
                     return true;
                 }
-    
+
                 return false;
             },
 
             //multiChoiceOptions returns the user-provided semicolon separated options as an array
             //for building the select menu where a user can choose the default option.
-            multiChoiceOptions: function() {
+            multiChoiceOptions: function () {
                 //page is just loading, mounted hasn't been called yet to set default empty state
                 if (this.fieldData.MultiChoiceOptions === undefined) {
                     return [];
@@ -190,7 +189,7 @@ if (document.getElementById("modal-customFieldDefined")) {
                 }
 
                 //options provided, split string into array for use with v-for in HTML.
-                let opsArray: string[] =        this.fieldData.MultiChoiceOptions.split(this.separator);
+                let opsArray: string[] = this.fieldData.MultiChoiceOptions.split(this.separator);
                 let validatedArray: string[] = [];
                 for (let s of opsArray) {
                     s = s.trim();
@@ -207,7 +206,7 @@ if (document.getElementById("modal-customFieldDefined")) {
 
                     validatedArray.push(s);
                 }
-                
+
                 return validatedArray;
             }
         },
@@ -215,7 +214,7 @@ if (document.getElementById("modal-customFieldDefined")) {
             //setAppID sets the appSelectedID value in this vue object. This is called from
             //manageApps.setAppInOtherVueObjects() when an app is chosen from the list of
             //defined apps.
-            setAppID: function(appID: number) {
+            setAppID: function (appID: number) {
                 this.appSelectedID = appID;
                 return;
             },
@@ -223,7 +222,7 @@ if (document.getElementById("modal-customFieldDefined")) {
             //setModalData is used to populate the modal with data from the clicked field
             //in the list of custom fields. This is also used to reset the modal to a clean 
             //state when adding a new custom field.
-            setModalData: function(item: customFieldDefined | undefined) {
+            setModalData: function (item: customFieldDefined | undefined) {
                 this.resetModal();
 
                 //user wants to add a new custom field.
@@ -232,13 +231,13 @@ if (document.getElementById("modal-customFieldDefined")) {
                 }
 
                 //user is viewing details of a custom field.
-                this.fieldData =  item
+                this.fieldData = item
 
                 //have to set stuff based on field type
                 switch (item.Type) {
                     case this.customFieldTypeBoolean:
                         //@ts-ignore cannot find Vue
-                        Vue.nextTick(function() {
+                        Vue.nextTick(function () {
                             setToggle("BoolDefaultValue", item.BoolDefaultValue);
                         });
 
@@ -249,31 +248,31 @@ if (document.getElementById("modal-customFieldDefined")) {
             },
 
             //resetModal sets the modal back to a clean state for adding a new custom field.
-            resetModal: function() {
+            resetModal: function () {
                 this.fieldData = {
-                    ID:                         undefined,
-                    DatetimeCreated:            "",
-                    DatetimeModified:           "",
-                    CreatedByUserID:            0,
-                    Active:                     true,
-                    AppID:                      this.appSelectedID,
-                    Name:                       "",
-                    Type:                       "",
-                    Instructions:               "",
-                    IntegerDefaultValue:        0,
-                    DecimalDefaultValue:        0,
-                    TextDefaultValue:           "",
-                    BoolDefaultValue:           false,
-                    MultiChoiceDefaultValue:    "",
-                    DateDefaultIncrement:       0,
-                    NumberMinValue:             0,
-                    NumberMaxValue:             0,
-                    MultiChoiceOptions:         "",
+                    ID: undefined,
+                    DatetimeCreated: "",
+                    DatetimeModified: "",
+                    CreatedByUserID: 0,
+                    Active: true,
+                    AppID: this.appSelectedID,
+                    Name: "",
+                    Type: "",
+                    Instructions: "",
+                    IntegerDefaultValue: 0,
+                    DecimalDefaultValue: 0,
+                    TextDefaultValue: "",
+                    BoolDefaultValue: false,
+                    MultiChoiceDefaultValue: "",
+                    DateDefaultIncrement: 0,
+                    NumberMinValue: 0,
+                    NumberMaxValue: 0,
+                    MultiChoiceOptions: "",
                 } as customFieldDefined;
 
-                this.submitting =   false;
-                this.msgSave =      "";
-                this.msgSaveType =  "";
+                this.submitting = false;
+                this.msgSave = "";
+                this.msgSaveType = "";
                 return;
             },
 
@@ -287,9 +286,9 @@ if (document.getElementById("modal-customFieldDefined")) {
             //the bool field type is chosen from the select menu. If we don't do this,
             //the toggle is unselected and even though app will default to false when 
             //saving we want to show the default.
-            setToggleDefaultIfBool: function() {
+            setToggleDefaultIfBool: function () {
                 //@ts-ignore Vue not found
-                Vue.nextTick(function() {
+                Vue.nextTick(function () {
                     setToggle("BoolDefaultValue", modalCustomFieldDefined.fieldData.BoolDefaultValue);
                 });
 
@@ -298,7 +297,7 @@ if (document.getElementById("modal-customFieldDefined")) {
 
             //addOrUpdate handles common validation before calling the correct function to
             //complete the api call.
-            addOrUpdate: function() {
+            addOrUpdate: function () {
                 //validation
                 this.msgSaveType = msgTypes.danger;
 
@@ -306,7 +305,7 @@ if (document.getElementById("modal-customFieldDefined")) {
                     this.msgSave = "You must provide a name for this field.";
                     return;
                 }
-                
+
                 switch (this.fieldData.Type) {
                     case customFieldTypeInteger:
                         if (this.fieldData.NumberMinValue === undefined || this.fieldData.NumberMaxValue === undefined) {
@@ -353,8 +352,8 @@ if (document.getElementById("modal-customFieldDefined")) {
                             return;
                         }
                         break;
-                    
-                    case customFieldTypeText: 
+
+                    case customFieldTypeText:
                         if (this.fieldData.TextDefaultValue === undefined || this.fieldData.TextDefaultValue.trim() === "") {
                             this.msgSave = "You must provide a default value for this field.";
                             return;
@@ -362,7 +361,7 @@ if (document.getElementById("modal-customFieldDefined")) {
                         break;
 
                     case customFieldTypeBoolean:
-                        if (this.fieldData.BoolDefaultValue === undefined || (this.fieldData.BoolDefaultValue !== true &&  this.fieldData.BoolDefaultValue !== false)) {
+                        if (this.fieldData.BoolDefaultValue === undefined || (this.fieldData.BoolDefaultValue !== true && this.fieldData.BoolDefaultValue !== false)) {
                             this.msgSave = "You must choose a default value for this field.";
                             return;
                         }
@@ -446,171 +445,171 @@ if (document.getElementById("modal-customFieldDefined")) {
             //will create the new field and save it to this app's database. The modal will
             //then be reset to allow adding another field. The list of fields will also be 
             //updated (in parent card). This is called from addOrUpdate();
-            add: function() {
+            add: function () {
                 //make sure data isn't already being submitted
                 if (this.submitting) {
-                    console.log("already submitting...");                
+                    console.log("already submitting...");
                     return;
                 }
 
                 //validation ok
-                this.msgSave =      "Adding...";
-                this.msgSaveType =  msgTypes.primary;
-                this.submitting =   true;
+                this.msgSave = "Adding...";
+                this.msgSaveType = msgTypes.primary;
+                this.submitting = true;
 
                 //perform api call
                 let data: Object = {
                     data: JSON.stringify(this.fieldData),
                 };
                 fetch(post(this.urls.add, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        modalCustomFieldDefined.msgSave =        err;
-                        modalCustomFieldDefined.msgSaveType =    msgTypes.danger;
-                        modalCustomFieldDefined.submitting =     false;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            modalCustomFieldDefined.msgSave = err;
+                            modalCustomFieldDefined.msgSaveType = msgTypes.danger;
+                            modalCustomFieldDefined.submitting = false;
+                            return;
+                        }
+
+                        //Refresh the list of fields so that this new field is shown.
+                        listCustomFieldsDefined.getCustomFields();
+
+                        //Show success message briefly and reset the modal to an empty
+                        //state so user can add another field.
+                        modalCustomFieldDefined.msgSave = "Added!";
+                        modalCustomFieldDefined.msgSaveType = msgTypes.success;
+                        setTimeout(function () {
+                            modalCustomFieldDefined.resetModal();
+                            modalCustomFieldDefined.msgSave = '';
+                            modalCustomFieldDefined.msgSaveType = '';
+                            modalCustomFieldDefined.submitting = false;
+                        }, defaultTimeout);
+
                         return;
-                    }
-
-                    //Refresh the list of fields so that this new field is shown.
-                    listCustomFieldsDefined.getCustomFields();
-
-                    //Show success message briefly and reset the modal to an empty
-                    //state so user can add another field.
-                    modalCustomFieldDefined.msgSave =        "Added!";
-                    modalCustomFieldDefined.msgSaveType =    msgTypes.success;
-                    setTimeout(function () {
-                        modalCustomFieldDefined.resetModal();
-                        modalCustomFieldDefined.msgSave =        '';
-                        modalCustomFieldDefined.msgSaveType =    '';
-                        modalCustomFieldDefined.submitting =     false;
-                    }, defaultTimeout);
-
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    modalCustomFieldDefined.msgSave =        'An unknown error occured. Please try again.';
-                    modalCustomFieldDefined.msgSaveType =    msgTypes.danger;
-                    modalCustomFieldDefined.submitting =     false;
-                    return;
-                });
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        modalCustomFieldDefined.msgSave = 'An unknown error occured. Please try again.';
+                        modalCustomFieldDefined.msgSaveType = msgTypes.danger;
+                        modalCustomFieldDefined.submitting = false;
+                        return;
+                    });
 
                 return;
             },
 
             //update saves changes to an existing field. This is called from addOrUpdate().
-            update: function() {
+            update: function () {
                 //make sure data isn't already being submitted
                 if (this.submitting) {
-                    console.log("already submitting...");                
+                    console.log("already submitting...");
                     return;
                 }
-                
+
                 //Make sure we know what field we are updating.
                 if (isNaN(this.fieldData.ID) || this.fieldData.ID === '' || this.fieldData.ID < 1) {
                     this.msgSave = "Could not determine which field you are trying to update. Please refresh the page and try again.";
                     this.msgSaveType = msgTypes.danger;
                     return;
                 }
-    
+
                 //validation ok
-                this.msgSave =      "Saving...";
-                this.msgSaveType =  msgTypes.primary;
-                this.submitting =   true;
-    
+                this.msgSave = "Saving...";
+                this.msgSaveType = msgTypes.primary;
+                this.submitting = true;
+
                 //perform api call
                 let data: Object = {
                     data: JSON.stringify(this.fieldData),
                 };
                 fetch(post(this.urls.update, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        modalCustomFieldDefined.msgSave =        err;
-                        modalCustomFieldDefined.msgSaveType =    msgTypes.danger;
-                        modalCustomFieldDefined.submitting =     false;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            modalCustomFieldDefined.msgSave = err;
+                            modalCustomFieldDefined.msgSaveType = msgTypes.danger;
+                            modalCustomFieldDefined.submitting = false;
+                            return;
+                        }
+
+                        modalCustomFieldDefined.msgSave = "Changes saved!";
+                        modalCustomFieldDefined.msgSaveType = msgTypes.success;
+                        setTimeout(function () {
+                            modalCustomFieldDefined.msgSave = '';
+                            modalCustomFieldDefined.msgSaveType = '';
+                            modalCustomFieldDefined.submitting = false;
+                        }, defaultTimeout);
+
                         return;
-                    }
-    
-                    modalCustomFieldDefined.msgSave =    "Changes saved!";
-                    modalCustomFieldDefined.msgSaveType = msgTypes.success;
-                    setTimeout(function () {
-                        modalCustomFieldDefined.msgSave =        '';
-                        modalCustomFieldDefined.msgSaveType =    '';
-                        modalCustomFieldDefined.submitting =     false;
-                    }, defaultTimeout);
-    
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    modalCustomFieldDefined.msgSave =        'An unknown error occured. Please try again.';
-                    modalCustomFieldDefined.msgSaveType =    msgTypes.danger;
-                    modalCustomFieldDefined.submitting =     false;
-                    return;
-                });
-                
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        modalCustomFieldDefined.msgSave = 'An unknown error occured. Please try again.';
+                        modalCustomFieldDefined.msgSaveType = msgTypes.danger;
+                        modalCustomFieldDefined.submitting = false;
+                        return;
+                    });
+
                 return;
             },
 
             //remove marks a field as inactive. Inactive field will no long show up in
             //the list of field or be required when creating a new license.
-            remove: function() {
+            remove: function () {
                 //make sure data isn't already being submitted
                 if (this.submitting) {
-                    console.log("already submitting...");                
+                    console.log("already submitting...");
                     return;
                 }
-                
+
                 //Make sure we know what field we are deleting.
                 if (isNaN(this.fieldData.ID) || this.fieldData.ID === '' || this.fieldData.ID < 1) {
                     this.msgSave = "Could not determine which field you are trying to delete. Please refresh the page and try again.";
                     this.msgSaveType = msgTypes.danger;
                     return;
                 }
-    
+
                 //validation ok
-                this.msgSave =      "Deleting...";
-                this.msgSaveType =  msgTypes.primary;
-                this.submitting =   true;
-    
+                this.msgSave = "Deleting...";
+                this.msgSaveType = msgTypes.primary;
+                this.submitting = true;
+
                 //perform api call
                 let data: Object = {
                     id: this.fieldData.ID,
                 };
                 fetch(post(this.urls.delete, data))
-                .then(handleRequestErrors)
-                .then(getJSON)
-                .then(function (j) {
-                    //check if response is an error from the server
-                    let err: string = handleAPIErrors(j);
-                    if (err !== '') {
-                        modalCustomFieldDefined.msgSave =        err;
-                        modalCustomFieldDefined.msgSaveType =    msgTypes.danger;
-                        return;
-                    }
-                    
-                    //refresh the list of custom fields in table. The modal will
-                    //be closed by the data-dismiss on the button clicked.
-                    listCustomFieldsDefined.getCustomFields();
-                    modalCustomFieldDefined.submitting = false;
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //check if response is an error from the server
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            modalCustomFieldDefined.msgSave = err;
+                            modalCustomFieldDefined.msgSaveType = msgTypes.danger;
+                            return;
+                        }
 
-                    return;
-                })
-                .catch(function (err) {
-                    console.log("fetch() error: >>", err, "<<");
-                    modalCustomFieldDefined.msgSave =        'An unknown error occured. Please try again.';
-                    modalCustomFieldDefined.msgSaveType =    msgTypes.danger;
-                    modalCustomFieldDefined.submitting =     false;
-                    return;
-                });
+                        //refresh the list of custom fields in table. The modal will
+                        //be closed by the data-dismiss on the button clicked.
+                        listCustomFieldsDefined.getCustomFields();
+                        modalCustomFieldDefined.submitting = false;
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        modalCustomFieldDefined.msgSave = 'An unknown error occured. Please try again.';
+                        modalCustomFieldDefined.msgSaveType = msgTypes.danger;
+                        modalCustomFieldDefined.submitting = false;
+                        return;
+                    });
                 return;
             },
         },

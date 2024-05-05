@@ -12,7 +12,7 @@ if (document.getElementById("headerBtns")) {
         delimiters: ['[[', ']]'],
         el: '#headerBtns',
         data: {
-            usernameHovered:    false, //usernameHovered is used to change the text from username to Logout
+            usernameHovered: false, //usernameHovered is used to change the text from username to Logout
         },
     });
 }
