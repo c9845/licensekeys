@@ -69,7 +69,7 @@
                             <div class="card-header">
                                 <h5>Licenses</h5>
                                 <div class="card-header-btn">
-                                    <a class="btn btn-outline-primary btn-sm" href="/licenses/add/"><i class="fas fa-plus"></i></a>
+                                    <a class="btn btn-outline-primary btn-sm" href="/app/licensing/create-license/"><i class="fas fa-plus"></i></a>
 								</div>
                             </div>
                             <div class="card-body">
@@ -99,7 +99,7 @@
                                             <template v-else>
                                                 <tr v-for="(x, index) in licenses" :key="x.ID" v-bind:data-id="x.ID">
                                                     <td>
-                                                        <a v-bind:href="'/license/?id=' + x.ID">
+                                                        <a v-bind:href="'/app/licensing/license/?id=' + x.ID">
                                                             <i class="fas fa-info-circle"></i>
                                                         </a>
                                                     </td>

@@ -276,6 +276,7 @@
                                     v-model.trim="twoFAVerificationCode"
                                     autocomplete="off"
                                     v-bind:disabled="submitting"
+                                    v-on:keyup.enter="validate"
                                 >
                             </div>
                             

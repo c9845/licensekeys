@@ -27,8 +27,8 @@ type DownloadHistory struct {
 	CreatedByAPIKeyID null.Int
 
 	//Calculated fields
-	DatetimeCreatedTZ string //DatetimeCreated converted to timezone per config file.
-	Timezone          string //extra data for above fields for displaying in GUI.
+	DatetimeCreatedInTZ string //DatetimeCreated converted to timezone per config file.
+	Timezone            string //extra data for above fields for displaying in GUI.
 
 	//JOINed fields
 	CreatedByUsername          null.String
@@ -99,11 +99,14 @@ func (h *DownloadHistory) Insert(ctx context.Context) (err error) {
 
 // GetHistory returns the download history for a license.
 func GetHistory(ctx context.Context, licenseID int64, orderBy string) (hh []DownloadHistory, err error) {
+	offset := config.GetTimezoneOffsetForSQLite()
 	q := `
 		SELECT 
 			` + TableDownloadHistory + `.*,
 			` + TableUsers + `.Username AS CreatedByUsername,
-			` + TableAPIKeys + `.Description AS CreatedByAPIKeyDescription
+			` + TableAPIKeys + `.Description AS CreatedByAPIKeyDescription,
+			
+			datetime(` + TableDownloadHistory + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ
 		FROM ` + TableDownloadHistory + `
 		LEFT JOIN ` + TableUsers + ` ON ` + TableUsers + `.ID = ` + TableDownloadHistory + `.CreatedByUserID 
 		LEFT JOIN ` + TableAPIKeys + ` ON ` + TableAPIKeys + `.ID = ` + TableDownloadHistory + `.CreatedByAPIKeyID 
@@ -118,16 +121,6 @@ func GetHistory(ctx context.Context, licenseID int64, orderBy string) (hh []Down
 
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &hh, q, b...)
-
-	//Convert datetime to config timezone. This timezone is usually more user
-	//friendly than the UTC timezone the datetime is stored as. This conversion
-	//isn't handled in SQL since MariaDB and SQLite differ in how they can convert
-	//datetimes to different timezones (even though we only support SQLite
-	//currently).
-	for k, v := range hh {
-		hh[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
-		hh[k].Timezone = config.Data().Timezone
-	}
 
 	return
 }

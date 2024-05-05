@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/licensefile"
 	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
@@ -73,10 +72,10 @@ type License struct {
 	ShowAppName   bool
 
 	//Calculated fields
-	Expired           bool   //true if Expire date is greater than current date
-	DatetimeCreatedTZ string //DatetimeCreated converted to timezone per config file.
-	IssueDateTZ       string // " " " "
-	Timezone          string //extra data for above fields for displaying in GUI.
+	Expired             bool   //true if Expire date is greater than current date
+	DatetimeCreatedInTZ string //DatetimeCreated converted to timezone per config file.
+	IssueDateInTZ       string // " " " "
+	Timezone            string //extra data for above fields for displaying in GUI.
 
 	//JOINed fields
 	KeyPairAlgoType            licensefile.KeyPairAlgoType
@@ -170,10 +169,6 @@ func setLicenseIDStartingValue(c *sqlx.DB) error {
 
 // Validate handle sanitizing and validation of the license data. This only
 // handle the common fields, not custom fields.
-//
-// viaAPI alters the validation based on if this function is being called due
-// to a license being created by an API request. We have to handle validation
-// slightly different due to how the data will be provided in this request.
 func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize.
 	l.CompanyName = strings.TrimSpace(l.CompanyName)
@@ -249,8 +244,11 @@ func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 }
 
 // Insert saves a license. You should have already called Validate().
-// You need to validate the license and update the Signature and
-// Verified fields.
+//
+// After Insert() is called, you still need to validate the license and update the
+// Signature and Verified fields. These fields are set to blank/false to prevent a
+// license from being used until after it has been verified. Verification performs a
+// check to make sure a license is actually usable by a 3rd party.
 func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	if l.CreatedByUserID.Int64 == 0 && l.CreatedByAPIKeyID.Int64 == 0 {
 		return errors.New("cannot determine how license is being added")
@@ -348,6 +346,12 @@ func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 }
 
 // MarkVerified updates a saved license by marking it as valid.
+//
+// This is done after a license is created and saved to the database, but before a
+// license is available to download/view. After creating a license, it is marked as
+// invalid. Then, we "read" the license like a 3rd-party app would, and verify it with
+// the public key. This ensures that the created license is actually usable. After
+// this process is done, the license is marked as verified.
 func (l *License) MarkVerified(ctx context.Context) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
@@ -369,7 +373,7 @@ func (l *License) MarkVerified(ctx context.Context) (err error) {
 // GetLicenses looks up a list of licenses optionally filtered by app and active
 // licenses only.
 func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, columns sqldb.Columns) (ll []License, err error) {
-	//build base query
+	//Build query.
 	cols, err := columns.ForSelect()
 	if err != nil {
 		return
@@ -385,7 +389,6 @@ func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, colum
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrTo   ON rrTo.ToLicenseID = ` + TableLicenses + `.ID
 	`
 
-	//filters
 	wheres := []string{}
 	b := sqldb.Bindvars{}
 	if appID > 0 {
@@ -404,26 +407,14 @@ func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, colum
 		q += where
 	}
 
-	//complete query
 	q += ` ORDER BY ` + TableLicenses + `.ID DESC`
 	q += ` LIMIT ` + strconv.FormatInt(limit, 10)
 
-	//run query
+	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &ll, q, b...)
 	if err != nil {
 		return
-	}
-
-	//Convert datetime to config timezone. This timezone is usually more user
-	//friendly than the UTC timezone the datetime is stored as. This conversion
-	//isn't handled in SQL since MariaDB and SQLite differ in how they can convert
-	//datetimes to different timezones (even though we only support SQLite
-	//currently).
-	for k, v := range ll {
-		if v.DatetimeCreated != "" {
-			ll[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
-		}
 	}
 
 	return
@@ -431,7 +422,7 @@ func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, colum
 
 // GetLicense looks up a single license's data.
 func GetLicense(ctx context.Context, licenseID int64, columns sqldb.Columns) (l License, err error) {
-	//build base query
+	//Build query.
 	cols, err := columns.ForSelect()
 	if err != nil {
 		return
@@ -451,22 +442,11 @@ func GetLicense(ctx context.Context, licenseID int64, columns sqldb.Columns) (l 
 		WHERE ` + TableLicenses + `.ID = ?
 	`
 
-	//run query
+	//Run query.
 	c := sqldb.Connection()
 	err = c.GetContext(ctx, &l, q, licenseID)
 	if err != nil {
 		return
-	}
-
-	//Convert datetime to config timezone. This timezone is usually more user
-	//friendly than the UTC timezone the datetime is stored as. This conversion
-	//isn't handled in SQL since MariaDB and SQLite differ in how they can convert
-	//datetimes to different timezones (even though we only support SQLite
-	//currently).
-	if l.DatetimeCreated != "" {
-		l.DatetimeCreatedTZ = GetDatetimeInConfigTimezone(l.DatetimeCreated)
-		l.IssueDateTZ = GetDateInConfigTimezone(l.IssueDate)
-		l.Timezone = config.Data().Timezone
 	}
 
 	return

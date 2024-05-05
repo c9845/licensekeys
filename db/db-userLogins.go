@@ -47,8 +47,7 @@ type UserLogin struct {
 	Username string
 
 	//Calculated fields
-	DatetimeCreatedTZ string //DatetimeCreated converted to timezone per config file.
-	Timezone          string //extra data for above fields for displaying in GUI.
+	DatetimeCreatedInTZ string //DatetimeCreated converted to timezone per config file.
 }
 
 const (
@@ -206,17 +205,19 @@ func (u *UserLogin) ExtendLoginExpiration(ctx context.Context, newExpiration int
 func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []UserLogin, err error) {
 	const defaultMaxRows uint16 = 200
 
-	//build columns
+	//Build columns.
+	offset := config.GetTimezoneOffsetForSQLite()
 	cols := sqldb.Columns{
 		TableUserLogins + `.ID`,
 		TableUserLogins + `.UserID`,
 		TableUserLogins + `.RemoteIP`,
 		TableUserLogins + `.UserAgent`,
+		TableUserLogins + `.DatetimeCreated`,
 		`IFNULL(` + TableUserLogins + `.TwoFATokenProvided, false) AS TwoFATokenProvided`,
 
-		`IFNULL(` + TableUsers + `.Username, "") AS Username`, //why is this IFNULL???
+		TableUsers + `.Username`,
 
-		"datetime(" + TableUserLogins + ".DatetimeCreated) AS DatetimeCreated",
+		`datetime(` + TableUserLogins + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ`,
 	}
 
 	colString, err := cols.ForSelect()
@@ -224,7 +225,7 @@ func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []User
 		return
 	}
 
-	//build query
+	//Build query.
 	q := `
 		SELECT ` + colString + ` 
 		FROM ` + TableUserLogins + `
@@ -245,15 +246,9 @@ func GetUserLogins(ctx context.Context, userID int64, numRows uint16) (uu []User
 		q += strconv.FormatInt(int64(defaultMaxRows), 10)
 	}
 
-	//run query
+	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &uu, q, b...)
-
-	//Handle converting datetimes to correct timezone.
-	for k, v := range uu {
-		uu[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
-		uu[k].Timezone = config.Data().Timezone
-	}
 
 	return
 }

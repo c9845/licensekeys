@@ -5,11 +5,11 @@
 
 //version is the version number of the ts/js code in this app
 //this isn't update very frequently and is really only used for debugging
-const version: string = "2.1.4";
+const version: string = "2.2.0";
 
 //defaultTimeout is the time used in setTimeout functions.  This is defined as a const
 //so we always use the same time throughout the app
-const defaultTimeout: number = 2000;
+const defaultTimeout: number = 1500;
 
 //msgTypes are the types of alerts from bootstrap that we use in the gui
 const msgTypes: { [key: string]: string } = {

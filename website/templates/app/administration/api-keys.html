@@ -17,123 +17,124 @@
 
 		<main>
 			<div class="container">
-				<div class="row">
-                   <div class="col">
-                        <div class="card" id="manageAPIKeys">
+				<div class="row justify-content-center">
+                   <div class="col-12 col-lg-8" id="manageAPIKeys">
+
+                        <!-- lookup an API key, only shown when viewing/editing -->
+                        <div class="card" v-if="!addingNew" v-cloak>
                             <div class="card-header">
                                 <h5>API Keys</h5>
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#modal-apiKey" v-on:click="passToModal(undefined)"><i class="fas fa-plus"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setUIState">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <table class="table table-hover table-sm table-dense">
-                                    <thead class="no-border-top">
-                                        <th>Description</th>
-                                        <th class="d-none d-lg-table-cell whitespace-no-wrap">Datetime Created</th>
-                                        <th class="whitespace-no-wrap ellipsis">Key</th>
-                                        <th></th>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-if="keysRetrieved && keys.length === 0">
-                                            <td colspan="10">No API keys exist yet.</td>
-                                        </tr>
+                                <div class="form-group">
+                                    <label>Key:</label>
+                                    <select class="form-control" v-model.number="apiKeySelectedID" v-on:change="showAPIKey">
+                                        <option v-if="!keysRetrieved">Loading...</option>
                                         <template v-else>
-                                            <tr v-for="k in keys" :key="k.ID" v-bind:data-id="k.ID">
-                                                <td>[[k.Description]]</td>
-                                                <td class="d-none d-lg-table-cell whitespace-no-wrap"><span v-bind:title="k.DatetimeCreatedUTC + ' UTC'">[[k.DatetimeCreated]]</span></td>
-                                                <td class="text-monospace">[[k.K.substring(0,9)]]...[[k.K.substring(k.K.length-5, k.K.length)]]</td>
-                                                <td class="text-right">
-                                                    <button 
-                                                        class="btn btn-link btn-sm btn-sm-condensed text-primary" 
-                                                        data-toggle="modal"
-                                                        data-target="#modal-apiKey"
-                                                        v-on:click="passToModal(k)"
-                                                    >
-                                                        <i class="fas fa-cog"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                            <option value="0" disabled>Please choose.</option>
+                                            <option v-for="(i, index) in keys" :key="index" v-bind:value="i.ID">[[i.Description]] <span v-if="!i.Active">(inactive)</span></option>
                                         </template>
-                                    </tbody>
-                                </table>
+                                    </select>
+                                </div>
+                                <div class="alert" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
+                                    [[msgLoad]]
+                                </div>
                             </div>
-                            <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
-                                [[msg]]
-                            </div>
-                        </div>
-                    </div>
-				</div>                   
-			</div>
-        </main>
-        
-        <!-- Modal to add/generate or edit/view an API key. -->
-        <div class="modal fade" id="modal-apiKey">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">API Key</h5>
-                        <button 
-                            type="button" 
-                            class="btn btn-sm btn-outline-danger" 
-                            v-on:click="revoke"
-                            v-if="key.ID > 0 && !addingNew"
-                        >
-                            <i class="fa-regular fa-trash-can"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <blockquote class="section-description section-description-secondary">
-                            Provide a descriptive name for where this API key will be used so you can identify it in logs.
-                        </blockquote>
-                        <hr class="divider">
+                        </div> <!-- end .card for looking up -->
 
-                        <!-- Gather info to generate API key with, describe app where API key will be used. -->
-                        <section>
-                            <div class="form-group">
-                                <label>Description:</label>
-                                <input type="text" class="form-control" minlength="3" maxlength="100" v-model.trim="key.Description">
+                        <!-- add/edit inputs are shown when user is viewing/editing or adding -->
+                        <div class="card" v-if="apiKeySelectedID > 0 || addingNew" v-cloak>
+                            <div class="card-header">
+                                <h5>[[addEditCardTitle]]</h5>
+                                <div class="card-header-btn">
+                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setUIState">
+                                        <i class="fas fa-search" v-cloak></i>
+                                    </button>
+                                </div>
                             </div>
-                        </section>
+                            <div class="card-body">
+                                <!-- Always shown; adding or viewing/editing. -->
+                                <section>
+                                    <div class="form-group">
+                                        <label>Description:</label>
+                                        <input type="text" class="form-control" minlength="3" maxlength="100" v-model.trim="keyData.Description" v-bind:readonly="keyData.ID > 0">
+                                    </div>
+                                </section>
 
-                        <!-- Display generated API key to copy. -->
-                        <section v-if="key.K !== ''">
-                            <div class="form-group">
-                                <label>Key:</label>
-                                <input type="text" class="form-control text-monospace" readonly v-model="key.K">
-                            </div>
-                        </section>
+                                <!-- Only shown when viewing/editing, aka after key has been generated. -->
+                                <section v-if="keyData.K !== '' && keyData.K !== undefined">
+                                    <hr class="divider">
 
-                        <!-- Extra data about an existing key. -->
-                        <section v-if="!addingNew">
-                            <div class="form-group">
-                                <label>Created By:</label>
-                                <input type="text" class="form-control" v-model.trim="key.CreatedByUsername" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label>Datetime Created <small class="text-secondary">([[key.Timezone]])</small>:</label>
-                                <input type="text" class="form-control" v-model.trim="key.DatetimeCreatedTZ" v-bind:title="key.DatetimeCreated + ' UTC'" readonly>
-                            </div>
-                        </section>
+                                    <div class="form-group">
+                                        <label>Key:</label>
+                                        <input type="text" class="form-control text-monospace" v-model="keyData.K" readonly>
+                                    </div>
 
-                        <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
-                            [[msg]]
-                        </div>
-                    </div>
-                    <div class="modal-footer justify-content-start">
-                        <div class="btn-group">
-                            <!-- 
-                                Don't show generate button once a description for a 
-                                new API key has been generated or if an existing key 
-                                is being viewed.
-                            -->
-                            <button class="btn btn-primary" v-on:click="generate" v-bind:disabled="submitting" v-if="key.K === ''" v-cloak>Generate</button>
-                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        </div>
+                                </section>
+                                
+                                <!-- 
+                                    API key permissions. 
+                                    - Settable when creating an API key.
+                                    - Only viewable after an API key has been created.
+                                -->
+                                <section></section>
+
+                                <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                                    [[msgSave]]
+                                </div>
+                            </div> <!-- end .card-body-->
+                            <div class="card-footer">
+                                <template v-if="addingNew">
+                                    <button 
+                                        class="btn btn-primary" 
+                                        type="button" 
+                                        v-on:click="createKey" 
+                                        v-bind:disabled="submitting"
+                                    >
+                                        Create
+                                    </button>
+                                </template>
+                                <template v-else>
+                                    <div class="btn-group">
+                                        <button 
+                                            class="btn btn-primary" 
+                                            type="button" 
+                                            v-on:click="update"
+                                            v-bind:disabled="submitting || showRevokeConfirm"
+                                        >
+                                            Save
+                                        </button>
+                                        
+                                        <button 
+                                            class="btn btn-outline-danger" 
+                                            type="button" 
+                                            v-on:click="handleRevokeConfirm()"
+                                            v-bind:disabled="showRevokeConfirm"
+                                        >
+                                            Revoke
+                                        </button>
+                                        <button 
+                                            v-if="showRevokeConfirm" 
+                                            class="btn btn-danger" 
+                                            type="button" 
+                                            v-on:click="revoke"
+                                        >
+                                            Confirm
+                                        </button>
+                                    </div>
+                                </template>
+                            </div> <!-- end .card-footer -->
+                        </div> <!-- end .card for viewing/editing/adding-->
+
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
 
 		{{template "footer"}}
 		{{template "html_scripts" .}}

@@ -1,3 +1,16 @@
+Handle ROUND in SQL queries.
+    - ROUND() function doesn't exist by default in SQLite, and needs compile flag to enable.
+        - SQLITE_ENABLE_MATH_FUNCTIONS.
+    - For modernc, this functionality is automatically included.
+        - https://gitlab.com/cznic/sqlite/-/commit/17c0726ebc7fe3d5fb8858eb9b75f75c2965b342
+        - https://gitlab.com/cznic/sqlite/-/tags/v1.14.5
+    - For mattn, this functionality needs to be enabled by a go build tag.
+        - https://github.com/mattn/go-sqlite3?tab=readme-ov-file#feature--extension-list
+    - We currently have queries that use ROUND and others that use golang math library 
+      on query results to hanle rounding (see activitylog.go). We should choose one
+      method or the other.
+        - If using SQLite ROUND, then we need to note build tag for when using mattn library.
+        
 
 ***
 

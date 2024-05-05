@@ -522,7 +522,7 @@ if (document.getElementById("modal-changePassword")) {
                         }
 
                         //show success and reset the form
-                        modalChangePassword.msg = "Password Updated!";
+                        modalChangePassword.msg = "Password updated!";
                         modalChangePassword.msgType = msgTypes.success;
                         modalChangePassword.password1 = '';
                         modalChangePassword.password2 = '';
@@ -785,7 +785,7 @@ if (document.getElementById("modal-deactivate2FA")) {
                         //this user. Mark user as having 2fa disabled.
                         modalDeactivate2FA.msg = '2 Factor Authentication is now disabled for this user.';
                         modalDeactivate2FA.msgType = msgTypes.success;
-                        
+
                         //Mark user as having 2FA disabled. Have to handle list of users,
                         //for admin's working on Manage Users page, and single user, for
                         //user on User Profile page.
@@ -799,7 +799,7 @@ if (document.getElementById("modal-deactivate2FA")) {
                         } else if (document.getElementById("userProfile")) {
                             userProfile.userData.TwoFactorAuthEnabled = false;
                         }
-                        
+
                         setTimeout(function () {
                             //@ts-ignore cannot find modal.
                             $('#modal-deactivate2FA').modal('hide');

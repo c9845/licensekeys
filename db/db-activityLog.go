@@ -42,8 +42,7 @@ type ActivityLog struct {
 	APIKeyK           string //the actual api key
 
 	//Calculated fields
-	DatetimeCreatedTZ string //DatetimeCreated converted to timezone per config file.
-	Timezone          string //extra data for above fields for displaying in GUI.
+	DatetimeCreatedInTZ string //DatetimeCreated converted to timezone per config file.
 }
 
 const (

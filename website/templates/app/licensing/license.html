@@ -99,7 +99,7 @@
                                         <dt class="col-sm-4 text-truncate">Expiration Date:</dt>
                                         <dd class="col-sm-8">[[licenseData.ExpireDate]] <small class="text-secondary">(UTC)</small></dd>
                                         <dt class="col-sm-4 text-truncate">Issue Date:</dt>
-                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.IssueDate + ' (UTC)'">[[licenseData.IssueDateTZ]] <small class="text-secondary">([[licenseData.Timezone]])</small></dd>
+                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.IssueDate + ' (UTC)'">[[licenseData.IssueDateInTZ]] <small class="text-secondary">([[licenseData.Timezone]])</small></dd>
                                         <dt class="col-sm-4 text-truncate">Created By:</dt>
                                         <dd class="col-sm-8" v-if="licenseData.CreatedByUserID > 0">[[licenseData.CreatedByUsername]]</dd>
                                         <dd class="col-sm-8" v-else v-cloak                        >API: [[licenseData.CreatedByAPIKeyDescription]]</dd>
@@ -127,7 +127,7 @@
                                     <hr class="divider">
                                     <dl class="row mb-0">
                                         <dt class="col-sm-4 text-truncate">Datetime Created:</dt>
-                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.DatetimeCreated + ' (UTC)'">[[licenseData.DatetimeCreatedTZ]] <small class="text-secondary">([[licenseData.Timezone]])</small></dd>
+                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.DatetimeCreated + ' (UTC)'">[[licenseData.DatetimeCreatedInTZ]]</dd>
                                         <dt class="col-sm-4 text-truncate">File Format:</dt>
                                         <dd class="col-sm-8">[[licenseData.FileFormat.toUpperCase()]]</dd>
                                     </dl>
@@ -140,8 +140,8 @@
                                     <div class="dropdown-menu">
                                         {{if $userData.Administrator}}
                                         <button class="dropdown-item" v-on:click="showAdvancedInfo = !showAdvancedInfo">
-                                            <span v-if="!showAdvancedInfo">Show Advanced Info</span>
-                                            <span v-else                  >Hide Advanced Info</span>
+                                            <span v-if="!showAdvancedInfo">Show Additional Info</span>
+                                            <span v-else                  >Hide Additional Info</span>
                                         </button>
                                         <div class="dropdown-divider"></div>
                                         
@@ -187,7 +187,7 @@
                                     <table class="table table-sm table-hover">
                                         <thead class="no-border-top">
                                             <tr>
-                                                <th>Datetime <small class="text-secondary" v-if="downloadHistory.length > 0" v-cloak>([[downloadHistory[0].Timezone]])</small></th>
+                                                <th>Datetime</th>
                                                 <th>By</th>
                                             </tr>
                                         </thead>
@@ -199,7 +199,7 @@
                                             </template>
                                             <template v-else>
                                                 <tr v-for="h in downloadHistory" v-bind:id="h.ID">
-                                                    <td v-bind:title="h.DatetimeCreated + ' (UTC)'">[[h.DatetimeCreatedTZ]]</td>
+                                                    <td v-bind:title="h.DatetimeCreated + ' (UTC)'">[[h.DatetimeCreatedInTZ]]</td>
                                                     <td>
                                                         <span v-if="h.CreatedByUsername">[[h.CreatedByUsername]]</span>
                                                         <span v-else>API: [[h.CreatedByAPIKeyDescription]]</span>
@@ -339,8 +339,8 @@
                                 >
                             </div>
                             <div class="form-group">
-                                <label>Datetime <small class="text-secondary">([[noteData.Timezone]])</small>:</label>
-                                <input class="form-control" type="text" v-model.trim="noteData.DatetimeCreatedTZ">
+                                <label>Created When:</label>
+                                <input class="form-control" type="text" v-bind:title="noteData.DatetimeCreated + ' UTC'" v-model.trim="noteData.DatetimeCreatedInTZ">
                             </div>
                         </fieldset>
 

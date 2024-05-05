@@ -33,8 +33,7 @@ type LicenseNote struct {
 	Note      string
 
 	//Calculated fields
-	DatetimeCreatedTZ string //DatetimeCreated converted to timezone per config file.
-	Timezone          string //extra data for above fields for displaying in GUI.
+	DatetimeCreatedInTZ string //DatetimeCreated converted to timezone per config file.
 
 	//JOINed fields
 	CreatedByUsername          null.String
@@ -153,12 +152,14 @@ func (n *LicenseNote) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 
 // GetNotes looks up the notes for a license.
 func GetNotes(ctx context.Context, licenseID int64, orderBy string) (nn []LicenseNote, err error) {
-	//base query
+	offset := config.GetTimezoneOffsetForSQLite()
 	q := `
 		SELECT 
 			` + TableLicenseNotes + `.*,
 			` + TableUsers + `.Username AS CreatedByUsername,
-			` + TableAPIKeys + `.Description AS CreatedByAPIKeyDescription 
+			` + TableAPIKeys + `.Description AS CreatedByAPIKeyDescription,
+
+			datetime(` + TableLicenseNotes + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ
 		FROM ` + TableLicenseNotes + `
 		LEFT JOIN ` + TableUsers + ` ON ` + TableUsers + `.ID=` + TableLicenseNotes + `.CreatedByUserID 
 		LEFT JOIN ` + TableAPIKeys + ` ON ` + TableAPIKeys + `.ID=` + TableLicenseNotes + `.CreatedByAPIKeyID 
@@ -177,14 +178,5 @@ func GetNotes(ctx context.Context, licenseID int64, orderBy string) (nn []Licens
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &nn, q, b...)
 
-	//Convert datetime to config timezone. This timezone is usually more user
-	//friendly than the UTC timezone the datetime is stored as. This conversion
-	//isn't handled in SQL since MariaDB and SQLite differ in how they can convert
-	//datetimes to different timezones (even though we only support SQLite
-	//currently).
-	for k, v := range nn {
-		nn[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
-		nn[k].Timezone = config.Data().Timezone
-	}
 	return
 }

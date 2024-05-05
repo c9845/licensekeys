@@ -20,15 +20,16 @@ type APIKey struct {
 	DatetimeModified string
 	Active           bool
 	CreatedByUserID  int64
-	Description      string //so user can identify what the api key is used for
-	K                string //the actual api key
+
+	//Key info.
+	Description string //so user can identify what the api key is used for
+	K           string //the actual api key
 
 	//JOINed fields
 	CreatedByUsername string
 
 	//Calculated fields
-	DatetimeCreatedTZ string //DatetimeCreated converted to timezone per config file.
-	Timezone          string //extra data for above fields for displaying in GUI.
+	DatetimeCreatedInTZ string //DatetimeCreated converted to timezone per config file.
 }
 
 const (
@@ -39,6 +40,7 @@ const (
 			DatetimeModified TEXT DEFAULT CURRENT_TIMESTAMP,
 			Active INTEGER NOT NULL DEFAULT 1,
 			CreatedByUserID INTEGER NOT NULL,
+
 			Description TEXT NOT NULL,
 			K TEXT NOT NULL,
 
@@ -51,16 +53,23 @@ const (
 )
 
 // GetAPIKeys looks up a list of API keys.
-func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa []APIKey, err error) {
-	//Build columns to select.
-	cols, err := columns.ForSelect()
+func GetAPIKeys(ctx context.Context, activeOnly bool) (aa []APIKey, err error) {
+	//Gather columns.
+	offset := config.GetTimezoneOffsetForSQLite()
+	cols := sqldb.Columns{
+		TableAPIKeys + ".*",
+		TableUsers + ".Username AS CreatedByUsername",
+		`datetime(` + TableAPIKeys + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ`,
+	}
+
+	colString, err := cols.ForSelect()
 	if err != nil {
 		return
 	}
 
 	//Build query.
 	q := `
-		SELECT ` + cols + ` 
+		SELECT ` + colString + ` 
 		FROM ` + TableAPIKeys + `
 		JOIN ` + TableUsers + ` ON ` + TableUsers + `.ID=` + TableAPIKeys + `.CreatedByUserID`
 
@@ -75,13 +84,6 @@ func GetAPIKeys(ctx context.Context, activeOnly bool, columns sqldb.Columns) (aa
 	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &aa, q, b...)
-
-	//Handle converting datetimes to correct timezone.
-	for k, v := range aa {
-		aa[k].DatetimeCreatedTZ = GetDatetimeInConfigTimezone(v.DatetimeCreated)
-		aa[k].Timezone = config.Data().Timezone
-	}
-
 	return
 }
 
@@ -189,4 +191,36 @@ func RevokeAPIKey(ctx context.Context, id int64) error {
 		id,
 	)
 	return err
+}
+
+// Update saves changes to an API Key's description or permissions The actual API key
+// can never be updated.
+func (a *APIKey) Update(ctx context.Context) (err error) {
+	cols := sqldb.Columns{
+		"DatetimeModified",
+		"Description",
+	}
+
+	colString, err := cols.ForUpdate()
+	if err != nil {
+		return
+	}
+
+	q := `UPDATE ` + TableAPIKeys + ` SET ` + colString + ` WHERE ID = ?`
+	c := sqldb.Connection()
+	stmt, err := c.PrepareContext(ctx, q)
+	if err != nil {
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(
+		ctx,
+
+		timestamps.YMDHMS(),
+		a.Description,
+
+		a.ID,
+	)
+	return
 }

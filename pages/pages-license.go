@@ -70,5 +70,5 @@ func License(w http.ResponseWriter, r *http.Request) {
 	pd.Data = licenseID
 
 	//show page
-	Show(w, "/app/licenses/license.html", pd)
+	Show(w, "/app/licensing/license.html", pd)
 }

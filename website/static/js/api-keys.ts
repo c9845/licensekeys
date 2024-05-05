@@ -17,29 +17,67 @@ if (document.getElementById("manageAPIKeys")) {
         delimiters: ['[[', ']]'],
         el: '#manageAPIKeys',
         data: {
+            //Handle GUI states:
+            // - Page just loaded and no API key selected: show lookup select inputs 
+            //   (uses addingNew & keyData.ID).
+            // - User wants to add/create API key: show add/edit inputs.
+            // - User chose an existing API key: show lookup select inputs & add/edit 
+            //   inputs. (uses addingNew & keyData.ID)
+            addingNew: false,
+
             //List of API keys.
             keys: [] as apiKey[],
             keysRetrieved: false,
 
-            //errors
-            submitting: false,
-            msg: '',
-            msgType: '',
+            //Errors when loading API keys.
+            msgLoad: '',
+            msgLoadType: '',
 
-            //endpoints
+            //Single API key selected.
+            apiKeySelectedID: 0,
+            keyData: {
+                Description: "",
+                K: "",
+            } as apiKey,
+
+            //Handle confirmation of revoke, so a single click cannot revoke an API
+            //key.
+            showRevokeConfirm: false,
+
+            //Errors when saving.
+            submitting: false,
+            msgSave: '',
+            msgSaveType: '',
+
+            //Endpoints.
             urls: {
                 getKeys: "/api/api-keys/",
+                generate: "/api/api-keys/generate/",
+                revoke: "/api/api-keys/revoke/",
+                update: "/api/api-keys/update/",
             }
         },
+        computed: {
+            //addEditCardTitle sets the text of the card used for adding or editing.
+            //Since the card used for adding & editing is the same we want to show the 
+            //correct card title to the user so they know what they are doing.
+            addEditCardTitle: function () {
+                if (this.addingNew) {
+                    return "Add API Key";
+                }
+
+                return "View API Key";
+            },
+        },
         methods: {
-            //getKeys gets the list of existing, active, API keys.
+            //getKeys looks up the list of existing, active, API keys.
             getKeys: function () {
                 let data: Object = {};
                 fetch(get(this.urls.getKeys, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then(function (j) {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== '') {
                             manageAPIKeys.msgLoad = err;
@@ -53,7 +91,7 @@ if (document.getElementById("manageAPIKeys")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        manageAPIKeys.msgLoad = 'An unknown error occured. Please try again.';
+                        manageAPIKeys.msgLoad = 'An unknown error occurred. Please try again.';
                         manageAPIKeys.msgLoadType = msgTypes.danger;
                         return;
                     });
@@ -61,98 +99,101 @@ if (document.getElementById("manageAPIKeys")) {
                 return;
             },
 
-            //passToModal handles the clicking of the button/icon that opens the 
-            //add/edit API Key modal. If an API key is being edited/viewed, this 
-            //passes the chosen API key's data to the modal. If the user wants to
-            //get a new API key, this passes "undefined" which will cause the modal
-            //to be displayed in an "add" state.
-            /**
-             * 
-             * @param item - An API key's data, or undefined if adding/getting a new API key.
-             */
-            passToModal: function (item: apiKey | undefined) {
-                modalAPIKey.setModalData(item);
+            //setField saves a chosen radio toggle to the Vue object.
+            setField: function (fieldName: string, value: boolean) {
+                //Save the field being clicked on value.
+                this.keyData[fieldName] = value;
                 return;
-            }
-        },
-        mounted() {
-            //Get list of existing API keys on page load.
-            this.getKeys();
-            return;
-        }
-    });
-}
+            },
 
-if (document.getElementById("modal-apiKey")) {
-    //modalAPIKey handles the modal for adding/generating a new API key or for
-    //viewing/editing and existing API key.
-    //@ts-ignore cannot find name Vue
-    var modalAPIKey = new Vue({
-        name: 'modalAPIKey',
-        delimiters: ['[[', ']]'],
-        el: '#modal-apiKey',
-        data: {
-            //Modal state. Set in setModalData.
-            addingNew: false,
-
-            //API key data, either populated for an existing key in setModalData or
-            //will be populated when a new key is added/generated.
-            key: {} as apiKey,
-
-            //errors
-            submitting: false,
-            msg: '',
-            msgType: '',
-
-            //endpoints
-            urls: {
-                generate: "/api/api-keys/generate/",
-                revoke: "/api/api-keys/revoke/",
-            }
-        },
-        methods: {
-            //setModalData populates the modal with data about a chosen API key or
-            //sets the modal to an "add" state by reseting it.
-            //
-            //This function is called by manageAPIKeys.passToModal() when a button
-            //is clicked to edit an API key or to add/generate a new one.
-            setModalData: function (key: apiKey | undefined) {
-                //Always reset to start.
-                this.resetModal();
-
-                //User wants to add/generate a new API key, set modal to blank state.
-                if (key === undefined) {
-                    this.addingNew = true;
+            //setUIState handles setting the GUI state to the "add" or "edit/view" 
+            //states per user clicks by setting some variables. This also resets any 
+            //inputs to empty/default values as needed. Basically, we flip the value 
+            //of the addingNew variable and clear some inputs.
+            setUIState: function () {
+                //User clicked on "lookup" button, user wants to see "lookup" UI. We
+                //don't have to worry about setting the inputs to since showAPIKey()
+                //will be called on choosing a select option and populate the inputs
+                //accordingly.
+                if (this.addingNew) {
+                    this.addingNew = !this.addingNew;
                     return;
                 }
 
-                //User wants to view/edit an API key.
-                this.addingNew = false;
-                this.key = key;
+                //User clicked on "add" button, user wants to see "add" form. Clear 
+                //any existing user data so that the inputs are reset to a blank state.
+                this.addingNew = !this.addingNew;
+                this.resetKeyData();
+
+                this.msgSave = '';
+                this.msgSaveType = '';
 
                 return;
             },
 
-            //resetModal resets the modal back to the blank state used for
-            //adding/generating a new API key.
-            //
-            //This function is called in setModalData() whenever the modal is launched
-            //to make sure any previous key's data is removed, and after a key was
-            //generated.
-            resetModal: function () {
-                this.key = {
+            //resetKeyData resets the inputs and toggles when showing the "add user"
+            //GUI, or after a user is added and we empty all the inputs.
+            resetKeyData: function () {
+                this.keyData = {
                     Description: "",
                     K: "",
                 } as apiKey;
+                this.apiKeySelectedID = 0;
+                this.showRevokeConfirm = false;
 
-                this.msg = "";
-                this.msgType = "";
-                this.submitting = false;
+                //Set all the toggles to default states.
+                //@ts-ignore Vue doesn't exist
+                Vue.nextTick(function () {
+                    for (let key in (manageAPIKeys.keyData as apiKey)) {
+                        let value = manageAPIKeys.keyData[key];
+                        if (value === true || value === false) {
+                            setToggle(key, value);
+                        }
+                    }
+                });
+
                 return;
             },
 
-            //generate adds/generates a new API key.
-            generate: function () {
+            //showAPIKey populates the "lookup" GUI with data about the chosen API
+            //key. This is called when an API key is chosen from the list of retrieved 
+            //API keys. This function is needed in order to set any toggles properly 
+            //since we cannot just do that with Vue v-model.
+            showAPIKey: function () {
+                //Make sure an API key was selected. This handles the "Please choose"
+                //option or something similar.
+                if (this.apiKeySelectedID < 1) {
+                    return;
+                }
+
+                //Get data from the list of API keys.
+                for (let k of (this.keys as apiKey[])) {
+                    if (k.ID !== this.apiKeySelectedID) {
+                        continue;
+                    }
+
+                    //Save the chosen user for displaying in the GUI.
+                    this.keyData = k;
+
+                    //Set toggles.
+                    //@ts-ignore cannot find Vue
+                    Vue.nextTick(function () {
+                        for (let key in k) {
+                            let value = k[key];
+                            if (value === true || value === false) {
+                                setToggle(key, value);
+                            }
+                        }
+                    });
+                }
+
+                this.showRevokeConfirm = false;
+
+                return;
+            },
+
+            //createKey adds/generates a new API key.
+            createKey: function () {
                 //Make sure data isn't already being saved.
                 if (this.submitting) {
                     console.log("already submitting");
@@ -160,69 +201,66 @@ if (document.getElementById("modal-apiKey")) {
                 }
 
                 //Validate.
-                this.msgType = msgTypes.danger;
-                if (this.key.Description === "") {
-                    this.msg = "You must provide a description for this API key so you can recognize what it is used for.";
+                this.msgSaveType = msgTypes.danger;
+                if (this.keyData.Description === "") {
+                    this.msgSave = "You must provide a description for this API key so you can recognize what it is used for.";
                     return;
                 }
 
                 //Validation ok.
-                this.msgType = msgTypes.primary;
-                this.msg = "Generating...";
+                this.msgSaveType = msgTypes.primary;
+                this.msgSave = "Creating API Key...";
                 this.submitting = true;
 
                 //Make sure some fields are set to default state.
-                this.key.K = '';
+                this.keyData.K = '';
 
-                //Perform API call.
+                //Make API request.
                 //
                 //We are passing in an object here (this.key) instead of just 
                 //"description" since we may add stuff in the future.
                 let data: Object = {
-                    data: JSON.stringify(this.key),
+                    data: JSON.stringify(this.keyData),
                 };
                 fetch(post(this.urls.generate, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then(function (j) {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== '') {
-                            modalAPIKey.msg = err;
-                            modalAPIKey.msgType = msgTypes.danger;
-                            modalAPIKey.submitting = false;
+                            manageAPIKeys.msgSave = err;
+                            manageAPIKeys.msgSaveType = msgTypes.danger;
+                            manageAPIKeys.submitting = false;
                             return;
                         }
 
-                        //Hide "generating..." message.
-                        modalAPIKey.msg = '';
 
-                        //Show successfully generated new API key in modal so user
-                        //can copy it.
-                        modalAPIKey.key = j.Data;
-
-                        //Refresh table of API keys.
+                        //Refresh the list of keys in the GUI.
                         manageAPIKeys.getKeys();
 
-                        //Show just generated message.
-                        modalAPIKey.msg = "Your API key was generated successfully. Please copy and use the Key exactly as it is displayed.";
-                        modalAPIKey.msgType = msgTypes.primary;
+                        //Show the just created key.
+                        setTimeout(function () {
+                            //Show success message.
+                            manageAPIKeys.msgSaveType = "";
+                            manageAPIKeys.msgSave = "";
+                            manageAPIKeys.submitting = false;
 
-                        //Submitting is never reset to "false" here. User has to 
-                        //close and reopen modal to reset form to add/generate another
-                        //new API key.
-                        //
-                        //This was done, and is different from how the rest of the
-                        //app functions (wiping form after a short delay), since 
-                        //in most cases a user isn't creating a whole bunch of API
-                        //keys one after another.
+                            //Select this just created key.
+                            manageAPIKeys.apiKeySelectedID = j.Data;
+
+                            //Show the key for copying.
+                            manageAPIKeys.addingNew = false;
+                            manageAPIKeys.showAPIKey();
+                        }, defaultTimeout);
+
                         return;
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        modalAPIKey.msg = 'An unknown error occured. Please try again.';
-                        modalAPIKey.msgType = msgTypes.danger;
-                        modalAPIKey.submitting = false;
+                        manageAPIKeys.msgSave = 'An unknown error occurred. Please try again.';
+                        manageAPIKeys.msgSaveType = msgTypes.danger;
+                        manageAPIKeys.submitting = false;
                         return;
                     });
             },
@@ -238,54 +276,141 @@ if (document.getElementById("modal-apiKey")) {
 
                 //Validate.
                 if (id < 1) {
-                    this.msg = 'Could not determine which API key to revoke';
-                    this.msgType = msgTypes.danger;
+                    this.msgSave = 'Could not determine which API key to revoke';
+                    this.msgSaveType = msgTypes.danger;
                     return;
                 }
 
                 //Validation ok.
-                this.msgType = msgTypes.primary;
-                this.msg = "Revoking...";
+                this.msgSaveType = msgTypes.danger;
+                this.msgSave = "Revoking...";
                 this.submitting = true;
 
-                //Perform API call.
+                //Make API request.
                 let data: Object = {
-                    id: this.key.ID,
+                    id: this.apiKeySelectedID,
                 };
                 fetch(post(this.urls.revoke, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then(function (j) {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== '') {
-                            modalAPIKey.msg = err;
-                            modalAPIKey.msgType = msgTypes.danger;
-                            modalAPIKey.submitting = false;
+                            manageAPIKeys.msgSave = err;
+                            manageAPIKeys.msgSaveType = msgTypes.danger;
+                            manageAPIKeys.submitting = false;
                             return;
                         }
 
-                        //Refresh table of API keys.
-                        manageAPIKeys.getKeys();
+                        //Show revoke message.
+                        manageAPIKeys.msgSaveType = msgTypes.primary
+                        manageAPIKeys.msgSave = "API key was revoked successfully!"
 
-                        //Clear out the API key from being displayed in the modal,
-                        //even though modal is going to be closed.
-                        modalAPIKey.key.K = "";
 
-                        //Close the modal.
-                        //@ts-ignore modal does not exist on jQuery.
-                        $('#' + modalAPIKey.$el.id).modal('hide');
+                        setTimeout(function () {
+                            manageAPIKeys.msgSaveType = "";
+                            manageAPIKeys.msgSave = "";
+                            manageAPIKeys.submitting = false;
+
+                            manageAPIKeys.apiKeySelectedID = 0;
+                            manageAPIKeys.resetKeyData();
+
+                            manageAPIKeys.getKeys();
+                        }, defaultTimeout);
 
                         return;
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        modalAPIKey.msgSave = 'An unknown error occured. Please try again.';
-                        modalAPIKey.msgSaveType = msgTypes.danger;
-                        modalAPIKey.submitting = false;
+                        manageAPIKeys.msgSave = 'An unknown error occurred. Please try again.';
+                        manageAPIKeys.msgSaveType = msgTypes.danger;
+                        manageAPIKeys.submitting = false;
                         return;
                     });
             },
+
+            //handleRevokeConfirm handles flipping the field that then shows/hides
+            //the "confirm" button when revoking an API key. This "confirm" button
+            //was implemented to prevent accidental deletion/revokes of an API key.
+            //This forces a user to click two buttons to revoke an API key which is
+            //must less likely to be accidental.
+            //
+            //The "confirm" button is reverted after a short amount of time so that
+            //a user must perform the "confirm" quickly.
+            handleRevokeConfirm: function () {
+                this.showRevokeConfirm = true;
+
+                setTimeout(function () {
+                    manageAPIKeys.showRevokeConfirm = false;
+                }, 3000);
+
+                return;
+            },
+
+            //update saves changes to an API key's description or permissions. You
+            //cannot change the actual API key.
+            update: function () {
+                //Make sure data isn't already being saved.
+                if (this.submitting) {
+                    console.log("already submitting");
+                    return;
+                }
+
+                //Validate.
+                this.msgSaveType = msgTypes.danger;
+                if (this.keyData.ID < 1) {
+                    this.msgSave = "Could not determine which API Key you want to update.";
+                    return;
+                }
+
+                //Validation ok.
+                this.msgSaveType = msgTypes.primary;
+                this.msgSave = "Saving...";
+                this.submitting = true;
+
+                //Make API request.
+                let data: Object = {
+                    data: JSON.stringify(this.keyData),
+                };
+                fetch(post(this.urls.update, data))
+                    .then(handleRequestErrors)
+                    .then(getJSON)
+                    .then(function (j) {
+                        //Check if response is an error from the server.
+                        let err: string = handleAPIErrors(j);
+                        if (err !== '') {
+                            manageAPIKeys.msgSave = err;
+                            manageAPIKeys.msgSaveType = msgTypes.danger;
+                            manageAPIKeys.submitting = false;
+                            return;
+                        }
+
+                        //Show success.
+                        manageAPIKeys.msgSaveType = msgTypes.primary;
+                        manageAPIKeys.msgSave = "Changes saved!";
+                        setTimeout(function () {
+                            //Show success message.
+                            manageAPIKeys.msgSaveType = "";
+                            manageAPIKeys.msgSave = "";
+                            manageAPIKeys.submitting = false;
+                        }, defaultTimeout);
+
+                        return;
+                    })
+                    .catch(function (err) {
+                        console.log("fetch() error: >>", err, "<<");
+                        manageAPIKeys.msgSave = 'An unknown error occurred. Please try again.';
+                        manageAPIKeys.msgSaveType = msgTypes.danger;
+                        manageAPIKeys.submitting = false;
+                        return;
+                    });
+            }
+        },
+        mounted() {
+            //Get list of existing API keys on page load.
+            this.getKeys();
+            return;
         }
     });
 }

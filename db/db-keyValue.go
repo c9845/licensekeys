@@ -41,8 +41,6 @@ const (
 			Expiration INTEGER NOT NULL
 		)
 	`
-
-	updateKeyValueDatetimeModified = `ALTER TABLE ` + TableKeyValue + ` ADD COLUMN DatetimeModified DATETIME DEFAULT CURRENT_TIMESTAMP`
 )
 
 // GetValueByKey looks up key/value pair by the key name.
@@ -61,8 +59,8 @@ func GetValueByKey(ctx context.Context, keyName string) (k KeyValue, err error) 
 			(Active = ?)
 			AND
 			(Expiration > ? OR Expiration = 0)
-			ORDER BY DatetimeCreated DESC
-			LIMIT 1
+		ORDER BY DatetimeCreated DESC
+		LIMIT 1
 	`
 	b := sqldb.Bindvars{
 		keyName,
@@ -81,9 +79,12 @@ func GetValueByKey(ctx context.Context, keyName string) (k KeyValue, err error) 
 }
 
 // Insert saves a key/value to the database.
-// you should have already performed validation.
+//
+// A transaction is optional. It was originally used for when handling database schema
+// updates where we save a record if the update was successful to prevent running the
+// update multiple times if --update-db is used multiple times.
 func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
-	//use tx if given, otherwise generate a tx
+	//Use tx if given, otherwise generate a tx.
 	txProvided := true
 	if tx == nil {
 		c := sqldb.Connection()
@@ -96,7 +97,7 @@ func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		txProvided = false
 	}
 
-	//build query
+	//Insert into database.
 	cols := sqldb.Columns{
 		"K",
 		"V",
@@ -121,13 +122,12 @@ func (k *KeyValue) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	}
 	defer stmt.Close()
 
-	//run query
 	_, err = stmt.ExecContext(ctx, b...)
 	if err != nil {
 		return
 	}
 
-	//finish tx if we generated it in this func
+	//Finish tx if we generated it in this func.
 	if !txProvided {
 		err = tx.Commit()
 		if err != nil {

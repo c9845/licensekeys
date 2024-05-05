@@ -92,7 +92,7 @@
                                         <template v-else>
                                             <tr v-for="l in logins" v-bind:data-loginid="l.ID">
                                                 <td class="datetime whitespace-no-wrap"><span
-                                                        v-bind:title="l.DatetimeCreatedUTC + ' UTC'">[[l.DatetimeCreated]]</span>
+                                                        v-bind:title="l.DatetimeCreated + ' UTC'">[[l.DatetimeCreatedInTZ]]</span>
                                                 </td>
                                                 <td>[[l.Username]]</td>
                                                 <td class="text-center"><span v-if="l.TwoFATokenProvided" class="text-success fas fa-check"></span></td>

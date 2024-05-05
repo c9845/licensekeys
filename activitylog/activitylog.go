@@ -8,6 +8,7 @@ works for public api calls.
 package activitylog
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -377,9 +378,9 @@ func DurationByEndpoint(w http.ResponseWriter, r *http.Request) {
 	cols := sqldb.Columns{
 		db.TableActivityLog + `.URL`, //endpoint
 		`COUNT(ID) AS EndpointHits`,  //for displaying how popular the endpoint is, infrequently hit endpoints that are slow aren't an issue.
-		`FLOOR(AVG(` + db.TableActivityLog + `.TimeDuration)) AS AverageTimeDuration`,
-		`FLOOR(MAX(` + db.TableActivityLog + `.TimeDuration)) AS MaxTimeDuration`,
-		`FLOOR(MIN(` + db.TableActivityLog + `.TimeDuration)) AS MinTimeDuration`,
+		`AVG(` + db.TableActivityLog + `.TimeDuration) AS AverageTimeDuration`,
+		`MAX(` + db.TableActivityLog + `.TimeDuration) AS MaxTimeDuration`,
+		`MIN(` + db.TableActivityLog + `.TimeDuration) AS MinTimeDuration`,
 	}
 
 	colstring, err := cols.ForSelect()
@@ -402,9 +403,9 @@ func DurationByEndpoint(w http.ResponseWriter, r *http.Request) {
 		URL                 string
 		EndpointHits        int
 		Method              string
-		AverageTimeDuration int
-		MaxTimeDuration     int
-		MinTimeDuration     int
+		AverageTimeDuration float64
+		MaxTimeDuration     float64
+		MinTimeDuration     float64
 	}
 	var data []dataReturned
 
@@ -414,6 +415,15 @@ func DurationByEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		output.Error(err, "Could not look up data.", w)
 		return
+	}
+
+	//Round times to whole numbers for cleaner displaying. This isn't done with ROUND()
+	//in SQL query because SQLite doesn't have ROUND() unless it is built with it.
+	//This is possible for mattn, but not for modernc.
+	for k, v := range data {
+		data[k].AverageTimeDuration = math.Floor(v.AverageTimeDuration)
+		data[k].MaxTimeDuration = math.Floor(v.MaxTimeDuration)
+		data[k].MinTimeDuration = math.Floor(v.MinTimeDuration)
 	}
 
 	//Allow results to be cached for a short amount of time since this pages takes

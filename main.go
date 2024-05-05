@@ -194,6 +194,7 @@ func init() {
 		Type:       sqldb.DBTypeSQLite,
 		SQLitePath: config.Data().DBPath,
 		SQLitePragmas: []string{
+			//Update pages-diagnostics.go to match.
 			"PRAGMA busy_timeout = 5000",  //so mattn and modernc are treated the same, 5000 is default for mattn
 			"PRAGMA synchronous = NORMAL", //so mattn and modernc are treated the same, NORMAL is default for mattn
 			"PRAGMA journal_mode = " + config.Data().DBJournalMode,
@@ -344,10 +345,11 @@ func main() {
 	a.Handle("/", auth.ThenFunc(pages.Main)).Methods("GET")
 	a.Handle("/user-profile/", auth.ThenFunc(pages.UserProfile)).Methods("GET")
 
-	a.Handle("/apps/", admin.ThenFunc(pages.Page)).Methods("GET")
-	a.Handle("/licenses/add/", createLics.ThenFunc(pages.Page)).Methods("GET")
-	a.Handle("/licenses/", viewLics.ThenFunc(pages.Page)).Methods("GET")
-	a.Handle("/license/", viewLics.ThenFunc(pages.License)).Methods("GET")
+	l := a.PathPrefix("/licensing").Subrouter()
+	l.Handle("/apps/", admin.ThenFunc(pages.Page)).Methods("GET")
+	l.Handle("/licenses/", viewLics.ThenFunc(pages.Page)).Methods("GET")
+	l.Handle("/create-license/", createLics.ThenFunc(pages.Page)).Methods("GET")
+	l.Handle("/license/", viewLics.ThenFunc(pages.License)).Methods("GET")
 
 	//*admin stuff and settings
 	adm := a.PathPrefix("/administration").Subrouter()
@@ -358,9 +360,9 @@ func main() {
 	adm.Handle("/tools/", admin.ThenFunc(pages.Page)).Methods("GET")
 
 	adm.Handle("/activity-log/", admin.ThenFunc(pages.Page)).Methods("GET")
-	adm.Handle("/activity-log/charts/activity-over-time-of-day/", admin.ThenFunc(pages.Page)).Methods("GET")
-	adm.Handle("/activity-log/charts/max-avg-duration-per-month/", admin.ThenFunc(pages.Page)).Methods("GET")
-	adm.Handle("/activity-log/charts/duration-of-latest-requests/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/activity-over-time-of-day/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/max-and-avg-duration-by-month/", admin.ThenFunc(pages.Page)).Methods("GET")
+	adm.Handle("/activity-log/duration-of-latest-requests/", admin.ThenFunc(pages.Page)).Methods("GET")
 	adm.Handle("/activity-log/duration-by-endpoint/", admin.ThenFunc(pages.Page)).Methods("GET")
 
 	//**diagnostic stuff, accessible without logging in so not on "app" path.
@@ -402,6 +404,7 @@ func main() {
 	ak.Handle("/", admin.ThenFunc(apikeys.GetAll)).Methods("GET")
 	ak.Handle("/generate/", admin.ThenFunc(apikeys.Generate)).Methods("POST")
 	ak.Handle("/revoke/", admin.ThenFunc(apikeys.Revoke)).Methods("POST")
+	ak.Handle("/update/", admin.ThenFunc(apikeys.Update)).Methods("POST")
 
 	//**activity log
 	act := api.PathPrefix("/activity-log").Subrouter()
@@ -411,6 +414,7 @@ func main() {
 	act.Handle("/over-time-of-day/", admin.ThenFunc(activitylog.OverTimeOfDay)).Methods("GET")
 	act.Handle("/max-and-avg-monthly-duration/", admin.ThenFunc(activitylog.MaxAndAvgMonthlyDuration)).Methods("GET")
 	act.Handle("/latest-requests-duration/", admin.ThenFunc(activitylog.LatestRequestsDuration)).Methods("GET")
+	act.Handle("/duration-by-endpoint/", admin.ThenFunc(activitylog.DurationByEndpoint)).Methods("GET")
 
 	//**user logins
 	ulg := api.PathPrefix("/user-logins").Subrouter()

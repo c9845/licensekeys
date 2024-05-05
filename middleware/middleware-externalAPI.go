@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/c9845/licensekeys/v2/apikeys"
@@ -15,14 +16,34 @@ import (
 
 // This file handles external API access to this app using an API key.
 
-// errAPIAccessNotAllowed is used when a request is made using and API key but the app
-// is configured to not allow api access. This is a setting in app settings.
-var errAPIAccessNotAllowed = errors.New("api access it not enabled")
+var (
+	// errAPIAccessNotAllowed is used when a public API endpoint is accessed but API
+	// access has not been allowed in the App Settings.
+	errAPIAccessNotAllowed = errors.New("api access is not enabled")
+
+	//errAPIKeyNotAuthorized is used when an API Key is active, but it does not have
+	//permission to perform the action at the endpoint.
+	errAPIKeyNotAuthorized = errors.New("api key does not have required permission")
+
+	// errNonPublicEndpoint is returned when a request is made with an API key to a
+	//URL that is not publicly accessible.
+	errNonPublicEndpoint = errors.New("api access denied to non-public endpoint")
+)
+
+// publicEndpoints are the list of URLs a user can access via an API key. This list
+// is checked against in middleware to make sure a request using an API key is
+// accessing a publicly accessible endpoint.
+var publicEndpoints = []string{
+	"/api/v1/licenses/add/",
+	"/api/v1/licenses/download/",
+	"/api/v1/licenses/renew/",
+	"/api/v1/licenses/disable/",
+}
 
 // ExternalAPI handles authenticating access to the public endpoints using api keys.
 func ExternalAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Get API key.
+		//Get API key from request.
 		key := strings.TrimSpace(r.FormValue("apiKey"))
 
 		//Basic validation.
@@ -35,22 +56,19 @@ func ExternalAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		//Check if api access is enabled.
-		appData, err := db.GetAppSettings(r.Context())
+		//Check if API access is enabled.
+		as, err := db.GetAppSettings(r.Context())
 		if err != nil {
 			output.Error(err, "Could not look up app settings to verify if api is enabled.", w)
 			return
 		}
-		if !appData.AllowAPIAccess {
+		if !as.AllowAPIAccess {
 			output.Error(errAPIAccessNotAllowed, "API access has not been enabled.", w)
 			return
 		}
 
-		//Calidate the key.
-		cols := sqldb.Columns{
-			db.TableAPIKeys + ".Active",
-			db.TableAPIKeys + ".Description",
-		}
+		//Validate the API Key exists and get its data.
+		cols := sqldb.Columns{db.TableAPIKeys + ".*"}
 		keyData, err := db.GetAPIKeyByKey(r.Context(), key, cols)
 		if err == sql.ErrNoRows {
 			output.ErrorInputInvalid("The API key you provided does not exist.", w)
@@ -60,7 +78,7 @@ func ExternalAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		//Make sure key is active.
+		//Make sure the API Key is active.
 		if !keyData.Active {
 			log.Println("Inactive or invalid API key", keyData.Description)
 			output.ErrorInputInvalid("The API key you provided is inactive or invalid.", w)
@@ -68,16 +86,14 @@ func ExternalAPI(next http.Handler) http.Handler {
 		}
 
 		//Make sure request is for a valid public endpoint.
-		if !apikeys.IsPublicEndpoint(r.URL.Path) {
-			log.Println("middleware.externalAPI, endpoint not public", r.URL.Path, keyData.Description)
-			output.Error(apikeys.ErrNonPublicEndpoint, "You cannot access this endpoint via the API.", w)
-			return
+		if slices.Contains(publicEndpoints, r.URL.Path) {
+			output.Error(errNonPublicEndpoint, "You cannot access this endpoint via the API.", w)
 		}
 
 		//Diagnostic logging.
-		log.Println("API Access", r.URL.Path, "via key:", keyData.Description)
+		log.Println("API Access", r.URL.Path, "Via Key:", keyData.Description)
 
-		//move to next middleware or handler
+		//Move to next middleware or handler.
 		next.ServeHTTP(w, r)
 	})
 }

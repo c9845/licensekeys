@@ -30,10 +30,6 @@ package db
 
 import (
 	"errors"
-	"log"
-	"time"
-
-	"github.com/c9845/licensekeys/v2/config"
 )
 
 // errors
@@ -47,54 +43,3 @@ var (
 	//user somehow provided an incorrect result.
 	ErrCouldNotFindMatchingField = errors.New("could not find matching result for defined field")
 )
-
-// GetDatetimeInConfigTimezone is used to convert a datetime from the database
-// as UTC into the timezone specified in the config file.  This cleans up and
-// removes duplicate code to do this elsewhere.  This is mostly used for DatetimeCreated
-// and DatetimeModified fields.  Although we use time.Parse that can return an
-// error, we simply log the error and return the input value instead.  Typically when
-// this func is used, the original datetime value is stored in "fieldNameUTC" such as
-// DatetimeCreatedUTC for clarification and/or diagnostics.
-func GetDatetimeInConfigTimezone(input string) (output string) {
-	//the format of datetimes stored in the db
-	const format = "2006-01-02 15:04:05"
-
-	//parse datetime into time.Time
-	//If we can't parse it, just return the original value.
-	t, err := time.Parse(format, input)
-	if err != nil {
-		log.Println("db.GetDatetimeInConfigTimezone", "could not parse datetime", err)
-		output = input
-		return
-	}
-
-	//get datetime in location specified by timezone from config file
-	tInLoc := t.In(config.GetLocation())
-
-	//return string representation of datetime
-	output = tInLoc.Format(format)
-	return
-}
-
-// GetDateInConfigTimezone is similar to GetDatetimeInConfigTimezone but
-// for dates only.
-func GetDateInConfigTimezone(input string) (output string) {
-	//the format of dates stored in the db
-	const format = "2006-01-02"
-
-	//parse date into time.Time
-	//If we can't parse it, just return the original value.
-	t, err := time.Parse(format, input)
-	if err != nil {
-		log.Println("db.GetDateInConfigTimezone", "could not parse date", err)
-		output = input
-		return
-	}
-
-	//get date in location specified by timezone from config file
-	tInLoc := t.In(config.GetLocation())
-
-	//return string representation of date
-	output = tInLoc.Format(format)
-	return
-}

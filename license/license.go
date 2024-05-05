@@ -470,6 +470,7 @@ func All(w http.ResponseWriter, r *http.Request) {
 	activeOnly, _ := strconv.ParseBool(r.FormValue("activeOnly"))
 
 	//Look up licenses.
+	offset := config.GetTimezoneOffsetForSQLite()
 	cols := sqldb.Columns{
 		db.TableLicenses + ".ID",
 		db.TableLicenses + ".DatetimeCreated",
@@ -487,6 +488,9 @@ func All(w http.ResponseWriter, r *http.Request) {
 		//"FROM".
 		"rrFrom.ToLicenseID AS RenewedToLicenseID",
 		"rrTo.FromLicenseID AS RenewedFromLicenseID",
+
+		//Convert dates to timezone in config file which is more applicable to users.
+		`datetime(` + db.TableLicenses + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ`,
 	}
 	lics, err := db.GetLicenses(r.Context(), appID, limit, activeOnly, cols)
 	if err != nil {
@@ -505,6 +509,7 @@ func One(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	offset := config.GetTimezoneOffsetForSQLite()
 	cols := sqldb.Columns{
 		db.TableLicenses + ".*",
 		db.TableUsers + ".Username AS CreatedByUsername",
@@ -518,6 +523,10 @@ func One(w http.ResponseWriter, r *http.Request) {
 		//"FROM".
 		"rrFrom.ToLicenseID AS RenewedToLicenseID",
 		"rrTo.FromLicenseID AS RenewedFromLicenseID",
+
+		//Convert dates to timezone in config file which is more applicable to users.
+		`datetime(` + db.TableLicenses + `.DatetimeCreated, '` + offset + `') AS DatetimeCreatedInTZ`,
+		`DATE(datetime(` + db.TableLicenses + `.DatetimeCreated, '` + offset + `')) AS IssueDateInTZ`,
 	}
 	l, err := db.GetLicense(r.Context(), licenseID, cols)
 	if err == sql.ErrNoRows {
@@ -527,6 +536,10 @@ func One(w http.ResponseWriter, r *http.Request) {
 		output.Error(err, "Could not look up license data.", w)
 		return
 	}
+
+	//Get timezone from config file for displaying in GUI to provide users a bit more
+	//context about what DatetimeCreated is.
+	l.Timezone = config.Data().Timezone
 
 	output.DataFound(l, w)
 }

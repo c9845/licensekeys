@@ -23,7 +23,6 @@ able to use an API key just by looking at the stored value.
 package apikeys
 
 import (
-	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -31,7 +30,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -39,7 +37,6 @@ import (
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
-	"github.com/c9845/sqldb/v3"
 )
 
 // keyLength is the length of random part of the api key that is generated randomly
@@ -52,34 +49,12 @@ const keyLength = 40
 // https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
 const keyPrefix = "lks_"
 
-// publicEndpoints are the list of URLs a user can access via an API key. This list
-// is checked against in middleware to make sure a request using an API key is
-// accessing a publicly accessible endpoint.
-var publicEndpoints = []string{
-	"/api/v1/licenses/add/",
-	"/api/v1/licenses/download/",
-	"/api/v1/licenses/renew/",
-	"/api/v1/licenses/disable/",
-}
-
-// ErrNonPublicEndpoint is returned when a request is made via an API key to an
-// endpoint that isn't in the list publicEndpoints.
-var ErrNonPublicEndpoint = errors.New("api: access denied to non-public endpoint")
-
 // GetAll looks up a list of all API keys.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	cols := sqldb.Columns{
-		db.TableAPIKeys + ".ID",
-		db.TableAPIKeys + ".DatetimeCreated",
-		db.TableAPIKeys + ".Active",
-		db.TableAPIKeys + ".Description",
-		db.TableAPIKeys + ".K",
-		db.TableUsers + ".Username AS CreatedByUsername",
-	}
-
-	keys, err := db.GetAPIKeys(r.Context(), true, cols)
+	//Get data.
+	keys, err := db.GetAPIKeys(r.Context(), true)
 	if err != nil {
-		output.Error(err, "Could not look up API keys.", w)
+		output.Error(err, "Could not look up api keys.", w)
 		return
 	}
 
@@ -109,14 +84,12 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Check if a key with this description already exists and is active. We don't
-	//want multiple API keys with the same description since that would make
-	//identifying which API key was used more difficult.
+	//Check if a key with this description already exists and is active.
 	_, err = db.GetAPIKeyByDescription(r.Context(), a.Description)
 	if err == nil {
-		output.ErrorAlreadyExists("This description is already in use by another API Key. Please use a different description.", w)
+		output.ErrorAlreadyExists("This Description is already in use by another API Key. Please use a different description.", w)
 		return
-	} else if err != nil && err != sql.ErrNoRows {
+	} else if err != sql.ErrNoRows {
 		output.Error(err, "Could not verify if this Description is already in use.", w)
 		return
 	}
@@ -136,7 +109,7 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	maxAttempts := 5
 	for i := 0; i < maxAttempts; i++ {
 		//Generate a new API key.
-		a.K = generateKey(r.Context(), a.Description)
+		a.K = generateKey(a.Description)
 
 		//Try saving the key to the db. If a duplicate key exists, it will be
 		//rejected by the database and this for loop will retry by generating a new,
@@ -172,10 +145,10 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 }
 
 // generateKey generates a new API key from a seed text.
-func generateKey(ctx context.Context, apiKeyDesc string) (key string) {
+func generateKey(apiKeyDesc string) (key string) {
 	//Salt just helps to add some length to the seed and some extra randomness and
 	//so that we aren't just hashing data stored in the database in plain text.
-	const salt = "xkr8NVwLg$@ENvPj*S&k"
+	const salt = "da7J3nkKJ^dsvd-A23hk"
 
 	//Data to use as seed to generate api key
 	hashInputItems := []string{
@@ -223,15 +196,52 @@ func Revoke(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOK(w)
 }
 
-// IsPublicEndpoint checks if a provided URL is in the list of publically accessible
-// endpoints. If not, it returnes an error.
-func IsPublicEndpoint(urlPath string) bool {
-	return slices.Contains(publicEndpoints, urlPath)
-}
-
 // KeyLength returns the length of API keys generated inclusive of the key prefix.
 // This is used during validation of API requests to simply check if the provided API
 // key is the correct length before looking up the API key in the database.
 func KeyLength() int {
 	return len(keyPrefix) + keyLength
+}
+
+// Update saves changes to an API key. Only the API key's description and permissions
+// can be changed. The actual key can never be changed.
+func Update(w http.ResponseWriter, r *http.Request) {
+	//Get input data.
+	raw := r.FormValue("data")
+
+	//Parse into struct.
+	var a db.APIKey
+	err := json.Unmarshal([]byte(raw), &a)
+	if err != nil {
+		output.Error(err, "Could not parse data to generate API Key.", w)
+		return
+	}
+
+	//Sanitize.
+	a.Description = strings.TrimSpace(a.Description)
+
+	//Validate.
+	if len(a.Description) == 0 {
+		output.ErrorInputInvalid("You must provide a description for this API Key.", w)
+		return
+	}
+
+	//Check if a key with this description already exists and is active.
+	existing, err := db.GetAPIKeyByDescription(r.Context(), a.Description)
+	if err != nil && err != sql.ErrNoRows {
+		output.Error(err, "Could not look up if an API Key with description already exists.", w)
+		return
+	} else if a.ID != existing.ID {
+		output.ErrorInputInvalid("An API Key with this description already exists.", nil)
+		return
+	}
+
+	//Save.
+	err = a.Update(r.Context())
+	if err != nil {
+		output.Error(err, "Could not update API Key.", w)
+		return
+	}
+
+	output.UpdateOK(w)
 }

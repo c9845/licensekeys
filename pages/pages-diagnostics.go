@@ -112,18 +112,27 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	d.set("SQLiteLibrary", sqldb.GetSQLiteLibrary())
 
 	pragmas := []string{
-		"journal_mode",
 		"busy_timeout",
+		"synchronous",
+		"journal_mode",
 		"foreign_keys",
 	}
 	for _, p := range pragmas {
 		v, err := getSQLitePragma(p)
 		if err != nil {
-			log.Println("pages.Diagnostics", "Could not get SQLite pragma "+p+".")
+			log.Println("pages.Diagnostics", "Could not get SQLite pragma "+p+".", err)
 			//not returning on error so rest of diagnostics page is loaded.
 		} else {
-			d.set("PRAGMA"+p, v)
+			d.set("PRAGMA "+p, v)
 		}
+	}
+
+	compileOptions, err := getSQLiteCompileOptions()
+	if err != nil {
+		log.Println("pages.Diagnostics", "Could not get SQLite compile options.", err)
+		//not returning on error so rest of diagnotics page is loaded.
+	} else {
+		d.set("PRAGMA compile_options", compileOptions)
 	}
 
 	//App settings...
@@ -234,5 +243,14 @@ func getSQLitePragma(pragmaName string) (pragmaValue string, err error) {
 
 	q := "PRAGMA " + pragmaName
 	err = c.Get(&pragmaValue, q)
+	return
+}
+
+// getSQLiteCompileOptions gets the list of compile options used when SQLite was built.
+func getSQLiteCompileOptions() (options []string, err error) {
+	c := sqldb.Connection()
+
+	q := "PRAGMA compile_options"
+	err = c.Select(&options, q)
 	return
 }

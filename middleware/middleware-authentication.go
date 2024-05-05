@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/pages"
@@ -16,9 +15,10 @@ import (
 	"github.com/c9845/sqldb/v3"
 )
 
-// This file checks if a user is already authenticated to the app (has a session set),
-// that the user and session are valid, that the user is active, and that the user's
-// password hasn't changed.
+//This file checks if a user is already authenticated to the app (aka logged in, a
+//session has already been started. This makes sure the user and session are still
+//valid (hasn't expired, user hasn't been deactivated) and that the user's password
+//hasn't been changed.
 //
 // The Auth func should be called upon every page load or endpoint when a user is logged
 // in.
@@ -32,11 +32,15 @@ var errLoginNotValid = errors.New("login inactive or expired")
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Check if user provided an api key and tell them they are trying to reach a
-		//non-public api accessible endpoint.
+		//non-public API accessible endpoint.
+		//
+		//This isn't really needed since auth checks below will fail, since a user
+		//session should not exist, but this is a nice way of saying "hey dummy, don't
+		//use the API for just any endpoint".
 		key := strings.ToUpper(strings.TrimSpace(r.FormValue("apiKey")))
 		if len(key) != 0 {
-			log.Println("bad api endpoint:", r.URL.Path)
-			output.Error(apikeys.ErrNonPublicEndpoint, "You are trying to access a non-public endpoint via the API.", w)
+			log.Println("private api endpoint:", r.URL.Path)
+			output.Error(errNonPublicEndpoint, "You are trying to access a private endpoint with an API Key. Access denied. See documentation for using API Keys and accessible endpoints.", w)
 			return
 		}
 
