@@ -1,3 +1,29 @@
+2.2.0 (Released 2024-05-05)
+----------
+- Notes:
+    - Update Golang dependencies.
+    - Update client-side dependencies (JS, CSS).
+    - Don't use a hard-coded default password when deploying a new database.
+        - Random password is generated and shown.
+        - Improved security.
+    - Show warning when default initial user is still in use.
+        - Remind users to disable this user for improved security.
+    - More diagnostic info.
+    - Change 2FA algorithm to SHA1 to work with Google Authenticator.
+        - Google Authenticator doesn't like SHA256.
+    - Improved activity logging pages.
+    - Redo handling of timezone conversion for when datetimes are displayed in GUI or used for sorting or filtering queries.
+    - Redo paths/endpoints of pages to have a bit more of a hierarchy. Try to improve flow of URLs a bit.
+    - Lots of little bug fixes and typo fixes.
+    - Redo of how pages are build/displayed.
+        - Code to show pages per endpoint is way cleaner now.
+        - HTML source files are better organized.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+
 2.1.4 (Released 2023-10-15)
 ----------
 - Notes:
