@@ -55,6 +55,8 @@ func Auth(next http.Handler) http.Handler {
 			if strings.Contains(r.URL.Path, "/api/") {
 				//handle api calls.
 				output.Error(err, "Could not identify this session and user. Please try logging in again.", w)
+				return
+
 			} else {
 				//handle pages.
 				e := pages.ErrorPage{
