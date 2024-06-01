@@ -112,21 +112,21 @@ func GetAppSettings(ctx context.Context) (a AppSettings, err error) {
 	return
 }
 
-// Update updates the saved app settings to the given values
+// Update updates the saved app settings to the given values.
 func (a *AppSettings) Update(ctx context.Context) (err error) {
-
-	//if forcing 2fa is turned on, make sure 2fa is enabled too
-	//but have to make sure at least one user has 2fa enabled first!
+	//If forcing 2FA is turned on, make sure 2FA is enabled too. Also have to make
+	//sure at least one user has 2FA enabled first otherwise every user will be
+	//locked out of the app!
 	if a.Force2FactorAuth {
 		q := `
 			SELECT COUNT(ID)
 			FROM ` + TableUsers + `
 			WHERE
-				Active = ?
+				(Active = ?)
 				AND
-				TwoFactorAuthEnabled = ?
+				(TwoFactorAuthEnabled = ?)
 				AND
-				Administrator = ?
+				(Administrator = ?)
 		`
 		var count int
 		c := sqldb.Connection()
@@ -141,7 +141,7 @@ func (a *AppSettings) Update(ctx context.Context) (err error) {
 		a.Allow2FactorAuth = true
 	}
 
-	//update app settings
+	//Update app settings.
 	cols := sqldb.Columns{
 		"DatetimeModified",
 
