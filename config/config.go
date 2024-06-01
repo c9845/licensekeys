@@ -450,7 +450,8 @@ func (conf *File) validate() (err error) {
 	if conf.Timezone == "" {
 		conf.Timezone = defaults.Timezone
 	}
-	//We check if timezone provided is valid in Read() time.LoadLocation(conf.Timezone).
+	//We check if timezone provided is valid in Read() which calls
+	//time.LoadLocation(conf.Timezone).
 
 	if conf.MinPasswordLength == 0 {
 		conf.MinPasswordLength = defaults.MinPasswordLength
