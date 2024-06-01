@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"slices"
 	"strings"
 
 	"github.com/c9845/licensekeys/v2/apikeys"
@@ -21,24 +20,10 @@ var (
 	// access has not been allowed in the App Settings.
 	errAPIAccessNotAllowed = errors.New("api access is not enabled")
 
-	//errAPIKeyNotAuthorized is used when an API Key is active, but it does not have
-	//permission to perform the action at the endpoint.
-	errAPIKeyNotAuthorized = errors.New("api key does not have required permission")
-
 	// errNonPublicEndpoint is returned when a request is made with an API key to a
 	//URL that is not publicly accessible.
 	errNonPublicEndpoint = errors.New("api access denied to non-public endpoint")
 )
-
-// publicEndpoints are the list of URLs a user can access via an API key. This list
-// is checked against in middleware to make sure a request using an API key is
-// accessing a publicly accessible endpoint.
-var publicEndpoints = []string{
-	"/api/v1/licenses/add/",
-	"/api/v1/licenses/download/",
-	"/api/v1/licenses/renew/",
-	"/api/v1/licenses/disable/",
-}
 
 // ExternalAPI handles authenticating access to the public endpoints using api keys.
 func ExternalAPI(next http.Handler) http.Handler {
@@ -85,9 +70,28 @@ func ExternalAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		//Make sure request is for a valid public endpoint.
-		if slices.Contains(publicEndpoints, r.URL.Path) {
+		//Make sure request is for a valid public endpoint and that the API key has
+		//permission for the endpoint.
+		//
+		//Only some functionality is available via the public API to prevent any data
+		//corruption or other broken functionality.
+		//
+		//This list of endpoints must match the list defined in main.go router.
+		//
+		//Permissions are checked here, not within each endpoint's handler, because
+		//we don't check user permissions in each endpoint handler either, we check
+		//them in middelware. This keeps permissions checking out of the endpoint
+		//handlers and allows the endpoint handlers to be easily reused for private
+		//within-app user-session based authentication or public api-key based auth.
+		err = nil
+		switch r.URL.Path {
+		case "/api/v1/licenses/add/":
+		case "/api/v1/licenses/download/":
+		case "/api/v1/licenses/renew/":
+		case "/api/v1/licenses/disable/":
+		default:
 			output.Error(errNonPublicEndpoint, "You cannot access this endpoint via the API.", w)
+			return
 		}
 
 		//Diagnostic logging.
