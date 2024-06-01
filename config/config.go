@@ -103,9 +103,8 @@ const (
 	DBJournalModeRollback = "DELETE"
 	DBJournalModeWAL      = "WAL"
 
-	WebFilesStoreOnDisk       = "on-disk"
-	WebFilesStoreOnDiskMemory = "on-disk-memory"
-	WebFilesStoreEmbedded     = "embedded"
+	WebFilesStoreOnDisk   = "on-disk"
+	WebFilesStoreEmbedded = "embedded"
 )
 
 var (
@@ -400,7 +399,6 @@ func (conf *File) validate() (err error) {
 	//Web server settings.
 	switch conf.WebFilesStore {
 	case WebFilesStoreOnDisk:
-	case WebFilesStoreOnDiskMemory:
 	case WebFilesStoreEmbedded:
 	default:
 		conf.WebFilesStore = defaults.WebFilesStore

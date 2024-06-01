@@ -158,8 +158,11 @@ func init() {
 			log.Fatalln("Could not read website directory", err)
 			return
 		}
-	} else {
+	} else if config.Data().WebFilesStore == config.WebFilesStoreOnDisk {
 		sourceFilesFS = os.DirFS(config.Data().WebFilesPath)
+	} else {
+		log.Fatalln("Invalid WebFilesStore in config file.", config.Data().WebFilesStore)
+		return
 	}
 
 	staticFilesFS, err = fs.Sub(sourceFilesFS, "static")
