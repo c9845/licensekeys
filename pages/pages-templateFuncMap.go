@@ -7,9 +7,9 @@ import (
 )
 
 //This file defines functions for use in HTML templates. These funcs are additional
-//functions that can be used in {{ }} declarations inside templates. To use one or more
-//of these funcs, you must add them to the FuncMap field on your config prior to
-//calling Build().
+//functions that can be used in {{ }} declarations inside templates. To use one or
+//more of these funcs, you must add them to the FuncMap field on your config prior to
+//calling ParseTemplates().
 //
 //For more info, see https://pkg.go.dev/text/template#hdr-Functions
 
@@ -26,16 +26,8 @@ var funcMap = template.FuncMap{
 // Use as {{static "/static/css/styles.css"}} in conjunction with
 // r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", hashfs.FileServer(staticFilesHashFS)))
 //
-// This was specifically added to support using hashfs. There is no reason for this to
-// be publicly documented.
+// This was specifically added to support using hashfs.
 func static(originalPath string) string {
-	//If in development mode, just return path as-is. We will serve a non-cache-busted
-	//version of the file since during development we refresh the browser a lot and
-	//don't want to cache things mistakenly.
-	if cfg.Development {
-		return originalPath
-	}
-
 	//Trim the "/static/" from the path since the fs.FS for the embedded files omits
 	//the parent "/static/" directory.
 	trimmedPath := strings.TrimPrefix(originalPath, "/static/")

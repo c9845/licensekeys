@@ -38,20 +38,17 @@ import (
 )
 
 // embed HTML templates and static files into app.
+//
 // This is done so that we don't need to distribute our HTML, CSS, JS, etc. files
 // separately. The end-user will not have to set the WebFilesPath field in their config
 // file.
 //
-// Embedding files will increase the size of the built executable. To limit the size of
-// the executable, we only embed the necessary files. This ends up being a lot of files
-// since we still want to allow the end-user to serve third party files from the local
-// server versus from over the internet/CDN.
+// Just embed entire website directory, instead of being more specific, for laziness.
+// Yes, this results in some source files (styles.css, *.ts) being embedded, and thus
+// served off of the /static/ endpoint, but it doesn't really matter. These files
+// aren't anything secure and the same code is available in minified files anyway.
 //
-//go:embed website/templates/*
-//go:embed website/static/css
-//go:embed website/static/js/*.js
-//go:embed website/static/js/vendor
-//go:embed website/root/*
+//go:embed website
 var embeddedFiles embed.FS
 
 // Vars for handing files stored on-disk or embedded.
@@ -479,15 +476,11 @@ func main() {
 	//router knows to match "something off of /" with this handler.
 	r.HandleFunc("/{file}", rootFileHandler)
 
-	//Handle static files/assets. This is anything located of the /static directory
-	//and typically includes js, css, images, fonts, etc.
+	//Handle static files/assets. This is anything served off of the /static/
+	//directory and includes js, css, images, fonts, etc.
 	//
-	//See templates.static for more info.
-	if config.Data().Development {
-		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileHeaders(http.FileServer(http.FS(staticFilesFS)))))
-	} else {
-		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileHeaders(hashfs.FileServer(staticFilesHashFS))))
-	}
+	//See pages-templateFuncMap.go's static() func for more info.
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", hashfs.FileServer(staticFilesHashFS)))
 
 	//Listen and serve.
 	port := config.Data().Port
@@ -515,13 +508,4 @@ func rootFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.FileServer(http.FS(rootFilesFS)).ServeHTTP(w, r)
-}
-
-// staticFileHeaders sets extra headers when serving static files from our source (not
-// CDN source). This is mostly for diagnostics in the browser.
-func staticFileHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("x-web-files-store", config.Data().WebFilesStore)
-		next.ServeHTTP(w, r)
-	})
 }
