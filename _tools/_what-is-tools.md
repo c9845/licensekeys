@@ -1,0 +1,1 @@
+The "_tools" directory is for storing small binaries we use for diagnostics, development, or testing. These files, and binaries, are not public and not included in builds.

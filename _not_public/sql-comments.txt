@@ -1,0 +1,1 @@
+Only use /*  and */ comments in sql queries as this is the only format supported by both MariaDB and SQLite.
