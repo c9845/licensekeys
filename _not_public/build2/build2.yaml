@@ -10,15 +10,15 @@ OutputDir: "_builds"
 IncludeDirs:
 - "_documentation"
 IgnoreExtensions:
-- ".ts"
 IgnoreFiles:
-- "script.js"
-- "*.script.min.js"
-- "styles.css"
-- "*.styles.min.css"
 IncludeRootFiles:
 - "COPYRIGHT.md"
 - "README.md"
 PathToPandoc: "-1"
 PandocOutputFormat: "pdf"
 ZipDistributions: true
+OSArch:
+- "windows:amd64"
+- "linux:amd64"
+- "darwin:amd64"
+- "darwin:arm64"

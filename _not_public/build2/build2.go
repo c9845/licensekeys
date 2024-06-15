@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -85,6 +86,7 @@ type config struct {
 
 	//IncludeDirs is a list of directories, based off Namespace, to include recursively
 	//in zipped distributions.
+	//Exclude "website" directory when using embedded file.
 	IncludeDirs []string `yaml:"IncludeDirs"`
 
 	//IgnoreExtensions prevents copying of files in IncludeDirs that end with one of
@@ -112,33 +114,11 @@ type config struct {
 	//ZipDistributions determines whether or not to zip the distribution files into
 	//a single zip file.
 	ZipDistributions bool `yaml:"ZipDistributions"`
-}
 
-// osArch is an OS and CPU architecture thata golang binary can be built for.
-type osArch struct {
-	OS   string //windows, linux, darwin
-	Arch string //usually "amd64"
-}
-
-// definedOSArchs is the list of OS and CPU architectures we support building binaries
-// for. These will be use in GOOS and GOARCH.
-var definedOSArchs = []osArch{
-	{
-		OS:   "windows",
-		Arch: "amd64",
-	},
-	{
-		OS:   "linux",
-		Arch: "amd64",
-	},
-	{
-		OS:   "darwin", //mac
-		Arch: "amd64",
-	},
-	{
-		OS:   "darwin", //mac
-		Arch: "arm64",
-	},
+	//OSArch is an slice of OS and CPU architecture, separated by colon, to build for.
+	//Ex.: "linux:amd64". This is a slice, not a map, so that we can have the same OS
+	//listed more than once ("darwin:amd64", "darwin:arm64").
+	OSArch []string `yaml:"OSArch"`
 }
 
 // Define command line flags.
@@ -262,7 +242,7 @@ func main() {
 	}
 
 	//Build the binaries and create zip distributions as needed.
-	err = buildDistributions(definedOSArchs, version)
+	err = buildDistributions(cfg.OSArch, version)
 	if err != nil {
 		log.Fatalln("Could not build distributions.", err)
 		return
@@ -637,10 +617,17 @@ func convertMarkDown(commonDir string) (err error) {
 // are the distributable files you would send to clients.
 //
 // This runs `go build`.
-func buildDistributions(osArches []osArch, version string) (err error) {
-	for _, oa := range osArches {
+func buildDistributions(osArches []string, version string) (err error) {
+	for _, pair := range osArches {
+		//Get OS and Arch.
+		opSys, cpuArch, found := strings.Cut(pair, ":")
+		if !found {
+			err = fmt.Errorf("os:arch pair invalid, %s", pair)
+			return
+		}
+
 		//Determine name for the distribution based on OS and CPU architecture.
-		distributionDirName := cfg.Name + "-" + version + "-" + oa.OS + "_" + oa.Arch
+		distributionDirName := cfg.Name + "-" + version + "-" + opSys + "_" + cpuArch
 
 		//Create the directory for this distribution.
 		distributionDirAbs := filepath.Join(cfg.OutputDirAbs(), distributionDirName)
@@ -651,7 +638,7 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 
 		//Create name of the binary to build. Mostly to handle windows.
 		binaryName := cfg.Name
-		if oa.OS == "windows" {
+		if opSys == "windows" {
 			binaryName += ".exe"
 		}
 
@@ -689,7 +676,7 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 
 		//Add modifier environmental variables to this command. These won't be set
 		//permenently.
-		cmd.Env = append(cmd.Environ(), "GOOS="+oa.OS, "GOARCH="+oa.Arch)
+		cmd.Env = append(cmd.Environ(), "GOOS="+opSys, "GOARCH="+cpuArch)
 		if cfg.UseCGO {
 			cmd.Env = append(cmd.Environ(), "CGO_ENABLED=1")
 		} else {
@@ -702,10 +689,12 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 
+		start := time.Now()
+
 		if verbose {
-			log.Printf("Building...(%s, %s) %s %s", oa.OS, oa.Arch, command, strings.Join(args, " "))
+			log.Printf("Building %s:%s (%s %s)...", opSys, cpuArch, command, strings.Join(args, " "))
 		} else {
-			log.Printf("Building...(%s, %s)", oa.OS, oa.Arch)
+			log.Printf("Building %s:%s...", opSys, cpuArch)
 		}
 		innerErr = cmd.Run()
 		if innerErr != nil {
@@ -714,6 +703,8 @@ func buildDistributions(osArches []osArch, version string) (err error) {
 			log.Fatalln("Build error (err):   ", innerErr)
 			return innerErr
 		}
+
+		log.Printf("Building %s:%s...done (took %s)", opSys, cpuArch, time.Since(start))
 
 		//Create checksum of binary and save to file. Have to make sure file doesn't
 		//already exist because hash could be wrong and old!
@@ -857,13 +848,8 @@ var defaultConfig = config{
 	UseCGO:           false,
 	OutputDir:        "_builds",
 	IncludeDirs:      []string{"_documentation"},
-	IgnoreExtensions: []string{".ts"},
-	IgnoreFiles: []string{
-		"script.js",
-		"*.script.min.js",
-		"styles.css",
-		"*.styles.min.css",
-	},
+	IgnoreExtensions: []string{},
+	IgnoreFiles:      []string{},
 	IncludeRootFiles: []string{
 		"COPYRIGHT.md",
 		"README.md",
@@ -871,4 +857,10 @@ var defaultConfig = config{
 	PathToPandoc:       "-1",
 	PandocOutputFormat: "pdf",
 	ZipDistributions:   true,
+	OSArch: []string{
+		"windows:amd64",
+		"linux:amd64",
+		"darwin:amd64",
+		"darwin:arm64",
+	},
 }
