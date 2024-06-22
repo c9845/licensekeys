@@ -179,6 +179,7 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 
 	tzName, _ := time.Now().Zone()
 	d.set("SytemTimezone (app)", tzName)
+
 	//Golang stuff...
 	d.set("**BUILDINFO**", "******************************")
 	b, ok := debug.ReadBuildInfo()
