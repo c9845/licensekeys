@@ -18,13 +18,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/keypairs"
 	"github.com/c9845/licensekeys/v2/licensefile"
+	"github.com/c9845/licensekeys/v2/middleware"
 	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 	"gopkg.in/guregu/null.v3"
@@ -32,14 +31,6 @@ import (
 
 // This file handles the basic adding of a license, viewing of license data, download
 // of the license, and other basic tasks.
-
-// by is used to differentiate between a user and API action.
-type by string
-
-const (
-	byUser by = "user"
-	byAPI  by = "api"
-)
 
 // AddViaAPI handles transforming the data provided by the request to create a license
 // via the public API to the format the interal API/Add func expects. This is done to
@@ -280,17 +271,16 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Get info about who or what is creating this license. A license can be created
-	//by a user or API key.
-	createdByID, createdBy, err := getCreatedBy(r)
+	//Get info about who or what is creating this license.
+	userID, apiKeyID, err := getCreatedBy(r)
 	if err != nil {
-		output.Error(err, "Could not determine who is making this request.", w)
+		output.Error(err, "Could not determine who made this request.", w)
 		return
 	}
-	if createdBy == byUser {
-		l.CreatedByUserID = null.IntFrom(createdByID)
-	} else {
-		l.CreatedByAPIKeyID = null.IntFrom(createdByID)
+	if userID > 0 {
+		l.CreatedByUserID = null.IntFrom(userID)
+	} else if apiKeyID > 0 {
+		l.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 	}
 
 	//Set the license creation timestamps and some other data. We save some app
@@ -329,10 +319,10 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//Save custom field results.
 	for _, field := range fields {
-		if createdBy == byUser {
-			field.CreatedByUserID = null.IntFrom(createdByID)
-		} else {
-			field.CreatedByAPIKeyID = null.IntFrom(createdByID)
+		if userID > 0 {
+			field.CreatedByUserID = null.IntFrom(userID)
+		} else if apiKeyID > 0 {
+			field.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 		}
 
 		field.LicenseID = l.ID
@@ -607,17 +597,16 @@ func Download(w http.ResponseWriter, r *http.Request) {
 		LicenseID:        licenseID,
 	}
 
-	//Get info about who or what is downloading this license. A license can be created
-	//by a user or API key.
-	createdByID, createdBy, err := getCreatedBy(r)
+	//Get info about who or what is downloading this license.
+	userID, apiKeyID, err := getCreatedBy(r)
 	if err != nil {
-		output.Error(err, "Could not determine who is making this request.", w)
+		output.Error(err, "Could not determine who made this request.", w)
 		return
 	}
-	if createdBy == byUser {
-		h.CreatedByUserID = null.IntFrom(createdByID)
-	} else {
-		h.CreatedByAPIKeyID = null.IntFrom(createdByID)
+	if userID > 0 {
+		h.CreatedByUserID = null.IntFrom(userID)
+	} else if apiKeyID > 0 {
+		h.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 	}
 
 	err = h.Insert(r.Context())
@@ -760,15 +749,16 @@ func Disable(w http.ResponseWriter, r *http.Request) {
 		Note:      note + " (License was disabled).",
 	}
 
-	createdByID, createdBy, err := getCreatedBy(r)
+	//Get info about who or what is disabling this license.
+	userID, apiKeyID, err := getCreatedBy(r)
 	if err != nil {
-		output.Error(err, "Could not determine who is making this request.", w)
+		output.Error(err, "Could not determine who made this request.", w)
 		return
 	}
-	if createdBy == byUser {
-		n.CreatedByUserID = null.IntFrom(createdByID)
-	} else {
-		n.CreatedByAPIKeyID = null.IntFrom(createdByID)
+	if userID > 0 {
+		n.CreatedByUserID = null.IntFrom(userID)
+	} else if apiKeyID > 0 {
+		n.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 	}
 
 	err = n.Insert(r.Context(), tx)
@@ -849,19 +839,20 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//Get a copy of the "from" license's data to use for the "to" license.
 	toLicense := fromLicense
 
-	//Get info about who or what is renewing this license. A license can be created
-	//by a user or API key.
-	createdByID, createdBy, err := getCreatedBy(r)
+	//Unset created-by fields from old/copy-from license.
+	toLicense.CreatedByAPIKeyID = null.IntFrom(0)
+	toLicense.CreatedByUserID = null.IntFrom(0)
+
+	//Get info about who or what is renewing this license.
+	userID, apiKeyID, err := getCreatedBy(r)
 	if err != nil {
-		output.Error(err, "Could not determine who is making this request.", w)
+		output.Error(err, "Could not determine who made this request.", w)
 		return
 	}
-	if createdBy == byUser {
-		toLicense.CreatedByUserID = null.IntFrom(createdByID)
-		toLicense.CreatedByAPIKeyID = null.IntFrom(0) //unset from old/copy-from license just in case.
-	} else {
-		toLicense.CreatedByAPIKeyID = null.IntFrom(createdByID)
-		toLicense.CreatedByUserID = null.IntFrom(0) //unset from old/copy-from license just in case.
+	if userID > 0 {
+		toLicense.CreatedByUserID = null.IntFrom(userID)
+	} else if apiKeyID > 0 {
+		toLicense.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 	}
 
 	//Get DatetimeCreated value. This way we will have the exact same value for the
@@ -903,11 +894,11 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, f := range ff {
-		if createdBy == byUser {
-			f.CreatedByUserID = null.IntFrom(createdByID)
+		if userID > 0 {
+			f.CreatedByUserID = null.IntFrom(userID)
 			f.CreatedByAPIKeyID = null.IntFrom(0) //unset from old/copy-from license just in case.
-		} else {
-			f.CreatedByAPIKeyID = null.IntFrom(createdByID)
+		} else if apiKeyID > 0 {
+			f.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 			f.CreatedByUserID = null.IntFrom(0) //unset from old/copy-from license just in case.
 		}
 
@@ -928,10 +919,10 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		DatetimeCreated: datetimeCreated,
 	}
 
-	if createdBy == byUser {
-		relationship.CreatedByUserID = null.IntFrom(createdByID)
-	} else {
-		relationship.CreatedByAPIKeyID = null.IntFrom(createdByID)
+	if userID > 0 {
+		relationship.CreatedByUserID = null.IntFrom(userID)
+	} else if apiKeyID > 0 {
+		relationship.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
 	}
 
 	err = relationship.Insert(r.Context(), tx)
@@ -1079,44 +1070,34 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	output.InsertOK(toLicense.ID, w)
 }
 
-// getCreatedBy gets the ID of who/what is creating something. The ID matches either
-// a user or an API key and can be differentiated by the createdBy result.
+// getCreatedBy gets the ID of who/what is creating something. A userID or apiKey will
+// be returned, otherwise an error will be returned.
 //
 // This func was written as a helper for use when creating a license or downloading a
 // license file (saving to download history).
-func getCreatedBy(r *http.Request) (createdByID int64, createdBy by, err error) {
-	//First, check if a user session exists.
-	createdByID, err = users.GetUserIDByRequest(r)
-	if err == nil {
-		createdBy = byUser
-		return
+func getCreatedBy(r *http.Request) (userID, apiKeyID int64, err error) {
+	//Only one of apiKeyID and userID will be provided.
+	//  - apiKeyID is set in middleware.ExternalAPI().
+	//  - userID is set in middleware.Auth().
+	keyID := r.Context().Value(middleware.APIKeyIDCtxKey)
+	uID := r.Context().Value(middleware.UserIDCtxKey)
+
+	if keyID != nil {
+		apiKeyID = keyID.(int64)
+
+	} else if uID != nil {
+		userID = uID.(int64)
+
+	} else {
+		err = errUnknownCreatedByID
 	}
 
-	//If user session doesn't exist, check for API key in request. If a key is found,
-	//make sure it is valid and get the key's ID.
-	apiKey := strings.TrimSpace(r.FormValue("apiKey"))
-	if len(apiKey) == apikeys.KeyLength() {
-		//clear error from looking up user in session.
-		err = nil
-
-		cols := sqldb.Columns{
-			db.TableAPIKeys + ".ID",
-		}
-		k, innerErr := db.GetAPIKeyByKey(r.Context(), apiKey, cols)
-		if innerErr != nil {
-			err = innerErr
-			return
-		} else {
-			createdByID = k.ID
-			createdBy = byAPI
-			return
-		}
-	}
-
-	//Unknown if request was from user/gui or api.
-	err = errors.New("unknown created by")
 	return
 }
+
+// errUnknownCreatedByID is returned when we could not determine the user or API key
+// that made a request. See getCreatedBy().
+var errUnknownCreatedByID = errors.New("license: unknown creator")
 
 // writeReadVerify is used to verify a just created license data and signature. This
 // performs the same "read and verify" that a third-party app would.

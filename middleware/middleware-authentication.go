@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -23,14 +24,16 @@ import (
 // The Auth func should be called upon every page load or endpoint when a user is logged
 // in.
 
+// errLoginNotValid is the generic error returned when a user's session is invalid or
+// a user is inactive.
 var errLoginNotValid = errors.New("login inactive or expired")
 
 // Auth is used to verify a request to this app is from a logged in and active user.
 // If a user's credentials are found and valid, the user is redirected to the next
 // HTTP handler, otherwise an error message is returned.
 //
-// The Auth func should be called upon every page load or endpoint when a user is
-// logged in.
+// This func should be called upon every page load or endpoint when a user is logged
+// in.
 //
 // This does not handle external API calls! External API calls are handled via a
 // separate middleware since the authentication is done differently.
@@ -174,7 +177,7 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(errLoginNotValid, "Could not determine if your user account is still active. Please contact an administrator.", w)
+				output.Error(err, "Could not determine if your user account is still active. Please contact an administrator.", w)
 				return
 
 			} else {
@@ -235,7 +238,18 @@ func Auth(next http.Handler) http.Handler {
 			users.SetLoginCookieValue(w, ul.CookieValue, newExpiration)
 		}
 
-		//move to next middleware or handler
+		//Save user ID to context for use in activity logging. This just reduces
+		//the workload in LogActivity2() since we can just check if this key exists
+		//meaning the request was made via an API key.
+		ctx := context.WithValue(r.Context(), UserIDCtxKey, ul.UserID)
+		r = r.WithContext(ctx)
+
+		//Move to next middleware or handler.
 		next.ServeHTTP(w, r)
 	})
 }
+
+type userIDCtxKeyType string
+
+// UserIDCtxKey is used to identify a User ID in the request context.
+const UserIDCtxKey userIDCtxKeyType = "api-key-id"

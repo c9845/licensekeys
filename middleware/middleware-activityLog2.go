@@ -10,10 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/users"
-	"github.com/c9845/sqldb/v3"
 	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"
 )
@@ -33,14 +30,16 @@ var skippedEndpoints2 = []string{}
 // Skip on errors since logging isn't the most important thing in the world.
 func LogActivity2(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Check if activity logging is enabled.
-		appSettings, err := db.GetAppSettings(r.Context())
+		//Check if activity logging is enabled in the App Settings.
+		as, err := db.GetAppSettings(r.Context())
 		if err != nil {
-			log.Println("middleware.LogActivity2 - could not get app settings", err)
+			//Don't error out here since this isn't the end of the world and we want
+			//users to still be able to use the app.
+			log.Println("middleware.LogActivity2", "could not get app settings to verify if activity logging is enabled, skipped recording activity", err)
 			next.ServeHTTP(w, r)
 			return
 		}
-		if !appSettings.EnableActivityLogging {
+		if !as.EnableActivityLogging {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -60,7 +59,7 @@ func LogActivity2(next http.Handler) http.Handler {
 		//ServerHTTP will cause the context to be closed, therefore we won't be able
 		//to use it below for calls to the db to save data. We have to create a new
 		//context for this.
-		ctx := context.Background()
+		ctx := context.WithoutCancel(r.Context())
 
 		//Get data from request to save to db for logging purposes. This data is used
 		//for diagnostics since the data is the actual data the user provided to this
@@ -102,42 +101,25 @@ func LogActivity2(next http.Handler) http.Handler {
 			Referrer:       referrerPath, //function name is misspelled, not our field name.
 		}
 
-		//Get the API key or user making this request so we can identify source of
-		//the request.
-		key := r.FormValue("apiKey")
-		if len(key) == apikeys.KeyLength() {
-			//Look up api key from db to get API key's ID.
-			cols := sqldb.Columns{db.TableAPIKeys + ".ID"}
-			k, err := db.GetAPIKeyByKey(ctx, key, cols)
+		//Determine if this request was made via an API key or a user and save the
+		//respective identifying info.
+		//
+		//Only one of apiKeyID and userID will be provided.
+		//  - apiKeyID is set in middleware.ExternalAPI().
+		//  - userID is set in middleware.Auth().
+		apiKeyID := ctx.Value(APIKeyIDCtxKey)
+		userID := ctx.Value(UserIDCtxKey)
+
+		if apiKeyID != nil {
+			activity.CreatedByAPIKeyID = null.IntFrom(apiKeyID.(int64))
+			err := activity.Insert(ctx)
 			if err != nil {
-				log.Println("middleware.LogActivity2 - could not look up api key", key, err)
-			} else {
-				activity.CreatedByAPIKeyID = null.IntFrom(k.ID)
-
-				err := activity.Insert(ctx)
-				if err != nil {
-					log.Println("middleware.LogActivity2 - could not save api access to log", err)
-				}
+				log.Println("middleware.LogActivity2 - could not save api access to log", err)
 			}
+		}
 
-		} else {
-			//Get login ID from cookie and user ID from login data.
-			cv, err := users.GetLoginCookieValue(r)
-			if err != nil {
-				log.Println("middleware.LogActivity2 - could not get login id from cookie", r.URL.Path, err)
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			ul, err := db.GetLoginByCookieValue(ctx, cv)
-			if err != nil {
-				log.Println("middleware.LogActivity2 - could not get user id from login data", r.URL.Path, err)
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			//Set user ID for saving to activity log.
-			activity.CreatedByUserID = null.IntFrom(ul.UserID)
+		if userID != nil {
+			activity.CreatedByUserID = null.IntFrom(userID.(int64))
 			err = activity.Insert(ctx)
 			if err != nil {
 				log.Println("middleware.LogActivity2 - could not save user access to log", r.URL.Path, err)
