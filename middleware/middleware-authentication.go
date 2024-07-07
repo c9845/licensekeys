@@ -25,138 +25,211 @@ import (
 
 var errLoginNotValid = errors.New("login inactive or expired")
 
-// Auth is used to verify a request to this app is authenticated via a user profile.
-// API authentications are handled via middleware.ExternalAPI since api reachable
-// endpoints are hosted on /api/v1/. If a user is found then the next middleware or
-// handler is performed, otherwise a user is redirected to a login page.
+// Auth is used to verify a request to this app is from a logged in and active user.
+// If a user's credentials are found and valid, the user is redirected to the next
+// HTTP handler, otherwise an error message is returned.
+//
+// The Auth func should be called upon every page load or endpoint when a user is
+// logged in.
+//
+// This does not handle external API calls! External API calls are handled via a
+// separate middleware since the authentication is done differently.
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Check if user provided an api key and tell them they are trying to reach a
-		//non-public API accessible endpoint.
-		//
-		//This isn't really needed since auth checks below will fail, since a user
-		//session should not exist, but this is a nice way of saying "hey dummy, don't
-		//use the API for just any endpoint".
-		key := strings.ToUpper(strings.TrimSpace(r.FormValue("apiKey")))
-		if len(key) != 0 {
-			log.Println("private api endpoint:", r.URL.Path)
-			output.Error(errNonPublicEndpoint, "You are trying to access a private endpoint with an API Key. Access denied. See documentation for using API Keys and accessible endpoints.", w)
-			return
-		}
-
 		//Get login ID from cookie.
-		//Handling error in two ways so we can handle internal app api calls and actual
-		//page loads that a user would see. Either way, we try deleting the login ID
-		//cookie so user can try logging in again.
+		//
+		//Handle error in two ways so we can return a more applicable response type
+		//based upon the request type. For internal app API calls (requests made
+		//within the app to get data or save data), we return the same format of
+		//response as every other API call. For page-view errors, we display a human
+		//friendly error page.
 		cv, err := users.GetLoginCookieValue(r)
 		if err != nil {
+			log.Println("middleware.Auth", "could not get login cookie value", err)
+
+			//Delete the login cookie so that user is forced to log in again. This
+			//alleviates odd "logged in but not logged in" issues.
 			users.DeleteLoginCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
-				//handle api calls.
+				//Handle internal app API calls.
 				output.Error(err, "Could not identify this session and user. Please try logging in again.", w)
 				return
 
 			} else {
-				//handle pages.
+				//Handle page views.
 				e := pages.ErrorPage{
 					PageTitle:   "Authentication Error",
-					Topic:       "Please try logging in again",
-					Solution:    "",
-					ShowLinkBtn: true,
-					Link:        "/",
-					LinkText:    "Log in",
-				}
-				pages.ShowError(w, r, e)
-			}
-
-			return
-		}
-
-		//Look up session details to see if it is active and not expired.
-		//Session could be made inactive if:
-		// 1) app settings force single session and user logged in elsewhere,
-		// 2) user was forced to log out by admin,
-		// 3) user password was changed.
-		// 4) Session expires because of inactivity (see config file setting that sets
-		//     lifetime and extension code below).
-		ul, err := db.GetLoginByCookieValue(r.Context(), cv)
-		if err != nil {
-			users.DeleteLoginCookie(w)
-
-			if strings.Contains(r.URL.Path, "/api/") {
-				//handle api calls.
-				output.Error(err, "Could not verify your session is active. Please try logging in again.", w)
-			} else {
-				//handle pages.
-				e := pages.ErrorPage{
-					PageTitle:   "Authentication Error",
-					Topic:       "Could not verify your session is active.",
+					Topic:       "Could not identify this session and user.",
 					Solution:    "Please try logging in again.",
 					ShowLinkBtn: true,
 					Link:        "/",
 					LinkText:    "Log in",
 				}
 				pages.ShowError(w, r, e)
+				return
 			}
-
-			return
 		}
-		if !ul.Active {
+
+		//Look up session details to see if user session is still active and not yet
+		//expired. This will also get us the user's ID so we can check if user
+		//themself is still active.
+		ul, err := db.GetLoginByCookieValue(r.Context(), cv)
+		if err != nil {
+			log.Println("middleware.Auth", "could not look up user login", err)
+
+			//Delete the login cookie so that user is forced to log in again. This
+			//alleviates odd "logged in but not logged in" issues.
 			users.DeleteLoginCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
-				output.Error(errLoginNotValid, "Your login has expired. Please log in again.", w)
+				//Handle internal app API calls.
+				output.Error(err, "Could not look up your session. Please try logging in again.", w)
+				return
+
 			} else {
-				http.Redirect(w, r, "/?ref=loginNotActive", http.StatusFound)
+				//Handle page views.
+				e := pages.ErrorPage{
+					PageTitle:   "Authentication Error",
+					Topic:       "Could not look up your session.",
+					Solution:    "Please try logging in again.",
+					ShowLinkBtn: true,
+					Link:        "/",
+					LinkText:    "Log in",
+				}
+				pages.ShowError(w, r, e)
+				return
 			}
-			return
 		}
 
+		//Check if user session is still active. A session can be marked inactive:
+		//   1) By an admin logging a user out (via the user management page).
+		//   2) If the user changed their password (or admin changed the user's
+		//      password).
+		//   3) If single sessions is enabled in App Settings and the user logged in
+		//      on another device.
+		if !ul.Active {
+			//Delete the login cookie so that user is forced to log in again. This
+			//alleviates odd "logged in but not logged in" issues.
+			users.DeleteLoginCookie(w)
+
+			if strings.Contains(r.URL.Path, "/api/") {
+				//Handle internal app API calls.
+				output.Error(errLoginNotValid, "Your session has been marked as inactive. Please log in again.", w)
+				return
+
+			} else {
+				//Handle page views.
+				e := pages.ErrorPage{
+					PageTitle:   "Authentication Error",
+					Topic:       "Your session has been marked as inactive.",
+					Solution:    "Please log in again.",
+					ShowLinkBtn: true,
+					Link:        "/",
+					LinkText:    "Log in",
+				}
+				pages.ShowError(w, r, e)
+				return
+			}
+		}
+
+		// Check if session has expired because of inactivity (see config file setting
+		//that sets session lifetime and code below that extends extension).
 		expiration := time.Unix(ul.Expiration, 0)
 		if time.Since(expiration) > 0 {
+			//Delete the login cookie so that user is forced to log in again. This
+			//alleviates odd "logged in but not logged in" issues.
 			users.DeleteLoginCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
-				output.Error(errLoginNotValid, "Your login has expired. Please log in again.", w)
-			} else {
-				http.Redirect(w, r, "/?ref=loginExpired", http.StatusFound)
-			}
+				//Handle internal app API calls.
+				output.Error(errLoginNotValid, "Your session has expired. Please log in again.", w)
+				return
 
-			return
+			} else {
+				//Handle page views.
+				e := pages.ErrorPage{
+					PageTitle:   "Authentication Error",
+					Topic:       "Your session has expired.",
+					Solution:    "Please log in again.",
+					ShowLinkBtn: true,
+					Link:        "/",
+					LinkText:    "Log in",
+				}
+				pages.ShowError(w, r, e)
+				return
+			}
 		}
 
-		//Look up user data and make sure user is still active.
-		//User can be marked inactive by administrator.
+		//Look up user data and make sure user is still active. An admin could have
+		//marked a user as inactive while a session was still active.
 		cols := sqldb.Columns{db.TableUsers + ".Active"}
 		u, err := db.GetUserByID(r.Context(), ul.UserID, cols)
 		if err != nil {
+			log.Println("middleware.Auth", "could not look up user", err)
+
+			//Delete the login cookie so that user is forced to log in again. This
+			//alleviates odd "logged in but not logged in" issues.
 			users.DeleteLoginCookie(w)
 
-			output.Error(err, "Could not verify your user active is active. Please try logging in again.", w)
-			return
-		}
-		if !u.Active {
-			users.DeleteLoginCookie(w)
+			if strings.Contains(r.URL.Path, "/api/") {
+				//Handle internal app API calls.
+				output.Error(errLoginNotValid, "Could not determine if your user account is still active. Please contact an administrator.", w)
+				return
 
-			pd := pages.PageData{
-				UserData: u,
-				Data:     "Your user account is not active.  Please contact an administrator.",
+			} else {
+				//Handle page views.
+				e := pages.ErrorPage{
+					PageTitle:   "Authentication Error",
+					Topic:       "Could not determine if your user account is still active.",
+					Solution:    "Please contact an administrator.",
+					ShowLinkBtn: false,
+				}
+				pages.ShowError(w, r, e)
+				return
 			}
-			pages.Show(w, "/app/error.html", pd)
-			return
+		}
+
+		if !u.Active {
+			//Delete the login cookie so that user is forced to log in again. This
+			//alleviates odd "logged in but not logged in" issues.
+			users.DeleteLoginCookie(w)
+
+			if strings.Contains(r.URL.Path, "/api/") {
+				//Handle internal app API calls.
+				output.Error(errLoginNotValid, "Your user account has been marked as inactive. Please contact an administrator.", w)
+				return
+
+			} else {
+				//Handle page views.
+				e := pages.ErrorPage{
+					PageTitle:   "Authentication Error",
+					Topic:       "Your user account has been marked as inactive.",
+					Solution:    "Please contact an administrator.",
+					ShowLinkBtn: false,
+				}
+				pages.ShowError(w, r, e)
+				return
+			}
 		}
 
 		//User and login/session has been validated. Extend the session expiration to
 		//keep user logged in (expiration time resets each time user visits a new page
 		//in the app). Extending the expiration updates the database, our source of
 		//truth, and cookie.
+		//
+		//User sessions aren't extended for calls to the internal app API endpoints
+		//because we only want to extend on page views. For example, if we had an
+		//API endpoint that was hit every 60 seconds, then a user's session would
+		//never expire.
 		if !strings.Contains(r.URL.Path, "/api/") {
 			newExpiration := time.Now().Add(time.Duration(config.Data().LoginLifetimeHours) * time.Hour)
 			err = ul.ExtendLoginExpiration(r.Context(), newExpiration.Unix())
 			if err != nil {
 				log.Println("middleware.Auth", "could not extend db expiration", err)
-				//not returning error here since user can still use app, their login will just expire sooner than expected
+
+				//Not returning on error here since the user can still use app, their
+				//session will just expire sooner than expected.
 			}
 
 			users.SetLoginCookieValue(w, ul.CookieValue, newExpiration)
