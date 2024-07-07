@@ -109,10 +109,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	ua := r.UserAgent()
 
 	//Define custom response message types. These message types are used client side
-	//for handling what should happen next in the GUI.
+	//in login.ts for handling what should happen next in the GUI.
 	const (
 		msgType2FAForced        = "login2FAForced"
 		msgType2FATokenRequired = "login2FATokenRequired"
+		msgTypeLoginOK          = "loginOK"
 	)
 
 	//Check if 2FA is forced upon users and this user doesn't have 2FA enabled. In
@@ -310,7 +311,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	//Respond successfully to request. This will cause the JS code that made this
 	//request to redirect the user to the main logged in page.
-	output.Success("loginOK", nil, w)
+	output.Success(msgTypeLoginOK, nil, w)
 }
 
 // getIPFormatted formats the IP in an http request. This is used in Login to make sure

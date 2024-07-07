@@ -14,8 +14,10 @@ import (
 	"github.com/c9845/sqldb/v3"
 )
 
-//This file checks if an API key was provided, and is valid, when an API request is
-//made to a publically accessible endpoint.
+/*
+This file checks if an API key was provided, and is valid, when an API request is
+made to a publically accessible endpoint.
+*/
 
 var (
 	// errAPIAccessNotAllowed is used when a public API endpoint is accessed but API

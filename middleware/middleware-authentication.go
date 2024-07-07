@@ -16,17 +16,17 @@ import (
 	"github.com/c9845/sqldb/v3"
 )
 
-//This file checks if a user is already authenticated to the app (aka logged in, a
-//session has already been started. This makes sure the user and session are still
-//valid (hasn't expired, user hasn't been deactivated) and that the user's password
-//hasn't been changed.
-//
-// The Auth func should be called upon every page load or endpoint when a user is logged
-// in.
+/*
+This file checks if a user is already authenticated to the app (aka logged in, a
+session has already been started). This makes sure the user and session are still
+valid (hasn't expired, user hasn't been deactivated) and that the user's password
+hasn't been changed.
+*/
 
-// errLoginNotValid is the generic error returned when a user's session is invalid or
-// a user is inactive.
-var errLoginNotValid = errors.New("login inactive or expired")
+var (
+	//errLoginNotValid is used when a user session in expired.
+	errLoginNotValid = errors.New("login inactive or expired")
+)
 
 // Auth is used to verify a request to this app is from a logged in and active user.
 // If a user's credentials are found and valid, the user is redirected to the next
@@ -252,4 +252,4 @@ func Auth(next http.Handler) http.Handler {
 type userIDCtxKeyType string
 
 // UserIDCtxKey is used to identify a User ID in the request context.
-const UserIDCtxKey userIDCtxKeyType = "api-key-id"
+const UserIDCtxKey userIDCtxKeyType = "user-id"

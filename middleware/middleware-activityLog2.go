@@ -15,8 +15,10 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-// This file tracks user activity within the app. It saves a record of every page viewed
-// or endpoint visited so we can investigate user activity as needed.
+/*
+This file tracks user activity within the app. It saves a record of every page viewed
+or endpoint visited so we can investigate user activity as needed.
+*/
 
 // skippedEndpoints2 are endpoints we don't need to log to the activity log since they
 // would just clog up the log.
@@ -46,6 +48,13 @@ func LogActivity2(next http.Handler) http.Handler {
 
 		//Skip certain endpoints as needed.
 		if slices.Contains(skippedEndpoints2, r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		//Skip if user is on the activity log page, don't need to log entries for this
+		//page since doing so just clogs us the logging.
+		if strings.Contains(r.Referer(), "/activity-log/") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -114,7 +123,7 @@ func LogActivity2(next http.Handler) http.Handler {
 			activity.CreatedByAPIKeyID = null.IntFrom(apiKeyID.(int64))
 			err := activity.Insert(ctx)
 			if err != nil {
-				log.Println("middleware.LogActivity2 - could not save api access to log", err)
+				log.Println("middleware.LogActivity2", "could not save api access to log", err)
 			}
 		}
 
@@ -122,7 +131,7 @@ func LogActivity2(next http.Handler) http.Handler {
 			activity.CreatedByUserID = null.IntFrom(userID.(int64))
 			err = activity.Insert(ctx)
 			if err != nil {
-				log.Println("middleware.LogActivity2 - could not save user access to log", r.URL.Path, err)
+				log.Println("middleware.LogActivity2", "could not save user access to log", r.URL.Path, err)
 			}
 		}
 	})
