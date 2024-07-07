@@ -1,3 +1,15 @@
+2.3.0 (Released 2024-07-07)
+----------
+- Notes:
+    - Implement Authorization header for API key authentication. Providing API key via URL parameter is deprecated.
+    - Improved error handling and error messages for user authentication.
+    - Miscellaneous bug fixes.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+
 2.2.0 (Released 2024-05-05)
 ----------
 - Notes:

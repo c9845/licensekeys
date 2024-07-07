@@ -127,6 +127,7 @@ func ExternalAPI(next http.Handler) http.Handler {
 			//Set response header so that users know to use Authorization header
 			//instead of URL parameter for providing API key in the future.
 			w.Header().Set("WWW-Authenticate", "Bearer")
+			log.Println("middleware.ExternalAPI", "Providing API key via URL parameter is deprecated, use Authorization header (Bearer scheme).")
 		}
 
 		//Validate the API Key exists and get its data.
