@@ -18,154 +18,293 @@
                                 <h5>API and API Keys</h5>
                             </div>
                             <div class="card-body">
-                                <section>
-                                    <h5>Intro:</h5>
-                                    <p>The License Key Server application provides a publically accessible API to access some of the GUI functionality to integration with other software tools. To use the API, you must enable the <code>AllowAPIAccess</code> App Setting and create an API Key.</p>
-
-                                    <h5>Standardized Responses:</h5>
-                                    <p>All API calls, except when a license file is returned, respond with a consistently formatted JSON object for ease of parsing. See the example, and format, below.</p>
-<pre>
-    {
-        "OK":true, //false on an internal server error.
-        "Type":"insertOK", //the action completed, error when ErrorData is populated.
-        "Data":10004, //an ID or some other data, only populated when Type is not "error".
-        "ErrorData":{}, //contains a low-level error and a human friendly error message.
-        "Datetime":"2022-05-30T16:20:50.004Z" //a timestamp of the response for diagnostics.
-    }
-</pre>
+                                <section class="help-description">
+                                    <p>Integrate some of this app's functionality and data into your other software tools.</p>
                                 </section>
                                 <hr class="divider">
 
-                                <section>
-                                    <h5>Create a License:</h5>
-                                    <dl class="row mb-0 ml-2">
-                                        <dt class="col-sm-3">Method:</dt>
-                                        <dd class="col-sm-9 mb-0">POST</dd>
-                                        
-                                        <dt class="col-sm-3">URL:</dt>
-                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/add/</dd>
-                                        
-                                        <dt class="col-sm-3">Content Type:</dt>
-                                        <dd class="col-sm-9 mb-0">application/x-www-form-urlencoded</dd>
-                                        
-                                        <dt class="col-sm-3">Required Data:</dt>
-                                        <dd class="col-sm-9 mb-0">
-                                            <ul>
-                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
-                                                <li><code>appID</code> or <code>keyPairID</code> - If you provide an appID, the default key pair will be used.</li>
-                                                <li><code>companyName</code></li>
-                                                <li><code>contactName</code></li>
-                                                <li><code>phoneNumber</code></li>
-                                                <li><code>email</code></li>
-                                                <li><code>expireDate</code> - A YYYY-MM-DD formatted date in the future.</li>
-                                                <li><code>fields</code> - A URL encoded JSON object containing the custom fields for the app this license is for. Each key in the object must exactly match a custom field's name with each value a valid value for the field.</li>
-                                            </ul>
-                                        </dd>
+                                <section class="help-section">
+                                    <h6>Introduction:</h6>
+                                    <p>The API provides access to a subset of this app's features for automation and integration purposes. The API is enabled via the App Setting <span class="app-setting-description">AllowAPIAccess</span>.</p>
 
-                                        <dt class="col-sm-3">Optional Data:</dt>
-                                        <dd class="col-sm-9 mb-0">
-                                            <ul>
-                                                <li><code>returnLicenseFile</code> - If true, bytes representing a file are returned. If false, or not provided, a simple success message with the new licenses' ID is returned.</li>
-                                            </ul>
-                                        </dd>
+                                    <h6>API Keys:</h6>
+                                    <p>API Keys provide authentication. Each integration with this app should use a separate API Key for security purposes. Make sure you store each API Key securely!</p>
 
-                                        <dt class="col-sm-3">Returns:</dt>
-                                        <dd class="col-sm-9 mb-0">A license ID or a license file in bytes. See the <code>X-Download-As-Filename</code> response header for the suggested filename.</dd>
-
-                                        <dt class="col-sm-3">Example:</dt>
-                                        <dd class="col-sm-9 mb-0"><span class="text-secondary"><i>An example cURL command is shown when creating a license in the GUI.</i></span></dd>
-                                    </dl>
+                                    <p>An API Key is used by providing it via the <code>Authorization</Code> header using the <code>Bearer</code> scheme. Ex.: <code>curl -H "Authorization:Bearer lks_your-api-key"</code>.</p>
+                                    
+                                    <p>You can monitor usage of each API Key in the Activity Log as long as the App Setting <span class="app-setting-description">EnableActivityLogging</span> is enabled. </p>
                                 </section>
                                 <hr class="divider">
 
-                                <section>
-                                    <h5>Download a License:</h5>
-                                    <dl class="row mb-0 ml-2">
-                                        <dt class="col-sm-3">Method:</dt>
-                                        <dd class="col-sm-9 mb-0">GET</dd>
-                                        
-                                        <dt class="col-sm-3">URL:</dt>
-                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/download/</dd>
-
-                                        <dt class="col-sm-3">Content Type:</dt>
-                                        <dd class="col-sm-9 mb-0">application/x-www-form-urlencoded</dd>
-
-                                        <dt class="col-sm-3">Required Parameters:</dt>
-                                        <dd class="col-sm-9 mb-0">
-                                            <ul>
-                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
-                                                <li><code>id</code> - A license's ID.</li>
-                                            </ul>
-                                        </dd>
-
-                                        <dt class="col-sm-3">Returns:</dt>
-                                        <dd class="col-sm-9 mb-0">A license file in bytes. See the <code>X-Download-As-Filename</code> response header for the suggested filename.</dd>
-                                        
-                                        <dt class="col-sm-3">Example:</dt>
-                                        <dd class="col-sm-9 mb-0"><code>curl 'http://localhost:8007/api/v1/licenses/download/?apiKey=lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD&id=100001'</code></dd>
-                                    </dl>
+                                <section class="help-section">
+                                    <h6>Returned Data:</h6>
+                                    <p>All data returned via the API, except when returning a license file, is returned as JSON with the following fields:</p>
+                                    <table class="table table-sm">
+                                        <thead class="no-border-top">
+                                            <th>Field</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>OK</code></td>
+                                                <td><span class="badge badge-secondary">boolean</span></td>
+                                                <td>False if a server error occurred.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>Type</code></td>
+                                                <td><span class="badge badge-secondary">string</span></td>
+                                                <td>A short description of the response, "error" if <code>OK</code> is false.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>Datetime</code></td>
+                                                <td><span class="badge badge-secondary">string</span></td>
+                                                <td>A YYYY-MM-DDTHH:MM:SS.sssZ formatted timestamp of when the response was generated.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>Data</code></td>
+                                                <td><span class="badge badge-secondary">miscellaneous</span></td>
+                                                <td>The returned data. Format is dependent on endpoint.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>ErrorData</code></td>
+                                                <td><span class="badge badge-secondary">object</span></td>
+                                                <td>Error details if <code>OK</code> is false. Object has subfields <code>Error</code> and <code>Message</code>.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </section>
                                 <hr class="divider">
 
-                                <section>
-                                    <h5>Renew a License:</h5>
-                                    <dl class="row mb-0 ml-2">
-                                        <dt class="col-sm-3">Method:</dt>
-                                        <dd class="col-sm-9 mb-0">POST</dd>
-                                        
-                                        <dt class="col-sm-3">URL:</dt>
-                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/renew/</dd>
+                                <!-- API Definitions and Examples -->
 
-                                        <dt class="col-sm-3">Required Parameters:</dt>
-                                        <dd class="col-sm-9 mb-0">
-                                            <ul>
-                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
-                                                <li><code>id</code> - A license's ID.</li>
-                                                <li><code>newExpireDate</code> -  A YYYY-MM-DD formatted date in the future.</li>
-                                            </ul>
-                                        </dd>
+                                <section class="help-section">
+                                    <!-- Create a License -->
+                                    <div class="mb-4">
+                                        <h5><span class="badge badge-primary">POST</span> Create a License:</h5>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <h6 class="mb-0">Description:</h6>
+                                            <p class="mb-3">Create a new license for an app.</p>
+                                            
+                                            <h6 class="mb-0">Endpoint:</h6>
+                                            <p class="mb-3"><code>/api/v1/licenses/add/</code></p>
+                                            
+                                            <h6 class="mb-0">Content Type:</h6>
+                                            <p class="mb-3">application/x-www-form-urlencoded</p>
+                                            
+                                            <h6 class="mb-0">Required Arguments:</h6>
+                                            <table class="table table-sm">
+                                                <thead class="no-border-top">
+                                                    <th>Field</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><code>appID</code></td>
+                                                        <td><span class="badge badge-secondary">integer</span></td>
+                                                        <td>The app to create a license for, the default key pair for this app will be used.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>companyName</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>The name of the company you are creating the license for.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>contactName</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>The name of the person you are creating the license for.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>phoneNumber</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>The company and/or contact's phone number.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>email</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>The company and/or contact's email address.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>expireDate</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>The date the license will expire, in YYYY-MM-DD format.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>fields</code></td>
+                                                        <td><span class="badge badge-secondary">object</span></td>
+                                                        <td>A URL encoded JSON object containing the custom fields and value for each for this app. Each key in the object must exactly match a custom field's name, and each value must be a valid value for the field's type and definition.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+    
+                                            <h6 class="mb-0">Optional Arguments:</h6>
+                                            <table class="table table-sm">
+                                                <thead class="no-border-top">
+                                                    <th>Field</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><code>keyPairID</code></td>
+                                                        <td><span class="badge badge-secondary">integer</span></td>
+                                                        <td>If provided, this overrides the value provided for the <code>appID</code> field.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>returnLicenseFile</code></td>
+                                                        <td><span class="badge badge-secondary">boolean</span></td>
+                                                        <td>If <code>true</code>, the license file itself is returned. If <code>false</code>, or not provided, a success message with the new license's ID is returned.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            
+                                            <h6 class="mb-0">Returned Data:</h6>
+                                            <p class="mb-3">The ID of the new license file, or the license file itself. See the <code>Content-Disposion</code> header for the license file's suggested filename.</p>
+                                            
+                                            <h6 class="mb-0">Example curl Request:</h6>
+                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/add/' -H 'Authorization:Bearer lks_your-api-key' -d appID='1' -d companyName='ACME Dynamite Corp.' -d contactName='Wyle E. Coyote' -d phoneNumber='555-555-5555' -d email='coyote@example.com' -d expireDate='2050-01-01'</code></p>
+                                        </blockquote>
+                                    </div>
 
-                                        <dt class="col-sm-3">Optional Data:</dt>
-                                        <dd class="col-sm-9 mb-0">
-                                            <ul>
-                                                <li><code>returnLicenseFile</code> - If true, bytes representing a file are returned. If false, or not provided, a simple success message with the new licenses' ID is returned.</li>
-                                            </ul>
-                                        </dd>
+                                    <!-- Download a License -->
+                                    <div class="mb-4">
+                                        <h5><span class="badge badge-primary">GET</span> Download a License File:</h5>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <h6 class="mb-0">Description:</h6>
+                                            <p class="mb-3">Download an existing license file.</p>
+                                            
+                                            <h6 class="mb-0">Endpoint:</h6>
+                                            <p class="mb-3"><code>/api/v1/licenses/download/</code></p>
+                                            
+                                            <h6 class="mb-0">Content Type:</h6>
+                                            <p class="mb-3">application/x-www-form-urlencoded</p>
+                                            
+                                            <h6 class="mb-0">Required Arguments:</h6>
+                                            <table class="table table-sm">
+                                                <thead class="no-border-top">
+                                                    <th>Field</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><code>id</code></td>
+                                                        <td><span class="badge badge-secondary">integer</span></td>
+                                                        <td>The ID of the license to download.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            
+                                            <h6 class="mb-0">Returned Data:</h6>
+                                            <p class="mb-3">The license file. See the <code>Content Disposion</code> header for the license file's suggested filename.</p>
+                                            
+                                            <h6 class="mb-0">Example curl Request:</h6>
+                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/download/?id=10001' -H 'Authorization:Bearer lks_your-api-key'</code></p>
+                                        </blockquote>
+                                    </div>
+                                    
+                                    <!-- Renew a License -->
+                                    <div class="mb-4">
+                                        <h5><span class="badge badge-primary">POST</span> Renew a License:</h5>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <h6 class="mb-0">Description:</h6>
+                                            <p class="mb-3">Renew a license by copying an existing license's data and applying a further in-the-future expiration date.</p>
+                                            
+                                            <h6 class="mb-0">Endpoint:</h6>
+                                            <p class="mb-3"><code>/api/v1/licenses/renew/</code></p>
+                                            
+                                            <h6 class="mb-0">Content Type:</h6>
+                                            <p class="mb-3">application/x-www-form-urlencoded</p>
+                                            
+                                            <h6 class="mb-0">Required Arguments:</h6>
+                                            <table class="table table-sm">
+                                                <thead class="no-border-top">
+                                                    <th>Field</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><code>id</code></td>
+                                                        <td><span class="badge badge-secondary">integer</span></td>
+                                                        <td>The ID of the license to renew.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>newExpireDate</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>The date the license will expire, in YYYY-MM-DD format.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+    
+                                            <h6 class="mb-0">Optional Arguments:</h6>
+                                            <table class="table table-sm">
+                                                <thead class="no-border-top">
+                                                    <th>Field</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><code>returnLicenseFile</code></td>
+                                                        <td><span class="badge badge-secondary">boolean</span></td>
+                                                        <td>If <code>true</code>, the license file itself is returned. If <code>false</code>, or not provided, a success message with the new license's ID is returned.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            
+                                            <h6 class="mb-0">Returned Data:</h6>
+                                            <p class="mb-3">The ID of the new license file, or the license file itself. See the <code>Content-Disposion</code> header for the license file's suggested filename.</p>
+                                            
+                                            <h6 class="mb-0">Example curl Request:</h6>
+                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/renew/' -H 'Authorization:Bearer lks_your-api-key' -d id='10001' -d newExpireDate='2051-01-01'</code></p>
+                                        </blockquote>
+                                    </div>
 
-                                        <dt class="col-sm-3">Returns:</dt>
-                                        <dd class="col-sm-9 mb-0">A license ID or a license file in bytes. See the <code>X-Download-As-Filename</code> response header for the suggested filename.</dd>
-
-                                        <dt class="col-sm-3">Example:</dt>
-                                        <dd class="col-sm-9 mb-0"><code>curl 'http://localhost:8007/api/v1/licenses/renew/' -X POST -H 'Content-type: application/x-www-form-urlencoded' -d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' -d id='10001' -d newExpireDate='2025-01-01'</code></dd>
-                                    </dl>
+                                    <!-- Disable a License -->
+                                    <div class="mb-4">
+                                        <h5><span class="badge badge-primary">POST</span> Disable a License:</h5>
+                                        <blockquote class="section-description section-description-secondary">
+                                            <h6 class="mb-0">Description:</h6>
+                                            <p class="mb-3">Mark a license as no longer usable.</p>
+                                            
+                                            <h6 class="mb-0">Endpoint:</h6>
+                                            <p class="mb-3"><code>/api/v1/licenses/disable/</code></p>
+                                            
+                                            <h6 class="mb-0">Content Type:</h6>
+                                            <p class="mb-3">application/x-www-form-urlencoded</p>
+                                            
+                                            <h6 class="mb-0">Required Arguments:</h6>
+                                            <table class="table table-sm">
+                                                <thead class="no-border-top">
+                                                    <th>Field</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><code>id</code></td>
+                                                        <td><span class="badge badge-secondary">integer</span></td>
+                                                        <td>The ID of the license to disable.</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><code>note</code></td>
+                                                        <td><span class="badge badge-secondary">string</span></td>
+                                                        <td>A description of why the license is being disabled.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+    
+                                            <h6 class="mb-0">Returned Data:</h6>
+                                            <p class="mb-3">A success message.</p>
+                                            
+                                            <h6 class="mb-0">Example curl Request:</h6>
+                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/disable/' -H 'Authorization:Bearer lks_your-api-key'  -d id='10001'</code></p>
+                                        </blockquote>
+                                    </div>
                                 </section>
-                                <hr class="divider">
 
-                                <section>
-                                    <h5>Disable a License:</h5>
-                                    <dl class="row mb-0 ml-2">
-                                        <dt class="col-sm-3">Method:</dt>
-                                        <dd class="col-sm-9 mb-0">POST</dd>
-                                        
-                                        <dt class="col-sm-3">URL:</dt>
-                                        <dd class="col-sm-9 mb-0">/api/v1/licenses/disable/</dd>
-
-                                        <dt class="col-sm-3">Required Parameters:</dt>
-                                        <dd class="col-sm-9 mb-0">
-                                            <ul>
-                                                <li><code>apiKey</code> - A valid API key starting with "lks_".</li>
-                                                <li><code>id</code> - A license's ID.</li>
-                                                <li><code>note</code> - A short description about why the license is being disabled.</li>
-                                            </ul>
-                                        </dd>
-
-                                        <dt class="col-sm-3">Returns:</dt>
-                                        <dd class="col-sm-9 mb-0">A success message.</dd>
-
-                                        <dt class="col-sm-3">Example:</dt>
-                                        <dd class="col-sm-9 mb-0"><code>curl 'http://localhost:8007/api/v1/licenses/disable/' -X POST -H 'Content-type: application/x-www-form-urlencoded' -d apiKey='lks_C452FD754A28F59927E60DF4DFB6B7946681A0AD' -d id='10001'</code></dd>
-                                    </dl>
-                                </section>
                             </div> <!-- end .card-body -->
                         </div> <!-- end .card -->
                     </div>

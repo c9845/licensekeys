@@ -411,7 +411,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("returnLicenseFile") == "true" {
 		//Set suggested filename.
 		filename := replaceFilenamePlaceholders(a.DownloadFilename, l.ID, a.Name, a.FileFormat)
-		w.Header().Add("X-Download-As-Filename", filename)
+		w.Header().Add("Content-Disposition", "inline; filename=\""+filename+"\"")
 
 		err = f.Write(w)
 		if err != nil {
@@ -622,18 +622,9 @@ func Download(w http.ResponseWriter, r *http.Request) {
 	//Diagnostic info.
 	d, _ := f.ExpiresIn()
 	w.Header().Add("X-Days-Until-Expired", strconv.FormatFloat(math.Floor(d.Hours()/24), 'f', 0, 64))
-	w.Header().Add("X-Download-As-Filename", filename)
+	w.Header().Add("Content-Disposition", "attachment; filename=\""+filename+"\"")
 
 	//Write out the license file.
-	//
-	//The file if marshalled into the required format (json, yaml). Set the filename
-	//per the app's settings so that when the file is downloaded, it isn't given a
-	//generic filename by the browser (typically "download" without an extension).
-	if r.FormValue("display") != "true" {
-		//Set header that response is a file to be downloaded, not displayed.
-		w.Header().Add("Content-Disposition", "attachment; filename=\""+filename+"\"")
-	}
-
 	err = f.Write(w)
 	if err != nil {
 		output.Error(err, "Could not present license.", w)
@@ -953,7 +944,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !kp.Active {
-		output.ErrorInputInvalid("This key pair is not active. This license cannot be renewed.", w)
+		output.ErrorInputInvalid("This key pair used for the original license is no longer active. This license cannot be renewed.", w)
 		return
 	}
 
@@ -1039,7 +1030,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		}
 
 		filename := replaceFilenamePlaceholders(a.DownloadFilename, toLicense.ID, a.Name, a.FileFormat)
-		w.Header().Add("X-Download-As-Filename", filename)
+		w.Header().Add("Content-Disposition", "inline; filename=\""+filename+"\"")
 
 		err = f.Write(w)
 		if err != nil {
