@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/pages"
 	"github.com/c9845/licensekeys/v2/users"
-	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 )
 
@@ -23,17 +21,12 @@ valid (hasn't expired, user hasn't been deactivated) and that the user's passwor
 hasn't been changed.
 */
 
-var (
-	//errLoginNotValid is used when a user session in expired.
-	errLoginNotValid = errors.New("login inactive or expired")
-)
-
 // Auth is used to verify a request to this app is from a logged in and active user.
 // If a user's credentials are found and valid, the user is redirected to the next
 // HTTP handler, otherwise an error message is returned.
 //
-// This func should be called upon every page load or endpoint when a user is logged
-// in.
+// The Auth func should be called upon every page load or endpoint when a user is
+// logged in.
 //
 // This does not handle external API calls! External API calls are handled via a
 // separate middleware since the authentication is done differently.
@@ -48,7 +41,7 @@ func Auth(next http.Handler) http.Handler {
 		//friendly error page.
 		cv, err := users.GetLoginCookieValue(r)
 		if err != nil {
-			log.Println("middleware.Auth", "could not get login cookie value", err)
+			// log.Println("middleware.Auth", "could not get login cookie value", err) //diagnostics only, comment out for normal use otherwise this spams the logs when alert icon in header tries to refresh and user gets logged out by expired session.
 
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
@@ -56,7 +49,13 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(err, "Could not identify this session and user. Please try logging in again.", w)
+				//
+				//Not using output.Error() because this spams the logs if output.Debug
+				//is true for users that get logged out by an expired session but
+				//alerts header icon still makes requests on an interval to try and
+				//refresh icon.
+				w.Header().Set("Unauthorized-Reason", "Could not identify this session and user.")
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 
 			} else {
@@ -79,7 +78,7 @@ func Auth(next http.Handler) http.Handler {
 		//themself is still active.
 		ul, err := db.GetLoginByCookieValue(r.Context(), cv)
 		if err != nil {
-			log.Println("middleware.Auth", "could not look up user login", err)
+			// log.Println("middleware.Auth", "could not look up user login", err) //diagnostics only, comment out for normal use otherwise this spams the logs when alert icon in header tries to refresh and user gets logged out by expired session.
 
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
@@ -87,7 +86,13 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(err, "Could not look up your session. Please try logging in again.", w)
+				//
+				//Not using output.Error() because this spams the logs if output.Debug
+				//is true for users that get logged out by an expired session but
+				//alerts header icon still makes requests on an interval to try and
+				//refresh icon.
+				w.Header().Set("Unauthorized-Reason", "Could not look up your session.")
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 
 			} else {
@@ -118,7 +123,13 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(errLoginNotValid, "Your session has been marked as inactive. Please log in again.", w)
+				//
+				//Not using output.Error() because this spams the logs if output.Debug
+				//is true for users that get logged out by an expired session but
+				//alerts header icon still makes requests on an interval to try and
+				//refresh icon.
+				w.Header().Set("Unauthorized-Reason", "Your session has been marked as inactive.")
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 
 			} else {
@@ -146,7 +157,13 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(errLoginNotValid, "Your session has expired. Please log in again.", w)
+				//
+				//Not using output.Error() because this spams the logs if output.Debug
+				//is true for users that get logged out by an expired session but
+				//alerts header icon still makes requests on an interval to try and
+				//refresh icon.
+				w.Header().Set("Unauthorized-Reason", "Your session has expired.")
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 
 			} else {
@@ -169,7 +186,7 @@ func Auth(next http.Handler) http.Handler {
 		cols := sqldb.Columns{db.TableUsers + ".Active"}
 		u, err := db.GetUserByID(r.Context(), ul.UserID, cols)
 		if err != nil {
-			log.Println("middleware.Auth", "could not look up user", err)
+			// log.Println("middleware.Auth", "could not look up user", err) //diagnostics only, comment out for normal use otherwise this spams the logs when alert icon in header tries to refresh and user gets logged out by expired session.
 
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
@@ -177,7 +194,13 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(err, "Could not determine if your user account is still active. Please contact an administrator.", w)
+				//
+				//Not using output.Error() because this spams the logs if output.Debug
+				//is true for users that get logged out by an expired session but
+				//alerts header icon still makes requests on an interval to try and
+				//refresh icon.
+				w.Header().Set("Unauthorized-Reason", "Could not determine if your user account is still active.")
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 
 			} else {
@@ -200,7 +223,13 @@ func Auth(next http.Handler) http.Handler {
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
-				output.Error(errLoginNotValid, "Your user account has been marked as inactive. Please contact an administrator.", w)
+				//
+				//Not using output.Error() because this spams the logs if output.Debug
+				//is true for users that get logged out by an expired session but
+				//alerts header icon still makes requests on an interval to try and
+				//refresh icon.
+				w.Header().Set("Unauthorized-Reason", "Your user account has been marked as inactive.")
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 
 			} else {

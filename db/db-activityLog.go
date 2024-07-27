@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -109,7 +109,7 @@ func (a *ActivityLog) Insert(ctx context.Context) (err error) {
 		cols = append(cols, "CreatedByAPIKeyID")
 		b = append(b, a.CreatedByAPIKeyID.Int64)
 	} else {
-		err = fmt.Errorf("unknown if we are saving activity log for user or api. %w", ErrInputInvalid)
+		err = errors.New("unknown if we are saving activity log for user or api")
 		return
 	}
 

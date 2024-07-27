@@ -65,7 +65,6 @@ func init() {
 	showSQLiteVersion := flag.Bool("sqlite-version", false, "Show the version of SQLite the app has embedded.")
 	dbDeploySchema := flag.Bool("deploy-db", false, "Deploy a new database or add new tables to an existing database.")
 	dbUpdateSchema := flag.Bool("update-db", false, "Update an already deployed database.")
-	dbDontInsertInitialData := flag.Bool("no-insert-initial-data", false, "Set to true to deploy the database without inserting default data.") //used when converting from mariadb to sqlite
 	logFlags := flag.String("log-prefix", "ymdhms", "Format of logging prefix; none, ymdhms, or ymdhmsmicro.")
 	flag.Parse()
 
@@ -215,9 +214,6 @@ func init() {
 			sqldb.IgnoreErrorRenameDoesNotExist,
 			sqldb.IgnoreErrorTableDoesNotExist,
 		},
-	}
-	if !*dbDontInsertInitialData {
-		cfg.DeployFuncs = db.DeployFuncs
 	}
 
 	sqldb.Use(cfg)
