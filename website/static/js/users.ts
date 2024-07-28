@@ -100,7 +100,39 @@ if (document.getElementById("manageUsers")) {
 
             //setField saves a chosen radio toggle to the Vue object
             setField: function (fieldName: string, value: boolean) {
+                //Save the field being clicked on value.
                 this.userData[fieldName] = value;
+
+                //If toggle was being set to false/no, then we don't have to do
+                //anything else with related toggles.
+                if (value === false) {
+                    return;
+                }
+
+                //Save and set related field toggles when clicked on toggle is set to
+                //true/yes. This handles permissions that are related. Ex.: if user is
+                //being assigned a "Write" permission, they should also be assigned 
+                //the related "Read" permission.
+                //
+                //This helps reduce confusions about which permissions are required
+                //to complete certain tasks when multiple permissions are required.
+                //Aka "permission chains".
+                //
+                //This matches code in db-users.go.
+                if (fieldName === "CreateLicenses" && value) {
+                    this.userData.ViewLicenses = true;
+                }
+
+                //Set toggles in GUI accordingly since we may have updated some here.
+                for (let key in this.userData) {
+                    let value = this.userData[key];
+
+
+                    if (value === true || value === false) {
+                        setToggle(key, value);
+                    }
+                }
+
                 return;
             },
 

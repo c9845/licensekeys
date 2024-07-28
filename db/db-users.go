@@ -242,6 +242,19 @@ func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 		return
 	}
 
+	//Make sure any related permissions are set properly. Ex.: If a user has a "Write"
+	//permission, make sure the related "Read" permission is also assigned.
+	//
+	//This helps prevent issues with "permission chains" where multiple permissions
+	//are needed to complete certain tasks (ex.: receiving also needs suppliers read
+	//and raw materials read permissions to sort by what raw material is being
+	//received).
+	//
+	//This matches code in users.ts.
+	if u.CreateLicenses {
+		u.ViewLicenses = true
+	}
+
 	return "", nil
 }
 
