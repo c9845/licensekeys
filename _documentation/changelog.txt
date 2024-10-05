@@ -1,3 +1,20 @@
+3.0.0 (Released 2024-10-05)
+----------
+- Breaking change.
+    - "Extras" has been renamed "Metadata" in license files. "Extras" was an "ugly" name and didn't convey it's purpose.
+- Notes:
+    - Automatically apply related permissions. If a user can create a license, they should automatically be given permission to view licenses.
+    - Add back functionality to view licenses, rather than having to download them first. This was removed by mistake previously.
+    - Bump Golang dependencies.
+    - Miscellaneous bug fixes.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+    - Update third-party code to use new "Metadata" field and related functions.
+
+
 2.3.0 (Released 2024-07-07)
 ----------
 - Notes:
@@ -9,6 +26,7 @@
     - Stop the app's executable.
     - Copy and overwrite existing app files.
     - Restart the app's executable. 
+
 
 2.2.0 (Released 2024-05-05)
 ----------
@@ -36,6 +54,7 @@
     - Copy and overwrite existing app files.
     - Restart the app's executable. 
 
+
 2.1.4 (Released 2023-10-15)
 ----------
 - Notes:
@@ -49,6 +68,7 @@
     - Copy and overwrite existing app files.
     - Restart the app's executable. 
 
+
 2.1.3
 ----------
 - Notes:
@@ -59,6 +79,7 @@
     - Stop the app's executable.
     - Copy and overwrite existing app files.
     - Restart the app's executable. 
+
 
 2.1.2
 ----------
@@ -73,6 +94,7 @@
     - Copy and overwrite existing app files.
     - Restart the app's executable.  
 
+
 2.1.1
 ----------
 - Notes:
@@ -82,6 +104,7 @@
     - Stop the app's executable.
     - Copy and overwrite existing app files.
     - Restart the app's executable.
+
 
 2.1.0
 ----------
@@ -123,6 +146,7 @@
     - Copy and overwrite existing app files.
     - Run executable with --update-db flag. Wait for successful completion.
     - Restart the app's executable.
+
 
 2.0.0
 ----------
