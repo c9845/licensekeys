@@ -621,7 +621,15 @@ func Download(w http.ResponseWriter, r *http.Request) {
 	//Diagnostic info.
 	d, _ := f.ExpiresIn()
 	w.Header().Add("X-Days-Until-Expired", strconv.FormatFloat(math.Floor(d.Hours()/24), 'f', 0, 64))
-	w.Header().Add("Content-Disposition", "attachment; filename=\""+filename+"\"")
+
+	//If the license file is just being displayed, a rarely used by helpful diagnostic
+	//function in the GUI, don't mark the returned data as a file for the browser to
+	//download. But, add the correct content type for the browser.
+	if r.FormValue("display") == "true" {
+		w.Header().Add("Content-Type", "text/"+strings.ToLower(string(l.FileFormat)))
+	} else {
+		w.Header().Add("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	}
 
 	//Write out the license file.
 	err = f.Write(w)
