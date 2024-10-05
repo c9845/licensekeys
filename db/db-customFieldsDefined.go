@@ -239,7 +239,7 @@ func (cfd *CustomFieldDefined) Validate(ctx context.Context) (errMsg string, err
 	} else if err != nil {
 		//some kind of db error occured
 		return
-	} else if (err == nil) && ((cfd.ID > 0 && cfd.ID != existing.ID) || (cfd.ID == 0)) {
+	} else if (cfd.ID > 0 && cfd.ID != existing.ID) || (cfd.ID == 0) {
 		//no db error occured, but an existing field was returned. We have to determine
 		//if "this" field was returned and we are ok since we are updating it and therefore
 		//no duplicate name will result.

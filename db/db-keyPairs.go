@@ -111,7 +111,7 @@ func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
 		err = nil
 	} else if err != nil {
 		return
-	} else if (err == nil) && (existing.Active) && (existing.AppID == k.AppID) {
+	} else if (existing.Active) && (existing.AppID == k.AppID) {
 		errMsg = "This name is already used for another key pair. Please provide a different name."
 		return
 	}

@@ -104,7 +104,7 @@ func (a *App) Validate(ctx context.Context) (errMsg string, err error) {
 	} else if err != nil {
 		//some kind of db error occured
 		return
-	} else if (err == nil) && ((a.ID > 0 && a.ID != existing.ID) || (a.ID == 0)) {
+	} else if (a.ID > 0 && a.ID != existing.ID) || (a.ID == 0) {
 		//no db error occured, but an existing app was returned. We have to determine
 		//if "this" app was returned and we are ok since we are updating it and therefore
 		//no duplicate name will result.
