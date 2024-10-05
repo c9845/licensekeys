@@ -64,9 +64,6 @@ func (f *File) SignED25519(privateKey []byte) (err error) {
 
 	//Generate signature.
 	sig := ed25519.Sign(x509Key.(ed25519.PrivateKey), h[:])
-	if err != nil {
-		return
-	}
 
 	//Encode the signature and set to the Signature field.
 	f.encodeSignature(sig)

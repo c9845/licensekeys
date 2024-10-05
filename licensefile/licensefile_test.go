@@ -415,11 +415,6 @@ func TestWriteRead(t *testing.T) {
 		t.Fatal("Error creating temp file", err)
 		return
 	}
-
-	if err != nil {
-		t.Fatal("Abs path error", err)
-		return
-	}
 	defer os.Remove(x.Name())
 
 	f := File{
