@@ -23,7 +23,7 @@ func TestMarshal(t *testing.T) {
 	f := File{
 		CompanyName: "test1",
 		ContactName: "test2",
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"extraString": "string",
 			"extraInt":    1,
 			"extraBool":   true,
@@ -51,7 +51,7 @@ func TestUnmarshal(t *testing.T) {
 	f := File{
 		CompanyName: "test1",
 		ContactName: "test2",
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"extraString": "string",
 			"extraInt":    1,
 			"extraBool":   true,
@@ -76,7 +76,7 @@ func TestUnmarshal(t *testing.T) {
 			t.Fatal("Unmarshal error, CompanyName mismatch")
 			return
 		}
-		if out.Extras["extraString"] != f.Extras["extraString"] {
+		if out.Metadata["extraString"] != f.Metadata["extraString"] {
 			t.Fatal("Unmarshal error, Extras mismatch")
 			return
 		}

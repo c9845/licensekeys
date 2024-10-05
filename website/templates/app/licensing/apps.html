@@ -90,18 +90,18 @@
                                             File Format:
                                             <span class="help-icon text-secondary" v-tooltip="'How the data will be stored inside the license file.'"><i class="fas fa-question-circle"></i></span>
                                         </label>
-                                        <select class="form-control" v-model.trim="appData.FileFormat">
+                                        <select class="form-control" v-model.trim="appData.FileFormat" v-on:change="setDefaultDownloadFilename">
                                             <option value="" disabled>Please choose.</option>
                                             <option v-for="ff in fileFormats" v-bind:value="ff">[[ff.toUpperCase()]]</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label>
-                                            Download Filename: 
+                                            License Filename: 
                                             <!-- TODO: link to page explaining magic replacement code ({ext} is replaced with .json, .yaml)-->
                                             <span class="help-icon text-secondary" v-tooltip="'The name of the file the license will be downloaded as. Note that you can use {licenseID}, {appName}, and {ext} as placeholders.'"><i class="fas fa-question-circle"></i></span>
                                         </label>
-                                        <input type="text" class="form-control" placeholder="my-app-name.txt" v-model.trim="appData.DownloadFilename">
+                                        <input type="text" class="form-control" placeholder="my-app-name.yaml" v-model.trim="appData.DownloadFilename">
                                     </div>
                                     
                                     <div class="form-group side-by-side">
@@ -149,7 +149,7 @@
                         </div>
                     </div> <!-- end .col for view/edit/add -->
 
-                    <!-- column for key pairs & custom fields -->
+                    <!-- column for key pairs & custom fields/metadata fields -->
                     <div class="col-12 col-md-7 col-after-col--up-to-sm">
                         
                         <!-- card for key pairs -->
@@ -221,7 +221,7 @@
                             </div> <!-- end .card-body -->
                         </div> <!-- end .card for key pairs-->
                         
-                        <!-- card for custom field types -->
+                        <!-- card for custom field/metadata types -->
                         <div class="card" id="listCustomFieldsDefined">
                             <div class="card-header">
                                 <h5>
@@ -230,7 +230,7 @@
                                             <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
                                             <i v-else            class="fas fa-angle-double-up"></i>
                                         </span>
-                                        <span class="title">Custom Fields</span>
+                                        <span class="title">Metadata Fields</span>
                                     </span>
                                 </h5>
                                 
@@ -244,7 +244,7 @@
                                 <section>
                                     <blockquote class="section-description section-description-secondary">
                                         <p v-if="appSelectedID < 1">Choose an app first.</p>
-                                        <p v-else v-cloak>Custom fields allow you to provide arbitrary data in your licenses for enabling features, limiting user count, etc.</p>
+                                        <p v-else v-cloak>Metadata fields allow you to provide additional data in your licenses for enabling features, limiting user count, etc.</p>
                                     </blockquote>
                                 </section>
                                 
@@ -393,14 +393,14 @@
             </div>
         </div> <!-- end modal to add/view key pair -->
 
-        <!-- add/view/edit custom field modal -->
+        <!-- add/view/edit custom/metadata field modal -->
         <div class="modal fade" id="modal-customFieldDefined">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <span v-if="adding">Add Custom Field</span>
-                            <span v-else       >Edit Custom Field</span>
+                            <span v-if="adding">Add Metadata Field</span>
+                            <span v-else       >Edit Metadata Field</span>
                         </h5>
                         <button 
                             type="button" 
@@ -414,7 +414,7 @@
                     </div>
                     <div class="modal-body">
                         <blockquote class="section-description section-description-secondary">
-                            <p>Define fields to store data in your license file. You can use a custom field for setting the max user count, enabling features, setting support levels, etc.</p>
+                            <p>Metadata fields store additional information in your license files. Define fields for the maximum user count, enabling features, setting support levels, etc.</p>
                         </blockquote>
                         <hr class="divider">
                         <fieldset v-bind:disabled="submitting">

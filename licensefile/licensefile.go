@@ -55,10 +55,14 @@ type File struct {
 	IssueTimestamp int64  `yaml:"IssueTimestamp"` //unix timestamp in seconds
 	ExpireDate     string `yaml:"ExpireDate"`     //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
 
-	//The name and value for each custom field result. This is stored as a key
-	//value pair and we use an interface since custom fields can have many types and
-	//this is just easier.
-	Extras map[string]interface{} `json:"Extras,omitempty" yaml:"Extras,omitempty"`
+	//Metadata is any optional data that you want to store in a license file. This
+	//field can store anything, and is typically used for storing information that
+	//enables certain functionality within your app. For example, a maximum user
+	//count.
+	//
+	//Called "custom fields" when interfacing with the database. Previously called
+	//"Extras" when interfacing with a license File. "Extras" just sounded ugly.
+	Metadata map[string]any `json:"Metadata,omitempty" yaml:"Metadata,omitempty"`
 
 	//Signature is the result of signing the hash of File (all of the above fields)
 	//using the private key. The result is stored here and File is output to a text

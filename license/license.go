@@ -597,7 +597,6 @@ func Download(w http.ResponseWriter, r *http.Request) {
 		LicenseID:        licenseID,
 	}
 
-	//Get info about who or what is downloading this license.
 	userID, apiKeyID, err := getCreatedBy(r)
 	if err != nil {
 		output.Error(err, "Could not determine who made this request.", w)
@@ -668,27 +667,27 @@ func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File,
 	}
 
 	//Add the custom field results as a map to the file.
-	extras := make(map[string]interface{}, len(cfr))
+	metadata := make(map[string]any, len(cfr))
 	for _, f := range cfr {
 		switch f.CustomFieldType {
 		case db.CustomFieldTypeInteger:
-			extras[f.CustomFieldName] = f.IntegerValue.Int64
+			metadata[f.CustomFieldName] = f.IntegerValue.Int64
 		case db.CustomFieldTypeDecimal:
-			extras[f.CustomFieldName] = f.DecimalValue.Float64
+			metadata[f.CustomFieldName] = f.DecimalValue.Float64
 		case db.CustomFieldTypeText:
-			extras[f.CustomFieldName] = f.TextValue.String
+			metadata[f.CustomFieldName] = f.TextValue.String
 		case db.CustomFieldTypeBoolean:
-			extras[f.CustomFieldName] = f.BoolValue.Bool
+			metadata[f.CustomFieldName] = f.BoolValue.Bool
 		case db.CustomFieldTypeMultiChoice:
-			extras[f.CustomFieldName] = f.MultiChoiceValue.String
+			metadata[f.CustomFieldName] = f.MultiChoiceValue.String
 		case db.CustomFieldTypeDate:
-			extras[f.CustomFieldName] = f.DateValue.String
+			metadata[f.CustomFieldName] = f.DateValue.String
 		default:
 			//This should never be hit since we validated field types when they
 			//were saved/defined.
 		}
 	}
-	f.Extras = extras
+	f.Metadata = metadata
 
 	return
 }

@@ -58,7 +58,7 @@ func TestSign(t *testing.T) {
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
@@ -138,7 +138,7 @@ func TestVerifySignature(t *testing.T) {
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
@@ -233,7 +233,7 @@ func TestHash(t *testing.T) {
 	f := File{
 		CompanyName: "test1",
 		ContactName: "test2",
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"extraString": "string",
 			"extraInt":    1,
 			"extraBool":   true,
@@ -271,7 +271,7 @@ func TestExpired(t *testing.T) {
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
 		ExpireDate:  futureDate.Format("2006-01-02"),
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},

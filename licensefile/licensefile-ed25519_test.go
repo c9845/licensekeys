@@ -34,7 +34,7 @@ func TestSignED25519(t *testing.T) {
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
@@ -61,7 +61,7 @@ func TestVerifySignatureED25519(t *testing.T) {
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},

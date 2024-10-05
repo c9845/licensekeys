@@ -2,21 +2,21 @@ package licensefile
 
 import "testing"
 
-func TestExtraAsInt(t *testing.T) {
+func TestMetadataAsInt(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   1,
 			"notanint": "testing",
 		},
 	}
 
 	//get field that does exist
-	i, err := f.ExtraAsInt("exists")
+	i, err := f.MetadataAsInt("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -27,7 +27,7 @@ func TestExtraAsInt(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	i, err = f.ExtraAsInt("doesnotexist")
+	i, err = f.MetadataAsInt("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -38,7 +38,7 @@ func TestExtraAsInt(t *testing.T) {
 	}
 
 	//get not an int field
-	i, err = f.ExtraAsInt("notanint")
+	i, err = f.MetadataAsInt("notanint")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return
@@ -49,21 +49,21 @@ func TestExtraAsInt(t *testing.T) {
 	}
 }
 
-func TestExtraAsFloat(t *testing.T) {
+func TestMetadataAsFloat(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":    1.234,
 			"notafloat": "testing",
 		},
 	}
 
 	//get field that does exist
-	x, err := f.ExtraAsFloat("exists")
+	x, err := f.MetadataAsFloat("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -74,7 +74,7 @@ func TestExtraAsFloat(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	x, err = f.ExtraAsFloat("doesnotexist")
+	x, err = f.MetadataAsFloat("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -85,7 +85,7 @@ func TestExtraAsFloat(t *testing.T) {
 	}
 
 	//get not a float field
-	x, err = f.ExtraAsFloat("notafloat")
+	x, err = f.MetadataAsFloat("notafloat")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return
@@ -96,21 +96,21 @@ func TestExtraAsFloat(t *testing.T) {
 	}
 }
 
-func TestExtraAsString(t *testing.T) {
+func TestMetadataAsString(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":     "hello-world",
 			"notastring": 1,
 		},
 	}
 
 	//get field that does exist
-	s, err := f.ExtraAsString("exists")
+	s, err := f.MetadataAsString("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -121,7 +121,7 @@ func TestExtraAsString(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	s, err = f.ExtraAsString("doesnotexist")
+	s, err = f.MetadataAsString("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -132,7 +132,7 @@ func TestExtraAsString(t *testing.T) {
 	}
 
 	//get not a string field
-	s, err = f.ExtraAsString("notastring")
+	s, err = f.MetadataAsString("notastring")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return
@@ -143,21 +143,21 @@ func TestExtraAsString(t *testing.T) {
 	}
 }
 
-func TestExtraAsBool(t *testing.T) {
+func TestMetadataAsBool(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		fileFormat:  FileFormatJSON,
-		Extras: map[string]interface{}{
+		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
 	}
 
 	//get field that does exist
-	b, err := f.ExtraAsBool("exists")
+	b, err := f.MetadataAsBool("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -168,7 +168,7 @@ func TestExtraAsBool(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	b, err = f.ExtraAsBool("doesnotexist")
+	b, err = f.MetadataAsBool("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -179,7 +179,7 @@ func TestExtraAsBool(t *testing.T) {
 	}
 
 	//get not a string field
-	b, err = f.ExtraAsBool("notabool")
+	b, err = f.MetadataAsBool("notabool")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return

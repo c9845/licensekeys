@@ -12,16 +12,15 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-//This table stores the extra custom fields defined for an app. Custom fields
-//allow you to store arbitrary data in a license such as max user count, flags
-//to enable certain features, etc. An app can have as many custom fields as you
-//want, however, custom fields are not required. This table is populated for each
-//app and is used each time a user views the gui to create a new license.
+//This table stores any the list of any additional fields of data you want to store
+//in a license file. Custom fields allow you to store arbitrary data in a license
+//such as max user count, flags to enable certain features, etc. An app can have as
+//many custom fields as you want. This table is populated for each app and is used
+//each time a user views the GUI to create a new license.
 //
-//Custom fields are encoded into the "Extra" field of each license as a key/value
-//pair if at least one custom field is provided. The Extra field is taken into
-//account when the license is signed so that end-users cannot modify the values
-//of any custom fields.
+//Custom fields are "defined" for an app and used to build the GUI when creating a
+//license. When a license is created, the given value for each custom field defined
+//is called a "result".
 
 // TableCustomFieldDefined is the name of the table.
 const TableCustomFieldDefined = "custom_fields_defined"

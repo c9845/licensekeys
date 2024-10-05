@@ -13,11 +13,19 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
-//This table stores the chosen values of each custom field for a specificly generated
-//license. This data is used so that you can always go back and view the details of
-//a license when it was generated or redownload a license if needed. This table is
-//populated each time a new license is created and is used whenever a license needs
-//to be viewed or downloaded.
+//This table stores the chosen values of each custom field for a specific license.
+//This data is used so that you can always go back and view the details of a license
+//when it was generated or redownload a license if needed. This table is populated
+//each time a new license is created and is used whenever a license needs to be
+//viewed or downloaded.
+//
+//Custom fields results are encoded into the "Metadata" field of each license as a
+//key/value pair. The Metadata field is taken into account when the license is signed
+//so that end-users cannot modify the values of any custom fields.
+//
+//Custom fields are "defined" for an app and used to build the GUI when creating a
+//license. When a license is created, the given value for each custom field defined
+//is called a "result".
 
 // TableCustomFieldResults is the name of the table.
 const TableCustomFieldResults = "custom_field_results"
