@@ -223,12 +223,12 @@ if (document.getElementById("manageApps")) {
                 if (this.appData.Name.trim() === "") {
                     return;
                 }
-                if (this.appData.DownloadFilename.trim() !== "") {
-                    return;
-                }
+                // if (this.appData.DownloadFilename.trim() !== "") {
+                //     return;
+                // }
 
                 let withoutSpaces: string = this.appData.Name.trim().replace(/ /g, "_");
-                this.appData.DownloadFilename = withoutSpaces.toLowerCase() + ".txt";
+                this.appData.DownloadFilename = withoutSpaces.toLowerCase() + "." + this.appData.FileFormat;
                 return;
             },
 
