@@ -504,7 +504,7 @@ func Data() File {
 // getRandomEncryptionKey returns a string used for encrypting the private key of a key
 // pair.
 func getRandomEncryptionKey() (encKey string) {
-	//By default, use the longest length key.
+	//By default, use the longest length key per aes.NewCypher.
 	const l = 32
 
 	//Generate random string.
