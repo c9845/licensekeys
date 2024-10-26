@@ -147,6 +147,18 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 	password1 := r.FormValue("password1")
 	password2 := r.FormValue("password2")
 
+	//Check if this user can change this user's password. Admins can change any users'
+	//password, but non-admins can only change their own password.
+	loggedInUserData, err := GetUserDataFromRequest(r)
+	if err != nil {
+		output.Error(err, "Could not determine the user making this request.", w)
+		return
+	}
+	if !loggedInUserData.Administrator && loggedInUserData.ID != userID {
+		output.ErrorInputInvalid("You cannot change the password of another user.", w)
+		return
+	}
+
 	//Validate.
 	if userID <= 0 {
 		output.ErrorInputInvalid("Could not determine which user's password you are changing.", w)
