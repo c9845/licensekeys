@@ -479,11 +479,26 @@ func main() {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", hashfs.FileServer(staticFilesHashFS)))
 
 	//Listen and serve.
+	//
+	//Windows:
+	//  - Listening on 127.0.0.1 will work without warnings.
+	//  - Listening on localhost will work without warnings.
+	//  - Listening on 0.0.0.0 will cause firewall warnings.
+	//  - Listening on IP of computer will cause firewall warnings.
+	//
+	//WSL:
+	//  - Listening on 127.0.0.1 will work without warnings.
+	//  - Listening on localhost will work without warnings.
+	//  - Listening on 0.0.0.0 will work without warnings.
+	//  - Listening on IP of computer will not work (bind: cannot asign requested address).
+	//
+	//Linux Server:
+	//  - Listening on 127.0.0.1 will work without warnings.
+	//  - Set host to 0.0.0.0, or exact IP of remote server, to allow access to app by ip:port without a proxy.
 	port := config.Data().Port
-	host := "127.0.0.1"
-
+	host := config.Data().Host
 	hostPort := net.JoinHostPort(host, strconv.Itoa(port))
-	log.Println("Listening on port:", port)
+	log.Printf("Listening on: %s:%d", host, port)
 	log.Fatal(http.ListenAndServe(hostPort, r))
 }
 

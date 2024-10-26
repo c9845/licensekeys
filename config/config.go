@@ -34,12 +34,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/pwds"
 	"github.com/c9845/licensekeys/v2/version"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 
 	//Needed to support timezone being set in config and system running this app not
@@ -65,7 +64,8 @@ type File struct {
 	WebFilesStore string `yaml:"WebFilesStore"` //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
 	WebFilesPath  string `yaml:"WebFilesPath"`  //The absolute path to the directory storing the app's HTML, CSS and JS files.
 	UseLocalFiles bool   `yaml:"UseLocalFiles"` //Serve third-party CSS and JS files from this app's files or from an internet CDN.
-	FQDN          string `yaml:"FQDN"`          //The domain/subdomain the app serves on and matches your HTTPS certificate, also used for cookies. "." is acceptable but not advised.
+	FQDN          string `yaml:"FQDN"`          //TODO: remove.
+	Host          string `yaml:"Host"`          //The host the app listens on. Default is 127.0.0.1, aka localhost. Set to server's IP, or 0.0.0.0, to be able to access app directly on host:port without a proxy.
 	Port          int    `yaml:"Port"`          //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
 
 	LoginLifetimeHours        float64 `yaml:"LoginLifetimeHours"`        //The time a user will remain logged in for.
@@ -141,15 +141,15 @@ func newDefaultConfig() (f File, err error) {
 		WebFilesStore: WebFilesStoreEmbedded, //embedded means less files to distribute
 		WebFilesPath:  "",                    //not needed for default embedded file, not set to make config file cleaner and less confusing.
 		UseLocalFiles: true,                  //prefer our distributed files, prevents issues with CDNs.
-		FQDN:          ".",                   //blank results in more error in logging output, user should set this eventually to their fqdn.
+		FQDN:          ".",                   //.
 		Port:          8007,                  //
 
 		LoginLifetimeHours:        1,  //just a safe default.
 		TwoFactorAuthLifetimeDays: 14, //just a safe default.
 
-		Timezone:                "UTC",          //tried using time.Local.String() but this returns "Local" as the timezone which doesn't have much meaning when displayed in the GUI.
-		MinPasswordLength:       pwds.MinLength, //the shortest we allow, same as set in pwds package.
-		PrivateKeyEncryptionKey: "",             //no encryption by default
+		Timezone:                "UTC", //tried using time.Local.String() but this returns "Local" as the timezone which doesn't have much meaning when displayed in the GUI.
+		MinPasswordLength:       10,    //the shortest we allow, same as set in pwds package.
+		PrivateKeyEncryptionKey: "",    //no encryption by default
 	}
 	return
 }
@@ -181,7 +181,7 @@ func Read(path string, print bool) (err error) {
 	if strings.TrimSpace(path) == "" {
 		//The path provided for the config file flag is blank (-config=""). This
 		//should never really happen since the flag defines a default value (a file
-		//named qc.conf in the working directory where binary is being run from).
+		//named licensekeys.conf in the working directory where binary is being run from).
 		//This simply catches instances where user provides -config="" for some odd
 		//reason. Since a path was not provided, we cannot save a config file
 		//anywhere. In this case, we just use an "in memory" config that uses default
@@ -417,9 +417,10 @@ func (conf *File) validate() (err error) {
 	}
 
 	conf.FQDN = strings.TrimSpace(conf.FQDN)
-	if conf.FQDN == "" {
-		conf.FQDN = defaults.FQDN
-		log.Printf("WARNING! (config) FQDN was not provided. Defaulting to '%s'.", conf.FQDN)
+
+	conf.Host = strings.TrimSpace(conf.Host)
+	if conf.Host == "" {
+		conf.Host = defaults.Host
 	}
 
 	if conf.Port == 0 {
