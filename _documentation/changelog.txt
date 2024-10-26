@@ -1,3 +1,20 @@
+3.0.1 (Released 2024-10-26)
+----------
+- Breaking change.
+    - "Extras" has been renamed "Metadata" in license files. "Extras" was an "ugly" name and didn't convey it's purpose.
+- Notes:
+    - Add "Host" field to config file to allow app to listen on non-localhost. This is used when you use an external proxy and access the app across a network with IP:port.
+    - Fix bug where activity log "filter" button wasn't disabled while awaiting data from API. This could cause multiple requests to run by mistake.
+    - Update how user ID is retrieved from requests.
+    - Improve cookie security.
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+    - Update third-party code to use new "Metadata" field and related functions.
+
+
 3.0.0 (Released 2024-10-05)
 ----------
 - Breaking change.
