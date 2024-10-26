@@ -174,6 +174,7 @@ if (document.getElementById("activityLog")) {
                 //Show loading message.
                 this.msg = "Getting activities...";
                 this.msgType = msgTypes.primary;
+                this.submitting = true;
 
                 //Get activities.
                 let data: Object = {
@@ -194,11 +195,13 @@ if (document.getElementById("activityLog")) {
                         if (err !== '') {
                             activityLog.msg = err;
                             activityLog.msgType = msgTypes.danger;
+                            activityLog.submitting = false;
                             return;
                         }
 
                         activityLog.activities = j.Data || [];
                         activityLog.activitiesRetrieved = true;
+                        activityLog.submitting = false;
 
                         activityLog.msg = "";
                         return;
@@ -207,6 +210,7 @@ if (document.getElementById("activityLog")) {
                         console.log("fetch() error: >>", err, "<<");
                         activityLog.msg = 'An unknown error occurred. Please try again.';
                         activityLog.msgType = msgTypes.danger;
+                        activityLog.submitting = false;
                         return;
                     });
 
