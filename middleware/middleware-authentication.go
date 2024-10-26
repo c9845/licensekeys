@@ -39,13 +39,12 @@ func Auth(next http.Handler) http.Handler {
 		//within the app to get data or save data), we return the same format of
 		//response as every other API call. For page-view errors, we display a human
 		//friendly error page.
-		cv, err := users.GetLoginCookieValue(r)
+		cv, err := users.GetUserSessionIDFromCookie(r)
 		if err != nil {
-			// log.Println("middleware.Auth", "could not get login cookie value", err) //diagnostics only, comment out for normal use otherwise this spams the logs when alert icon in header tries to refresh and user gets logged out by expired session.
 
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
@@ -69,6 +68,8 @@ func Auth(next http.Handler) http.Handler {
 					LinkText:    "Log in",
 				}
 				pages.ShowError(w, r, e)
+
+				log.Println("middleware.Auth", "could not get login cookie value", err)
 				return
 			}
 		}
@@ -78,11 +79,10 @@ func Auth(next http.Handler) http.Handler {
 		//themself is still active.
 		ul, err := db.GetLoginByCookieValue(r.Context(), cv)
 		if err != nil {
-			// log.Println("middleware.Auth", "could not look up user login", err) //diagnostics only, comment out for normal use otherwise this spams the logs when alert icon in header tries to refresh and user gets logged out by expired session.
 
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
@@ -106,6 +106,8 @@ func Auth(next http.Handler) http.Handler {
 					LinkText:    "Log in",
 				}
 				pages.ShowError(w, r, e)
+
+				log.Println("middleware.Auth", "could not look up user login", err)
 				return
 			}
 		}
@@ -119,7 +121,7 @@ func Auth(next http.Handler) http.Handler {
 		if !ul.Active {
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
@@ -153,7 +155,7 @@ func Auth(next http.Handler) http.Handler {
 		if time.Since(expiration) > 0 {
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
@@ -186,11 +188,10 @@ func Auth(next http.Handler) http.Handler {
 		cols := sqldb.Columns{db.TableUsers + ".Active"}
 		u, err := db.GetUserByID(r.Context(), ul.UserID, cols)
 		if err != nil {
-			// log.Println("middleware.Auth", "could not look up user", err) //diagnostics only, comment out for normal use otherwise this spams the logs when alert icon in header tries to refresh and user gets logged out by expired session.
 
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
@@ -212,6 +213,8 @@ func Auth(next http.Handler) http.Handler {
 					ShowLinkBtn: false,
 				}
 				pages.ShowError(w, r, e)
+
+				log.Println("middleware.Auth", "could not look up user", err)
 				return
 			}
 		}
@@ -219,7 +222,7 @@ func Auth(next http.Handler) http.Handler {
 		if !u.Active {
 			//Delete the login cookie so that user is forced to log in again. This
 			//alleviates odd "logged in but not logged in" issues.
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			if strings.Contains(r.URL.Path, "/api/") {
 				//Handle internal app API calls.
@@ -264,21 +267,15 @@ func Auth(next http.Handler) http.Handler {
 				//session will just expire sooner than expected.
 			}
 
-			users.SetLoginCookieValue(w, ul.CookieValue, newExpiration)
+			users.SetUserSessionIDCookie(w, ul.CookieValue, newExpiration)
 		}
 
-		//Save user ID to context for use in activity logging. This just reduces
-		//the workload in LogActivity2() since we can just check if this key exists
-		//meaning the request was made via an API key.
-		ctx := context.WithValue(r.Context(), UserIDCtxKey, ul.UserID)
+		//Save user ID to context for use further in this request. For example, this
+		//is used to save to the activity log when this request is completed.
+		ctx := context.WithValue(r.Context(), users.UserIDContextKey, ul.UserID)
 		r = r.WithContext(ctx)
 
 		//Move to next middleware or handler.
 		next.ServeHTTP(w, r)
 	})
 }
-
-type userIDCtxKeyType string
-
-// UserIDCtxKey is used to identify a User ID in the request context.
-const UserIDCtxKey userIDCtxKeyType = "user-id"

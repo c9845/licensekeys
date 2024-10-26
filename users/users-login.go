@@ -12,7 +12,8 @@ import (
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/pwds"
+	"github.com/c9845/licensekeys/v2/users/cookieutils"
+	"github.com/c9845/licensekeys/v2/users/pwds"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 )
@@ -45,6 +46,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Look up user's data via username.
+	//
 	//We will use this delay login if user has provided incorrect password a few
 	//times, check if user account is active, and check if password provided is valid.
 	u, err := db.GetUserByUsername(r.Context(), username, sqldb.Columns{"*"})
@@ -67,6 +69,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Check password provided.
+	//
 	//If password is bad, increment login delay counter up to max. If max delay is
 	//reached, just continue to use it. Using a max delay is important so delay doesn't
 	//just grow endlessly.
@@ -121,7 +124,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//able to log in.
 	if as.Allow2FactorAuth && as.Force2FactorAuth && !u.TwoFactorAuthEnabled {
 		log.Println("users.Login", "2FA is required but not enabled for user")
-		output.Success(msgType2FAForced, "Two Factor Authentication is required but not enabled for your user account. Please see an administrator with your smartphone to enable this.", w)
+		output.Success(msgType2FAForced, "Two Factor Authentication (2FA) is required but not enabled for your user account. Please see an administrator to enable 2FA.", w)
 		return
 	}
 
@@ -138,7 +141,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 			//Look up cookie to see if this browser is remembered. If cookie cannot be
 			//found, request 2FA token.
-			cookie, err := r.Cookie(twoFACookieName)
+			browserID, err := Get2FABrowserIDFromCookie(r)
 			if err != nil {
 				log.Println("users.Login", "could not find browser id cookie, requiring 2fa")
 				output.Success(msgType2FATokenRequired, nil, w)
@@ -146,7 +149,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//Cookie found, verify it. If cookie cannot be verified, request 2FA token.
-			authedBrowser, err := db.GetAuthorizedBrowser(r.Context(), u.ID, ip, cookie.Value, true)
+			authedBrowser, err := db.GetAuthorizedBrowser(r.Context(), u.ID, ip, browserID, true)
 			if err == sql.ErrNoRows {
 				log.Println("users.Login", "could not find browser for given cookie, this is odd and should never happen", err)
 				output.Success(msgType2FATokenRequired, nil, w)
@@ -163,12 +166,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			//authenticated recently, request 2FA token.
 			authedBrowserAge := time.Since(time.Unix(authedBrowser.Timestamp, 0))
 			maxBrowserAge := time.Duration(config.Data().TwoFactorAuthLifetimeDays * 24 * int(time.Hour))
-
-			log.Println(authedBrowserAge, maxBrowserAge, authedBrowserAge > maxBrowserAge)
-
 			if authedBrowserAge > maxBrowserAge {
 				log.Println("users.Login", "removing expired browser id cookie")
-				delete2FACookie(w)
+				Delete2FABrowserIDCookie(w)
 				output.Success(msgType2FATokenRequired, nil, w)
 				return
 			}
@@ -217,18 +217,51 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			//Save the 2FA browser ID cookie now that 2FA token is validated. This
-			//will reduce the amount of times user will have to re-provide 2FA token.
+			//
+			//At this point we know the 2FA token is valid. We need to save the
+			//authorized browser for referencing in the future to reduce the number
+			//of times a user has to provide a 2FA token.
+			//
+
+			//Get a unique, random identifier for this browser. This is used in
+			//place of a numeric ID (ex: from authorized_browsers table) to make it
+			//harder to guess.
+			const length = 32
+			b := make([]byte, length)
+			_, err = rand.Read(b)
+			if err != nil {
+				log.Println("users.Login", "could not generate browser ID", err)
+				//not returned on error since this isn't an end of the world situation,
+				//user will just need to provide 2FA token upon next login.
+			}
+			browserID := base64.StdEncoding.EncodeToString(b)
+
+			//Set the cookie that identifies this browser.
+			//
+			//This cookie will be used to prevent a user from having to provide their
+			//2FA token upon every login to reduce user friction when logging in.
+			//
+			//This cookie has a set expiration, based on config file setting. The
+			//expiration does not get extended each time a user logs in.
+			expiration := time.Time{}
+			if config.Data().TwoFactorAuthLifetimeDays > 0 {
+				expiration = time.Now().AddDate(0, 0, config.Data().TwoFactorAuthLifetimeDays)
+			}
+			Set2FABrowserIDCookie(w, browserID, expiration)
+
+			//Record that 2FA was provided to our database.
 			ab := db.AuthorizedBrowser{
 				UserID:    u.ID,
-				RemoteIP:  getIPFormatted(r),
-				UserAgent: r.UserAgent(),
+				RemoteIP:  ip,
+				UserAgent: ua,
 				Timestamp: time.Now().Unix(),
+				Cookie:    browserID,
 			}
-			err = save2FABrowserIDCookie(r.Context(), w, ab)
+			err = ab.Insert(r.Context())
 			if err != nil {
-				log.Println("users.Login", "could not save authed browser", err)
-				//not returning since this isn't an end of the world situation, user will just need to provide 2fa token upon next login
+				log.Println("users.Login", "could not save browser ID", err)
+				//not returning since this isn't an end of the world situation, user
+				//will just have to provid e 2FA token upon next login.
 			}
 
 			//Reset bad 2FA token counter.
@@ -255,7 +288,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//and redirect the user to the main logged in page.
 	//
 
-	//Handle single sessions. If single session is enabled, mark all other logins/sessions
+	//Handle single sessions. If single session is enabled, mark all other sessions
 	//as inactive so they cannot be used. This is a security feature to prevent users
 	//from being logged into the app in more than one place at a time. This is done
 	//BEFORE saving the current login/session so we don't disable it by mistake.
@@ -267,15 +300,32 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	//Record login to history.
-	cv, err := generateUserLoginCookieValue(u.ID)
+	//Get unique, random identifier for this user session. This is used in place of
+	//a numeric ID (ex: ID from user_logins table) to make it harder to guess.
+	const length = 32
+	b := make([]byte, length)
+	_, err = rand.Read(b)
 	if err != nil {
 		output.Error(err, "Could not initialize user session.", w)
 		return
 	}
+	sessionID := base64.StdEncoding.EncodeToString(b)
 
+	//Set the cookie that identifies this session.
+	//
+	//This cookie is used to identify the user's session and keeps the user logged in
+	//to the app. From this cookie we can get the user's username, permissions, and
+	//any other details.
+	//
+	//While we set an expiration on this cookie, and the value matches the expiration
+	//we saved to the database, we only rely on the database value for validity since
+	//it cannot be modified client side. The expiration (cookie and database) are
+	//updated as the user uses the app to keep the user logged in while they are
+	//active.
 	expiration := time.Now().Add(time.Duration(config.Data().LoginLifetimeHours) * time.Hour)
+	SetUserSessionIDCookie(w, sessionID, expiration)
 
+	//Record the session to our database.
 	twoFATokenProvided := as.Allow2FactorAuth && u.TwoFactorAuthEnabled && twoFAToken != ""
 
 	ul := db.UserLogin{
@@ -283,23 +333,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		RemoteIP:           ip,
 		UserAgent:          ua,
 		TwoFATokenProvided: twoFATokenProvided,
-		CookieValue:        cv,
+		CookieValue:        sessionID,
 		Active:             true,
 		Expiration:         expiration.Unix(),
 	}
 	err = ul.Insert(r.Context())
 	if err != nil {
-		output.Error(err, "Could not save successful login and therefore could not log user into app. Please see an administrator for help.", w)
+		output.Error(err, "Could not save login and therefore could not log user into app. Please see an administrator for help.", w)
 		return
 	}
-
-	//Save the login ID to a cookie. This value will used to identify this user's
-	//session. From this ID, we can get the user's username, permissions, or anything
-	//else when we need to verify user in middleware or elsewhere. While we set an
-	//expiration on this cookie, and the value matches the expiration we saved to the
-	//database, we only rely on the database value for validity since it cannot be
-	//modified client side.
-	SetLoginCookieValue(w, cv, expiration)
 
 	//Reset bad password counter since user has successfully logged in. We don't want
 	//to user to experience a delayed login time the next login.
@@ -342,141 +384,43 @@ func getIPFormatted(r *http.Request) (ip string) {
 	return
 }
 
-// loginIDCookieName is the name of the cookie used to store the login ID/session identifier.
-const loginIDCookieName = "login_id"
+// sessionIDCookieName is the name of the cookie used to store the session ID.
+const sessionIDCookieName = "session_id"
 
-// SetLoginCookieValue saves the login identifier to a cookie. This is used to identify
-// the user's session and user when needed in middleware or elsewhere in the app. The
-// expiration timestamp of the cookie SHOULD match the expiration saved to the database
-// although we only rely on the database value for validity. There is no need to encrypt
-// the value stored in the cookie since it is just a random identifier with no other
-// useful information.
-func SetLoginCookieValue(w http.ResponseWriter, cv string, expiration time.Time) {
+// SetUserSessionIDCookie saves the user session identifier to a cookie.
+//
+// This is used when a user is logging in, when extending a user's session (see
+// middleware, and indirectly when logging a user out by marking the cookie as
+// expired).
+//
+// This cookie identifies a user's session and is used to keep the user logged in. The
+// identifier in this cookie references the user session saved to our database. The
+// expiration should match the value saved to the database.
+func SetUserSessionIDCookie(w http.ResponseWriter, sessionID string, expiration time.Time) (err error) {
 	cookie := http.Cookie{
-		Name:     loginIDCookieName,
+		Name:     sessionIDCookieName,  //
 		HttpOnly: true,                 //cookie cannot be modified by client-side browser javascript.
 		Secure:   false,                //this needs to be false for the demo to run since demo will most likely run on http.
-		Domain:   config.Data().FQDN,   //period is prepended to FQDN by browsers (sub.example.com becomes .sub.example.com).
-		Path:     "/",                  //all endpoints in app.
+		Path:     "/",                  //needed when Domain field is missing.
 		SameSite: http.SameSiteLaxMode, //SameSiteStrictMode breaks browsing from history in chrome.
-		Value:    cv,
-		Expires:  expiration,
+		Value:    sessionID,            //
+		Expires:  expiration,           //
 	}
-	http.SetCookie(w, &cookie)
-}
-
-// GetLoginCookieValue looks up the cookie value set to identify this login. This is
-// used to validate a user in middleware or elsewhere, or look up session to get user
-// details or permissions. This is a unique value generated and saved when the user
-// logged into the app.
-func GetLoginCookieValue(r *http.Request) (cv string, err error) {
-	cookie, err := r.Cookie(loginIDCookieName)
-	if err != nil {
-		return
-	}
-
-	return cookie.Value, nil
-}
-
-// DeleteLoginCookie removes a session cookie from a request/response by making it
-// expired.
-func DeleteLoginCookie(w http.ResponseWriter) {
-	SetLoginCookieValue(w, "", time.Now().Add(-1*time.Second))
-}
-
-// GetUserDataByRequest returns the user's data based on the login cookie from the
-// http request. This is a wrapper around GetLoginCookieValue + db.GetLoginByCookieValue +
-// db.GetUserByID since this pattern is used frequently.
-func GetUserDataByRequest(r *http.Request) (u db.User, err error) {
-	cv, err := GetLoginCookieValue(r)
-	if err != nil {
-		return
-	}
-
-	ul, err := db.GetLoginByCookieValue(r.Context(), cv)
-	if err != nil {
-		return
-	}
-
-	u, err = db.GetUserByID(r.Context(), ul.UserID, sqldb.Columns{"*"})
-	if err != nil {
-		return
-	}
-
+	cookieutils.Set(w, cookie)
 	return
 }
 
-// GetUserIDByRequest returns the user's ID based on the login ID cookie from the http
-// request.
-func GetUserIDByRequest(r *http.Request) (userID int64, err error) {
-	u, err := GetUserDataByRequest(r)
-	if err != nil {
-		return
-	}
-
-	return u.ID, nil
-}
-
-// GetUsernameByRequest returns the user's username based on the login ID cookie from the
-// http request.
-func GetUsernameByRequest(r *http.Request) (username string, err error) {
-	u, err := GetUserDataByRequest(r)
-	if err != nil {
-		return
-	}
-
-	return u.Username, nil
-}
-
-// LatestLogins retrieves the list of the latest user logins.
-func LatestLogins(w http.ResponseWriter, r *http.Request) {
-	//Get inputs.
-	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
-	rows, _ := strconv.ParseInt(r.FormValue("rows"), 10, 64)
-
-	//Validate. Use defaults if not valid.
-	if userID < 0 {
-		userID = 0
-	}
-	if rows < 0 {
-		rows = 50
-	}
-
-	//Get results.
-	logins, err := db.GetUserLogins(r.Context(), userID, uint16(rows))
-	if err != nil {
-		output.Error(err, "Could not look up list of user logins.", w)
-		return
-	}
-
-	output.DataFound(logins, w)
-}
-
-// generateUserLoginCookieValue creates a the value that will be saved in the user's
-// browser to identify this session as well as saved in our database for matching up
-// against. This value is a unique ID to identify this specific user session.
+// GetUserSessionIDFromCookie retrieves the user session ID from a cookie.
 //
-// The value is the user's ID with a random string appended to it. Prepending the
-// user ID provided a bit of extra collision resistance.
-//
-// We don't want to use the database row ID of this user login as the cookie value
-// since that is easily guessed/incremented.
-func generateUserLoginCookieValue(userID int64) (cv string, err error) {
-	//Get random part of the cookie value, formatted as base 64.
-	const length = 32
-	b := make([]byte, length)
-	_, err = rand.Read(b)
-	if err != nil {
-		return
-	}
-
-	randVal := base64.StdEncoding.EncodeToString(b)
-	if len(randVal) > length {
-		randVal = randVal[:length]
-	}
-
-	//Convert the user's ID to a string and build the full cookie value.
-	cv = strconv.FormatInt(userID, 10) + "_" + randVal
+// This is used whenever user authorization in the app is needed, specifically in
+// middleware to validate that a user session is currently active.
+func GetUserSessionIDFromCookie(r *http.Request) (sessionID string, err error) {
+	sessionID, err = cookieutils.Read(r, sessionIDCookieName)
 	return
+}
 
+// DeleteSessionIDCookie removes a session ID cookie from a request/response by
+// marking it as expired.
+func DeleteSessionIDCookie(w http.ResponseWriter) {
+	SetUserSessionIDCookie(w, "", time.Now().Add(-1*time.Second))
 }

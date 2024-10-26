@@ -74,7 +74,7 @@ func AddNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Get user who is adding this note.
-	loggedInUserID, err := users.GetUserIDByRequest(r)
+	loggedInUserID, err := users.GetUserIDFromRequest(r)
 	if err != nil {
 		output.Error(err, "Could not determine the user making this request.", w)
 		return

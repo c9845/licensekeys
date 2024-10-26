@@ -19,17 +19,17 @@ import (
 func Login(w http.ResponseWriter, r *http.Request) {
 	//Look up login cookie. If it exists, check if the login is valid and active and
 	//if so, redirect user.
-	cv, err := users.GetLoginCookieValue(r)
+	cv, err := users.GetUserSessionIDFromCookie(r)
 	if err == nil && cv != "" {
 		ul, err := db.GetLoginByCookieValue(r.Context(), cv)
 		if err == sql.ErrNoRows {
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			http.Redirect(w, r, "/?ref=loginNotFound", http.StatusFound)
 			return
 
 		} else if err != nil {
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 			log.Println("pages.Login", "could not get login by cookie value", err)
 
 			errPage := ErrorPage{
@@ -42,7 +42,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !ul.Active {
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			http.Redirect(w, r, "/?ref=sessionNotActive", http.StatusFound)
 			return
@@ -50,7 +50,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		expiration := time.Unix(ul.Expiration, 0)
 		if time.Since(expiration) > 0 {
-			users.DeleteLoginCookie(w)
+			users.DeleteSessionIDCookie(w)
 
 			http.Redirect(w, r, "/?ref=sessionExpired", http.StatusFound)
 			return

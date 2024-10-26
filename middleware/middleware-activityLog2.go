@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/db"
+	"github.com/c9845/licensekeys/v2/users"
 	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"
 )
@@ -116,8 +118,8 @@ func LogActivity2(next http.Handler) http.Handler {
 		//Only one of apiKeyID and userID will be provided.
 		//  - apiKeyID is set in middleware.ExternalAPI().
 		//  - userID is set in middleware.Auth().
-		apiKeyID := ctx.Value(APIKeyIDCtxKey)
-		userID := ctx.Value(UserIDCtxKey)
+		apiKeyID := ctx.Value(apikeys.APIKeyContextKey)
+		userID := ctx.Value(users.UserIDContextKey)
 
 		if apiKeyID != nil {
 			activity.CreatedByAPIKeyID = null.IntFrom(apiKeyID.(int64))

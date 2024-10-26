@@ -95,7 +95,7 @@ func Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Get user ID of logged in user who is creating this API key.
-	loggedInUserID, err := users.GetUserIDByRequest(r)
+	loggedInUserID, err := users.GetUserIDFromRequest(r)
 	if err != nil {
 		output.Error(err, "Could not determine the user making this request.", w)
 		return
@@ -245,3 +245,10 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 	output.UpdateOK(w)
 }
+
+type apiKeyContextKeyType string
+
+// APIKeyContextKey is the name of the key that stores an API key's ID in the request
+// context. This is used to save the API Key ID in middleware-externalAPI.go and is
+// used to get teh API Key ID via context.Value().
+const APIKeyContextKey apiKeyContextKeyType = "api-key-id"

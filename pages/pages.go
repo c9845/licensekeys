@@ -320,12 +320,12 @@ type PageData struct {
 // field).
 func getPageConfigData(r *http.Request) (pd PageData, err error) {
 	//Get user data.
-	u, err := users.GetUserDataByRequest(r)
+	u, err := users.GetUserDataFromRequest(r)
 	if err != nil {
 		return
 	}
 
-	//Remove secrets! Since GetUserDataByRequest() looks up/returns all columns (*),
+	//Remove secrets! Since GetUserDataFromRequest() looks up/returns all columns (*),
 	//we want to remove some data since it is sensitive for security.
 	u.Password = ""
 	u.TwoFactorAuthSecret = ""

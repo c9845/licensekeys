@@ -13,10 +13,10 @@ import (
 // Remove the session info so users isn't automatically logged back in to the app.
 // Remove the 2FA token if config requires 2FA upon each login.
 func Logout(w http.ResponseWriter, r *http.Request) {
-	DeleteLoginCookie(w)
+	DeleteSessionIDCookie(w)
 
 	if config.Data().TwoFactorAuthLifetimeDays < 0 {
-		delete2FACookie(w)
+		Delete2FABrowserIDCookie(w)
 	}
 
 	http.Redirect(w, r, "/?ref=logout", http.StatusFound)

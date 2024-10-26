@@ -191,10 +191,9 @@ func ExternalAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		//Save API key ID to context for use in activity logging. This just reduces
-		//the workload in LogActivity2() since we can just check if this key exists
-		//meaning the request was made via an API key.
-		ctx := context.WithValue(r.Context(), APIKeyIDCtxKey, keyData.ID)
+		//Save API key ID to context for use further in this request. For example, this
+		//is used to save to the activity log when this request is completed.
+		ctx := context.WithValue(r.Context(), apikeys.APIKeyContextKey, keyData.ID)
 		r = r.WithContext(ctx)
 
 		//Diagnostic logging.
@@ -204,8 +203,3 @@ func ExternalAPI(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-type apiKeyIDCtxKeyType string
-
-// APIKeyIDCtxKey is used to identify an API key ID in the request context.
-const APIKeyIDCtxKey apiKeyIDCtxKeyType = "api-key-id"

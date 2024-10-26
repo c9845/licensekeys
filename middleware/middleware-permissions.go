@@ -75,7 +75,7 @@ func Administrator(next http.Handler) http.Handler {
 		const p = "Administrator"
 
 		//Get user data.
-		u, err := users.GetUserDataByRequest(r)
+		u, err := users.GetUserDataFromRequest(r)
 		if err != nil {
 			verifyAccessError(w, r, p, err)
 			return
@@ -97,7 +97,7 @@ func CreateLicenses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "CreateLicenses"
 
-		u, err := users.GetUserDataByRequest(r)
+		u, err := users.GetUserDataFromRequest(r)
 		if err != nil {
 			verifyAccessError(w, r, p, err)
 			return
@@ -117,7 +117,7 @@ func ViewLicenses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const p = "ViewLicenses"
 
-		u, err := users.GetUserDataByRequest(r)
+		u, err := users.GetUserDataFromRequest(r)
 		if err != nil {
 			verifyAccessError(w, r, p, err)
 			return

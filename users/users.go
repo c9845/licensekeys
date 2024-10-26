@@ -5,6 +5,7 @@ package users
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,7 +13,7 @@ import (
 
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/pwds"
+	"github.com/c9845/licensekeys/v2/users/pwds"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 )
@@ -80,7 +81,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	u.Password = hashedPwd
 
 	//Get user ID of user making this request.
-	loggedInUserID, err := GetUserIDByRequest(r)
+	loggedInUserID, err := GetUserIDFromRequest(r)
 	if err != nil {
 		output.Error(err, "Could not determine the user making this request.", w)
 		return
@@ -191,7 +192,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	//Get ID of user to look up data for.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
 	if userID < 1 {
-		loggedInUserID, err := GetUserIDByRequest(r)
+		loggedInUserID, err := GetUserIDFromRequest(r)
 		if err != nil {
 			output.Error(err, "Could not determine the user making this request.", w)
 			return
@@ -252,4 +253,39 @@ func ClearLoginHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.UpdateOKWithData(rowsDeleted, w)
+}
+
+type userIDContextKeyType string
+
+// UserIDContextKey is the name of the key that stores a user's ID in the request
+// context. This is used to save the user ID in middleware-authentication.go and is
+// used to get the user ID via context.Value() (or via a helper function below).
+const UserIDContextKey userIDContextKeyType = "user-id"
+
+// GetUserIDFromRequest returns the user's ID based on the login ID cookie from the http
+// request.
+func GetUserIDFromRequest(r *http.Request) (userID int64, err error) {
+	id := r.Context().Value(UserIDContextKey)
+	if id == nil {
+		err = errors.New("could not get user ID from context")
+		return
+	}
+
+	return id.(int64), nil
+}
+
+// GetUserDataFromRequest returns the user's data based on the login cookie from the
+// http request.
+func GetUserDataFromRequest(r *http.Request) (u db.User, err error) {
+	userID, err := GetUserIDFromRequest(r)
+	if err != nil {
+		return
+	}
+
+	u, err = db.GetUserByID(r.Context(), userID, sqldb.Columns{"*"})
+	if err != nil {
+		return
+	}
+
+	return
 }
