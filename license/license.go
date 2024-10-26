@@ -18,12 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c9845/licensekeys/v2/apikeys"
 	"github.com/c9845/licensekeys/v2/config"
 	"github.com/c9845/licensekeys/v2/db"
 	"github.com/c9845/licensekeys/v2/keypairs"
 	"github.com/c9845/licensekeys/v2/licensefile"
-	"github.com/c9845/licensekeys/v2/middleware"
 	"github.com/c9845/licensekeys/v2/timestamps"
+	"github.com/c9845/licensekeys/v2/users"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 	"gopkg.in/guregu/null.v3"
@@ -1077,8 +1078,8 @@ func getCreatedBy(r *http.Request) (userID, apiKeyID int64, err error) {
 	//Only one of apiKeyID and userID will be provided.
 	//  - apiKeyID is set in middleware.ExternalAPI().
 	//  - userID is set in middleware.Auth().
-	keyID := r.Context().Value(middleware.APIKeyIDCtxKey)
-	uID := r.Context().Value(middleware.UserIDCtxKey)
+	keyID := r.Context().Value(apikeys.APIKeyContextKey)
+	uID := r.Context().Value(users.UserIDContextKey)
 
 	if keyID != nil {
 		apiKeyID = keyID.(int64)

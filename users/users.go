@@ -255,6 +255,30 @@ func ClearLoginHistory(w http.ResponseWriter, r *http.Request) {
 	output.UpdateOKWithData(rowsDeleted, w)
 }
 
+// LatestLogins retrieves the list of the latest user logins.
+func LatestLogins(w http.ResponseWriter, r *http.Request) {
+	//Get inputs.
+	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
+	rows, _ := strconv.ParseInt(r.FormValue("rows"), 10, 64)
+
+	//Validate. Use defaults if not valid.
+	if userID < 0 {
+		userID = 0
+	}
+	if rows < 0 {
+		rows = 50
+	}
+
+	//Get results.
+	logins, err := db.GetUserLogins(r.Context(), userID, uint16(rows))
+	if err != nil {
+		output.Error(err, "Could not look up list of user logins.", w)
+		return
+	}
+
+	output.DataFound(logins, w)
+}
+
 type userIDContextKeyType string
 
 // UserIDContextKey is the name of the key that stores a user's ID in the request
