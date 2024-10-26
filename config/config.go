@@ -142,6 +142,7 @@ func newDefaultConfig() (f File, err error) {
 		WebFilesPath:  "",                    //not needed for default embedded file, not set to make config file cleaner and less confusing.
 		UseLocalFiles: true,                  //prefer our distributed files, prevents issues with CDNs.
 		FQDN:          ".",                   //.
+		Host:          "127.0.0.1",           //Listen within localhost only.
 		Port:          8007,                  //
 
 		LoginLifetimeHours:        1,  //just a safe default.
