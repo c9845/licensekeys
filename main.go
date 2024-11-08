@@ -202,6 +202,7 @@ func init() {
 		MapperFunc:    sqldb.DefaultMapperFunc,
 		LoggingLevel:  sqldb.LogLevelInfo,
 		DeployQueries: db.DeployQueries,
+		DeployFuncs:   db.DeployFuncs,
 		UpdateQueries: db.UpdateQueries,
 		UpdateQueryErrorHandlers: []sqldb.ErrorHandler{
 			sqldb.IgnoreErrorDuplicateColumn,

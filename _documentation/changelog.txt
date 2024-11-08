@@ -1,3 +1,17 @@
+3.0.2 (Released 2024-11-08)
+----------
+- Breaking change.
+    - "Extras" has been renamed "Metadata" in license files. "Extras" was an "ugly" name and didn't convey it's purpose.
+- Notes:
+    - Fix major bug that caused database to be deployed WITHOUT a default initial user. Caused by inadvertent change when cleaning up inapplicable code. 
+- Update Process:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+    - Update third-party code to use new "Metadata" field and related functions.
+
+
 3.0.1 (Released 2024-10-26)
 ----------
 - Breaking change.
