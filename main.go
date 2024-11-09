@@ -389,7 +389,7 @@ func main() {
 	u.Handle("/login-history/clear/", admin.ThenFunc(users.ClearLoginHistory)).Methods("POST")
 
 	u1 := api.PathPrefix("/user").Subrouter()
-	u1.Handle("/", auth.ThenFunc(users.GetOne)).Methods("GET")
+	u1.Handle("/", auth.ThenFunc(users.GetOne)).Methods("GET") //For user profile page.
 
 	//**app settings
 	as := api.PathPrefix("/app-settings").Subrouter()
@@ -419,13 +419,13 @@ func main() {
 
 	//**apps
 	app := api.PathPrefix("/apps").Subrouter()
-	app.Handle("/", admin.ThenFunc(apps.Get)).Methods("GET")
+	app.Handle("/", viewLics.ThenFunc(apps.Get)).Methods("GET") //Users need to view app to sort created licenses, and to create a new license.
 	app.Handle("/add/", admin.ThenFunc(apps.Add)).Methods("POST")
 	app.Handle("/update/", admin.ThenFunc(apps.Update)).Methods("POST")
 
 	//**keypairs
 	kp := api.PathPrefix("/key-pairs").Subrouter()
-	kp.Handle("/", admin.ThenFunc(keypairs.Get)).Methods("GET")
+	kp.Handle("/", createLics.ThenFunc(keypairs.Get)).Methods("GET") //When creating a license, a user needs to be able to view the apps to create licenses for.
 	kp.Handle("/add/", admin.ThenFunc(keypairs.Add)).Methods("POST")
 	kp.Handle("/delete/", admin.ThenFunc(keypairs.Delete)).Methods("POST")
 	kp.Handle("/set-default/", admin.ThenFunc(keypairs.Default)).Methods("POST")
@@ -433,7 +433,7 @@ func main() {
 	//**custom fields
 	cf := api.PathPrefix("/custom-fields").Subrouter()
 	cfd := cf.PathPrefix("/defined").Subrouter()
-	cfd.Handle("/", admin.ThenFunc(customfields.GetDefined)).Methods("GET")
+	cfd.Handle("/", createLics.ThenFunc(customfields.GetDefined)).Methods("GET") //When creating a license, a user needs to be able to view the apps to create licenses for.
 	cfd.Handle("/add/", admin.ThenFunc(customfields.Add)).Methods("POST")
 	cfd.Handle("/update/", admin.ThenFunc(customfields.Update)).Methods("POST")
 	cfd.Handle("/delete/", admin.ThenFunc(customfields.DeleteDefined)).Methods("POST")
@@ -450,8 +450,8 @@ func main() {
 	lics.Handle("/history/", viewLics.ThenFunc(license.History)).Methods("GET")
 	lics.Handle("/notes/", viewLics.ThenFunc(license.Notes)).Methods("GET")
 	lics.Handle("/notes/add/", createLics.ThenFunc(license.AddNote)).Methods("POST")
-	lics.Handle("/disable/", auth.ThenFunc(license.Disable)).Methods("POST")
-	lics.Handle("/renew/", auth.ThenFunc(license.Renew)).Methods("POST")
+	lics.Handle("/disable/", createLics.ThenFunc(license.Disable)).Methods("POST")
+	lics.Handle("/renew/", createLics.ThenFunc(license.Renew)).Methods("POST")
 
 	//Handle public API endpoints.
 	//
