@@ -15,13 +15,12 @@ DBJournalMode: "DELETE"
 #WEBAPP SETTINGS.
 #WebFilesStore: (string) -  The source of the HTML, CSS, JS, etc. files used to display the GUI. Default: embedded.
 #WebFilesPath: (string) -   The absolute path to the "/website" directory. Default: "" (since files are embedded).
-#FQDN: (string) -           The domain this app is served on. Ex.: licensekeys.example.com. Default: ".".
+#Host: (string) -           The host the app will serve on. Default: 127.0.0.1.
 #Port: (integer) -          The port this app will serve on, between 1024 and 65535. Default: 8007.
 #UseLocalFiles: (boolean) - The app will use locally hosted CSS and JS files instead of files served via a CDN. Default: true.
 WebFilesStore: "embedded"
 WebFilesPath: ""
 UseLocalFiles: true
-FQDN: "."
 Port: 8007
 
 #SESSION SETTINGS.

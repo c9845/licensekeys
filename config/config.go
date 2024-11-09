@@ -64,7 +64,6 @@ type File struct {
 	WebFilesStore string `yaml:"WebFilesStore"` //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
 	WebFilesPath  string `yaml:"WebFilesPath"`  //The absolute path to the directory storing the app's HTML, CSS and JS files.
 	UseLocalFiles bool   `yaml:"UseLocalFiles"` //Serve third-party CSS and JS files from this app's files or from an internet CDN.
-	FQDN          string `yaml:"FQDN"`          //TODO: remove.
 	Host          string `yaml:"Host"`          //The host the app listens on. Default is 127.0.0.1, aka localhost. Set to server's IP, or 0.0.0.0, to be able to access app directly on host:port without a proxy.
 	Port          int    `yaml:"Port"`          //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
 
@@ -141,7 +140,6 @@ func newDefaultConfig() (f File, err error) {
 		WebFilesStore: WebFilesStoreEmbedded, //embedded means less files to distribute
 		WebFilesPath:  "",                    //not needed for default embedded file, not set to make config file cleaner and less confusing.
 		UseLocalFiles: true,                  //prefer our distributed files, prevents issues with CDNs.
-		FQDN:          ".",                   //.
 		Host:          "127.0.0.1",           //Listen within localhost only.
 		Port:          8007,                  //
 
@@ -416,8 +414,6 @@ func (conf *File) validate() (err error) {
 			return fmt.Errorf("config: WebFilesPath could not be validated %w", err)
 		}
 	}
-
-	conf.FQDN = strings.TrimSpace(conf.FQDN)
 
 	conf.Host = strings.TrimSpace(conf.Host)
 	if conf.Host == "" {

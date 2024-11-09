@@ -79,7 +79,6 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	d.set("WebFilesStore", cfg.WebFilesStore)
 	d.set("WebFilesPath", cfg.WebFilesPath)
 	d.set("UseLocalFiles", cfg.UseLocalFiles)
-	d.set("FQDN", cfg.FQDN)
 	d.set("Port", cfg.Port)
 
 	d.set("LoginLifetimeHours", cfg.LoginLifetimeHours)
