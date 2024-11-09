@@ -46,9 +46,9 @@ type License struct {
 	ContactName    string //who requested this license
 	PhoneNumber    string //contact info
 	Email          string //contact info
-	IssueDate      string //yyyy-mm-dd format
+	IssueDate      string //yyyy-mm-dd, set by server, UTC timezone.
 	IssueTimestamp int64  //unix timestamp in seconds
-	ExpireDate     string //yyyy-mm-dd format
+	ExpireDate     string //yyyy-mm-dd, set by input type=date in GUI so timezone is dependent on user's location.
 
 	//The signature generated using the private key from the keypair. This is
 	//generated once when the license is first created using the the common

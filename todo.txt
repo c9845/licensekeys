@@ -1,4 +1,6 @@
 Handle ROUND in SQL queries.
+    **is this actually an issue??? ROUND() seems work on mattn.
+    
     - ROUND() function doesn't exist by default in SQLite, and needs compile flag to enable.
         - SQLITE_ENABLE_MATH_FUNCTIONS.
     - For modernc, this functionality is automatically included.
