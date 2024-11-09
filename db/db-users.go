@@ -251,6 +251,10 @@ func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 	//received).
 	//
 	//This matches code in users.ts.
+	if u.Administrator {
+		u.CreateLicenses = true
+		u.ViewLicenses = true
+	}
 	if u.CreateLicenses {
 		u.ViewLicenses = true
 	}

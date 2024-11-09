@@ -121,6 +121,10 @@ if (document.getElementById("manageUsers")) {
                 //Aka "permission chains".
                 //
                 //This matches code in db-users.go.
+                if (fieldName === "Administrator" && value) {
+                    this.userData.CreateLicenses = true;
+                    this.userData.ViewLicenses = true;
+                }
                 if (fieldName === "CreateLicenses" && value) {
                     this.userData.ViewLicenses = true;
                 }
