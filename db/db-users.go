@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/timestamps"
-	"github.com/c9845/licensekeys/v2/users/pwds"
+	"github.com/c9845/licensekeys/v3/timestamps"
+	"github.com/c9845/licensekeys/v3/users/pwds"
 	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 )

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/pages"
-	"github.com/c9845/licensekeys/v2/users"
+	"github.com/c9845/licensekeys/v3/db"
+	"github.com/c9845/licensekeys/v3/pages"
+	"github.com/c9845/licensekeys/v3/users"
 	"github.com/c9845/output"
 )
 

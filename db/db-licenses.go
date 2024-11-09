@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/licensefile"
+	"github.com/c9845/licensekeys/v3/licensefile"
 	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v3"

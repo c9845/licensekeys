@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/c9845/licensekeys/v2/apikeys"
-	"github.com/c9845/licensekeys/v2/db"
+	"github.com/c9845/licensekeys/v3/apikeys"
+	"github.com/c9845/licensekeys/v3/db"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 )

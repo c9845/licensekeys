@@ -17,10 +17,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/c9845/licensekeys/v2/config"
-	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/licensefile"
-	"github.com/c9845/licensekeys/v2/users"
+	"github.com/c9845/licensekeys/v3/config"
+	"github.com/c9845/licensekeys/v3/db"
+	"github.com/c9845/licensekeys/v3/licensefile"
+	"github.com/c9845/licensekeys/v3/users"
 	"github.com/c9845/output"
 )
 

@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/c9845/licensekeys/v2/db"
+	"github.com/c9845/licensekeys/v3/db"
 	"github.com/c9845/output"
 )
 

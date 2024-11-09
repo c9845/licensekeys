@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/c9845/licensekeys/v2/licensefile"
-	"github.com/c9845/licensekeys/v2/timestamps"
+	"github.com/c9845/licensekeys/v3/licensefile"
+	"github.com/c9845/licensekeys/v3/timestamps"
 	"github.com/c9845/sqldb/v3"
 )
 

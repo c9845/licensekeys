@@ -24,8 +24,8 @@ import (
 	"strings"
 
 	"github.com/c9845/hashfs"
-	"github.com/c9845/licensekeys/v2/db"
-	"github.com/c9845/licensekeys/v2/users"
+	"github.com/c9845/licensekeys/v3/db"
+	"github.com/c9845/licensekeys/v3/users"
 )
 
 // Config is the set of configuration settings for working with HTML templates. This

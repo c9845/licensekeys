@@ -38,7 +38,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v2/version"
+	"github.com/c9845/licensekeys/v3/version"
 	"gopkg.in/yaml.v2"
 
 	//Needed to support timezone being set in config and system running this app not
