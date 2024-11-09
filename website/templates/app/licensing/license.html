@@ -30,9 +30,10 @@
                         </div>
 
                         <!-- alert for disabled license, to make it more apparent -->
+                        <!-- don't show alert if license was disabled because it was renewed, other alert will explain this. -->
                         <div v-if="licenseDataRetrieved && !licenseData.Active" v-cloak>
                             <div class="alert alert-warning">
-                                This license is disabled. It cannot be downloaded. However, previously distributed copies of this license can still be used.
+                                This license has been disabled<span v-if="licenseData.RenewedToLicenseID !== null"> because it was renewed</span>. It cannot be downloaded. However, previously distributed copies of this license can still be used.
                             </div>
                         </div>
 
