@@ -97,9 +97,9 @@
                                         <dt class="col-sm-4 text-truncate">Email:</dt>
                                         <dd class="col-sm-8">[[licenseData.Email]]</dd>
                                         <dt class="col-sm-4 text-truncate">Expiration Date:</dt>
-                                        <dd class="col-sm-8">[[licenseData.ExpireDate]] <small class="text-secondary">(UTC)</small></dd>
+                                        <dd class="col-sm-8">[[licenseData.ExpireDate]]</dd>
                                         <dt class="col-sm-4 text-truncate">Issue Date:</dt>
-                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.IssueDate + ' (UTC)'">[[licenseData.IssueDateInTZ]] <small class="text-secondary">([[licenseData.Timezone]])</small></dd>
+                                        <dd class="col-sm-8 whitespace-no-wrap ellipsis">[[licenseData.IssueDateInTZ]]</dd>
                                         <dt class="col-sm-4 text-truncate">Created By:</dt>
                                         <dd class="col-sm-8" v-if="licenseData.CreatedByUserID > 0">[[licenseData.CreatedByUsername]]</dd>
                                         <dd class="col-sm-8" v-else v-cloak                        >API: [[licenseData.CreatedByAPIKeyDescription]]</dd>
@@ -122,7 +122,6 @@
                                     </dl>
                                 </section>
 
-                                {{if $userData.Administrator}}
                                 <section v-if="showAdvancedInfo" v-cloak>
                                     <hr class="divider">
                                     <dl class="row mb-0">
@@ -132,13 +131,11 @@
                                         <dd class="col-sm-8">[[licenseData.FileFormat.toUpperCase()]]</dd>
                                     </dl>
                                 </section>
-                                {{end}}
                             </div>
                             <div class="card-footer" v-if="licenseData.Active && licenseData.Verified && !licenseData.Expired">
                                 <div class="btn-group">
                                     <button class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
                                     <div class="dropdown-menu">
-                                        {{if $userData.Administrator}}
                                         <button class="dropdown-item" v-on:click="showAdvancedInfo = !showAdvancedInfo">
                                             <span v-if="!showAdvancedInfo">Show Additional Info</span>
                                             <span v-else                  >Hide Additional Info</span>
@@ -151,9 +148,9 @@
                                             target="_blank"
                                             v-on:click="refreshDownloadHistory"
                                         >View License File</a>
+                                        
+                                        {{if $userData.CreateLicenses}}
                                         <div class="dropdown-divider"></div>
-                                        {{end}}
-
                                         <button 
                                             class="dropdown-item" 
                                             data-toggle="modal" 
@@ -170,6 +167,7 @@
                                         >
                                             Renew
                                         </button>
+                                        {{end}}
                                     </div>
                                 </div>
                             </div>
@@ -218,11 +216,14 @@
                         <div class="card">
                             <div class="card-header">
                                 <h5>Notes</h5>
+
+                                {{if $userData.CreateLicenses}}
                                 <div class="card-header-btn">
                                     <button class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#modal-note" v-on:click="setNoteModal(undefined)">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
+                                {{end}}
                             </div>
                             <div class="card-body">
                                 <div class="max-height-500px">
@@ -268,6 +269,7 @@
             once a license is disabled, it cannot be reenabled.
             a disabled license can also not be downloaded.
         -->
+        {{if $userData.CreateLicenses}}
         <div class="modal fade" id="modal-disableLicense">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -304,8 +306,10 @@
                 </div>
             </div>
         </div> <!-- end modal to disable a license -->
+        {{end}}
 
         <!-- modal for adding/viewing a note -->
+        {{if $userData.CreateLicenses}}
         <div class="modal fade" id="modal-note">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -357,6 +361,7 @@
                 </div>
             </div>
         </div> <!-- end modal to add a note -->
+        {{end}}
 
         <!-- 
             modal to renew license.
@@ -365,6 +370,7 @@
             that will cause the signature to be invalid and need to be recalculated.
             Upon success, user will be redirected to new license's page.
         -->
+        {{if $userData.CreateLicenses}}
         <div class="modal fade" id="modal-renewLicense">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -404,6 +410,7 @@
                 </div>
             </div>
         </div> <!-- end modal to renew license -->
+        {{end}}
 
 		{{template "footer"}}
 		{{template "html_scripts" .}}
