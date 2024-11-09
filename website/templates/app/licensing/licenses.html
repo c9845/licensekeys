@@ -38,7 +38,7 @@
                                                         <option value="0">No apps exist yet.</option>
                                                     </template>
                                                     <template v-else>
-                                                        <option value="0" disabled>Please choose.</option>
+                                                        <option value="0" selected>All Apps.</option>
                                                         <option v-for="(x, index) in apps" :key="index" v-bind:value="x.ID">[[x.Name]] <span v-if="!x.Active">([[x.Active]])</span></option>
                                                     </template>
                                                 </select>
