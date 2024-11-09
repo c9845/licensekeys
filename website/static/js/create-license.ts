@@ -79,6 +79,7 @@ if (document.getElementById("createLicense")) {
             apiBuilderMsg: "",
             apiBuilderMsgType: "",
             apiKeySelected: "", //not the ID, but the actual key
+            apiExample: "", //the example curl request to show in the GUI.
         },
         methods: {
             //setField saves a chosen radio toggle's value to the Vue object. We
@@ -488,11 +489,26 @@ if (document.getElementById("createLicense")) {
 
                 return;
             },
-        },
-        computed: {
-            //getAPIRequestFieldsObject builds the object that stores the custom
-            //fields defined for an API request.
-            getAPIRequestFieldsObject: function () {
+
+            //buildAPIExample builds the curl request to create an API key from the
+            //data the user chosen/provided. This is done to show the user an example
+            //of an API call to create a license.
+            //
+            //We have to handle email specially due to @ sign. curl uses @ sign to
+            //submit a file.
+            buildAPIExample: function () {
+                //Validate.
+                if (this.appSelectedID < 1 || this.licenseData.KeyPairID < 1 || !this.fieldsRetrieved) {
+                    return;
+                }
+
+                //Gather info to build host part of example. Just reuse the host that
+                //the user currently sees in the browser since that should be right.
+                let proto: string = window.location.protocol;
+                let host: string = window.location.host;
+
+                //Handle custom fields by arranging them as an object of key:value
+                //pairs. 
                 let cf: object = {};
                 for (let f of this.fields) {
                     switch (f.Type) {
@@ -520,30 +536,14 @@ if (document.getElementById("createLicense")) {
                     }
                 } //end for
 
-                return cf;
-            },
+                let cfEncoded = encodeURIComponent(JSON.stringify(cf));
 
-            //showAPIRequest builds the curl request to create an API key from the
-            //data the user chosen/provided. This is done to show the user an example
-            //of an API call to create a license.
-            //
-            //We have to handle email specially due to @ sign. curl uses @ sign to
-            //submit a file.
-            showAPIRequest: function () {
-                if (this.appSelectedID < 1 || this.licenseData.KeyPairID < 1 || !this.fieldsRetrieved) {
-                    return;
-                }
-
-                let proto: string = window.location.protocol;
-                let host: string = window.location.host;
-
-                let cf = encodeURIComponent(JSON.stringify(this.getAPIRequestFieldsObject));
-
+                //Build the lines of the example.
                 let lines: string[] = [
                     "curl '" + proto + "//" + host + "/api/v1/licenses/add/'",
                     "-X POST",
                     "-H 'Content-type: application/x-www-form-urlencoded'",
-                    "-d apiKey='" + this.apiKeySelected + "'",
+                    "-H 'Authorization: Bearer " + this.apiKeySelected + "'",
                     "-d appID='" + this.appSelectedID + "'",
                     "-d keyPairID='" + this.licenseData.KeyPairID + "'",
                     "-d companyName='" + this.licenseData.CompanyName + "'",
@@ -551,7 +551,7 @@ if (document.getElementById("createLicense")) {
                     "-d phoneNumber='" + this.licenseData.PhoneNumber + "'",
                     "-d email='" + this.licenseData.Email + "'",
                     "-d expireDate='" + this.licenseData.ExpireDate + "'",
-                    "-d fields=" + cf + "",
+                    "-d fields=" + cfEncoded + "",
                 ];
 
                 if (this.returnLicenseFile) {
@@ -559,7 +559,9 @@ if (document.getElementById("createLicense")) {
                 }
 
                 let s: string = lines.join(" \\\n");
-                return s;
+
+                this.apiExample = s;
+                return
             },
         },
         mounted() {

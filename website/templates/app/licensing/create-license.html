@@ -1,5 +1,6 @@
 {{$showDevHeader := .Development}}
 {{$appSettings := .InjectedData.AppSettings}}
+{{$userData := .InjectedData.UserData}}
 
 <!DOCTYPE html>
 <html>
@@ -21,11 +22,11 @@
 				<div class="row justify-content-center">
                     
                     <!-- inputs for creating license -->
-                    <div class="col col-md-8 col-xl-5">
+                    <div class="col col-md-8 col-lg-5">
                         <div class="card">
                             <div class="card-header">
                                 <h5>Create License</h5>
-                                {{if $appSettings.AllowAPIAccess}}
+                                {{if and $appSettings.AllowAPIAccess $userData.Administrator}}
                                 <div class="card-header-btn">
                                     <button 
                                         class="btn btn-outline-primary btn-sm" 
@@ -258,10 +259,10 @@
 
                     <!-- api request builder. show how to make an api request -->
                     {{if $appSettings.AllowAPIAccess}}
-                    <div class="col col-md-7" v-show="showAPIBuilder" v-cloak>
+                    <div class="col col-md-8 col-lg-7" v-show="showAPIBuilder" v-cloak>
                         <div class="card">
                             <div class="card-header">
-                                <h5>API Request</h5>
+                                <h5>API Example</h5>
                             </div>
                             <div class="card-body">
                                 <!-- stuff not in normal create license gui -->
@@ -296,10 +297,14 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group">
+                                    <button class="form-control btn btn-outline-primary btn-block" v-on:click="buildAPIExample">Build cURL Request</button>
+                                </div>
+
                                 <!-- display built API request -->
                                 <section>
                                     <div class="form-group">
-                                        <textarea class="form-control text-monospace" readonly v-model="showAPIRequest" rows="15" wrap="off"></textarea>
+                                        <textarea class="form-control text-monospace" readonly v-model="apiExample" rows="15" wrap="off"></textarea>
                                     </div>
                                 </section>
 
