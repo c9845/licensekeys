@@ -937,6 +937,24 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		log.Println("license.Renew", "could not mark 'from' license as disabled, skipping", err)
 	}
 
+	//Save a note to the "renewed-from" license explaining that it is disabled because
+	//it was renewed to a new license.
+	n := db.LicenseNote{
+		LicenseID: fromLicenseID,
+		Note:      "License was disabled because it was renewed.",
+	}
+	if userID > 0 {
+		n.CreatedByUserID = null.IntFrom(userID)
+	} else if apiKeyID > 0 {
+		n.CreatedByAPIKeyID = null.IntFrom(apiKeyID)
+	}
+
+	err = n.Insert(r.Context(), tx)
+	if err != nil {
+		output.Error(err, "Could not add note about renewed-from license.", w)
+		return
+	}
+
 	//
 	//All the db queries needed to copy data have occured, the renewal license now
 	//exists. However, we still need to perform the other "after inserting a license"
