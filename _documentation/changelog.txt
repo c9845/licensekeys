@@ -1,3 +1,39 @@
+3.1.0 (Released 2024-11-09)
+----------
+WARNINGS:
+"Extras" was renamed "Metadata" in license files as of v3.0.0. "Extras" was an "ugly" name and didn't convey it's purpose.
+
+INTRODUCTION:
+This update fixes permissions related bugs where users with the CreateLicenses and
+ViewLicenses permissions couldn't actually perform the tasks these permissions allowed.
+This also fixes bugs where certain GUI elements should only be visible to users with
+specific permissions.
+
+NEW FEATURES:
+    - None.
+
+NOTES:
+    - Bump golang dependencies.
+    - Fix permissions bugs, specifically only a user with Administrator permissions could create licenses.
+    - Removed FQDN from config file. It was used for cookies, but cookies now default to "host only" and thus do not require an FQDN.
+    - Save a note to "renewed from" license when license is renewed, for more context.
+    - Fix bug where sorting of licenses could not be reverted to "all apps" once an specific app was chosen.
+    - Hide GUI elements a user does not have permission to access. Action would have been prevented, but now user won't even see the respective elements.
+    - Improve API example when creating a license.
+    - A new user is active by default. Doesn't make sense that a new user was disabled!
+    - A user with Administrator permission now has the CreateLicenses and ViewLicenses permissions automatically applied.
+
+DATABASE SCHEMA CHANGES:
+    - None
+
+UPDATE INSTRUCTIONS:
+    - Backup database and app files (backup server, take snapshot, etc.).
+    - Stop the app's executable.
+    - Copy and overwrite existing app files.
+    - Restart the app's executable. 
+    - Update third-party code to use new "Metadata" field and related functions.
+
+
 3.0.2 (Released 2024-11-08)
 ----------
 - Breaking change.
