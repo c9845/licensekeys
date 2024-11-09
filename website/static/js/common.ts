@@ -5,7 +5,7 @@
 
 //version is the version number of the ts/js code in this app
 //this isn't update very frequently and is really only used for debugging
-const version: string = "3.0.1";
+const version: string = "3.1.0";
 
 //defaultTimeout is the time used in setTimeout functions.  This is defined as a const
 //so we always use the same time throughout the app

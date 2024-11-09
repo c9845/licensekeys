@@ -31,7 +31,9 @@ if (document.getElementById("manageUsers")) {
 
             //single user selected
             userSelectedID: 0,
-            userData: {} as user,
+            userData: {
+                Active: true, //New users are always active, because why would you create a new user if they are inactive?
+            } as user,
 
             //adding or updating
             submitting: false,
@@ -167,7 +169,7 @@ if (document.getElementById("manageUsers")) {
                 this.userData = {
                     Username: "",
 
-                    Active: false,
+                    Active: true, //new users are always active.
                     Administrator: false,
                     CreateLicenses: false,
                     ViewLicenses: false,
@@ -181,7 +183,12 @@ if (document.getElementById("manageUsers")) {
                 //user data to "false".
                 //@ts-ignore Vue doesn't exist
                 Vue.nextTick(function () {
-                    setToggle('btn-group-toggle', false, true);
+                    for (let key in (manageUsers.userData as user)) {
+                        let value = manageUsers.userData[key];
+                        if (value === true || value === false) {
+                            setToggle(key, value);
+                        }
+                    }
                 });
 
                 return;
