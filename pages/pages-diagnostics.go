@@ -191,6 +191,14 @@ func Diagnostics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	d.set("Memory Usage", fmt.Sprintf("%d MB", m.Alloc/1024/1024))
+	d.set("Memory Sys", fmt.Sprintf("%d MB", m.Sys/1024/1024))
+	d.set("Num CPUs", runtime.NumCPU())
+	d.set("Num Go Routines", runtime.NumGoroutine())
+
 	//return data to build page
 	pd := PageData{
 		Data: *d,
