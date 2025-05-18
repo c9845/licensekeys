@@ -61,5 +61,5 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Show user the login page.
-	Show(w, "/app/login.html", nil)
+	Show(w, "app/login.html", nil)
 }

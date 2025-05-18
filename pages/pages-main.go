@@ -43,5 +43,5 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	pd.Data = data
 
 	//Serve the HTML template.
-	Show(w, "/app.html", pd)
+	Show(w, "app.html", pd)
 }

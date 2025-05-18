@@ -10,5 +10,5 @@ import (
 // HelpTableOfContents shows the page listing help documents
 func HelpTableOfContents(w http.ResponseWriter, r *http.Request) {
 	//show page
-	Show(w, "/help/table-of-contents.html", nil)
+	Show(w, "help/table-of-contents.html", nil)
 }

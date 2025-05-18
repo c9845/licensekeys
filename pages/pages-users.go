@@ -30,7 +30,7 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	pd.Data = data
 
 	//Show page.
-	Show(w, "/app/administration/users.html", pd)
+	Show(w, "app/administration/users.html", pd)
 }
 
 // UserProfile shows the page where a user can view and manage their own user account
@@ -55,5 +55,5 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 	pd.Data = data
 
 	//Show page.
-	Show(w, "/app/user-profile.html", pd)
+	Show(w, "app/user-profile.html", pd)
 }

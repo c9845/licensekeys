@@ -46,5 +46,5 @@ func ShowError(w http.ResponseWriter, r *http.Request, ep ErrorPage) {
 	}
 
 	//Show the page.
-	Show(w, "/app/error-page.html", pd)
+	Show(w, "app/error-page.html", pd)
 }

@@ -41,7 +41,7 @@ func refuseAccess(w http.ResponseWriter, r *http.Request, permission string, u d
 		UserData: u,
 		Data:     msg,
 	}
-	pages.Show(w, "/app/permission-error.html", pd)
+	pages.Show(w, "app/permission-error.html", pd)
 }
 
 // verifyAccessError returns an error when an error occurs when trying to verify a

@@ -90,74 +90,8 @@ func (c *Config) ParseTemplates() (err error) {
 		return
 	}
 
-	//Define a blank template store to start working with. As we parse templates
-	//in WalkDir below, the parsed templates will be added to this same template
-	//store
-	t := template.New("").Funcs(funcMap)
-
-	//Parse the templates by walking the fs.FS recursively.
-	//
-	//The c.TemplatesFiles fs.FS is "inside" the website/ directory. I.e., the
-	//subdirectories of c.TemplateFiles are root, static, templates.
-	//
-	//We don't use ParseFS() here because that doesn't allow us to have the same
-	//template or filename multiple times. Using Parse() allows us to have duplicate
-	//names (think app vs help docs) because we name the template using the path to
-	//the template, not just the filename. We used to use ParseFS() in conjunction
-	//with a single-level subdirectory handling, but it created a mess of files in
-	//one subdirectory that were organized by prefixed filenames that then required
-	//a mapping func to map URL endpoints to files (see pre-v11 code).
-	err = fs.WalkDir(c.TemplateFiles, ".", func(p string, d fs.DirEntry, err error) error {
-		//Handle odd path errors.
-		if err != nil {
-			return err
-		}
-
-		//Don't parse directory listing as a template, for obvious reasons.
-		if d.IsDir() {
-			return nil
-		}
-
-		//Ignore non-template files. Template files end in a known provided extension,
-		//most likely .html.
-		if path.Ext(p) != c.Extension {
-			return nil
-		}
-
-		if c.Debug {
-			log.Println("walking path...", p, "...found template file")
-		}
-
-		//Read the template file from the fs.FS.
-		f, err := fs.ReadFile(c.TemplateFiles, p)
-		if err != nil {
-			return err
-		}
-
-		//Create name for template that will be used in template store based on the
-		//file's path in the fs.FS. This name is the file's "on-disk" path. This will
-		//also be the name we use to lookup the template when we need to serve it and
-		//will match the URL endpoint being requested.
-		//
-		//This name must be unique among all parsed templates!
-		//
-		//We have to add a starting slash because r.URL.Path returns a string starting
-		//with a slash and that is how we will match up endpoints to templates.
-		name := path.Join("/", p)
-
-		//Parse the template.
-		_, err = t.New(name).Funcs(funcMap).Parse(string(f))
-		if err != nil {
-			return err
-		}
-
-		if c.Debug {
-			log.Println(p, "stored as", name)
-		}
-
-		//Done, continue walking directory tree.
-		return nil
-	})
+	//Parse the templates.
+	t, err := c.parseTemplates()
 	if err != nil {
 		return
 	}
@@ -186,15 +120,89 @@ func (c *Config) ParseTemplates() (err error) {
 	return nil
 }
 
-// Show renders a template as HTML and writes it to w. ParseTemplates() must have
-// been called first. injectedData is available within the template at the .Data field.
-// templateName should be the path to a template file such as /app/suppliers.html.
+// parseTemplates parses the templates noted in the fs.FS in the config by walking
+// the fs.FS recursively.
 //
-// The path must match a parsed template name. AKA, does the URL being requested match
-// a file within the website/templates/ directory.
+// The c.TemplatesFiles fs.FS is "inside" the website/ directory. I.e., the
+// subdirectories of c.TemplateFiles are root, static, templates.
 //
-// If you don't need to inject any data into the page, call Page() instead.
-func Show(w http.ResponseWriter, templateName string, injectedData any) {
+// We don't use ParseFS() here because that doesn't allow us to have the same
+// template or filename multiple times. Using Parse() allows us to have duplicate
+// names (think app vs help docs) because we name the template using the path to
+// the template, not just the filename. We used to use ParseFS() in conjunction
+// with a single-level subdirectory handling, but it created a mess of files in
+// one subdirectory that were organized by prefixed filenames that then required
+// a mapping func to map URL endpoints to files.
+func (c *Config) parseTemplates() (t *template.Template, err error) {
+	//Define a blank template store to start working with. As we parse templates
+	//in WalkDir below, the parsed templates will be added to this same template
+	//store
+	//
+	//Always import our extra funcs.
+	t = template.New("").Funcs(funcMap)
+
+	//Parse the templates by walking the fs.FS recursively.
+	err = fs.WalkDir(c.TemplateFiles, ".", func(p string, d fs.DirEntry, err error) error {
+		//Handle odd path errors.
+		if err != nil {
+			return err
+		}
+
+		//Don't parse directory listing as a template, for obvious reasons.
+		if d.IsDir() {
+			return nil
+		}
+
+		//Ignore non-template files. Template files end in a known provided extension,
+		//most likely .html.
+		if path.Ext(p) != c.Extension {
+			return nil
+		}
+
+		if c.Debug {
+			log.Println("walking path...", p, "...found template file")
+		}
+
+		//Read the template file from the fs.FS.
+		f, err := fs.ReadFile(c.TemplateFiles, p)
+		if err != nil {
+			return err
+		}
+
+		//Create name for template based on the file's path in the fs.FS. This name
+		//will be used to reference the template in the template store. This name is
+		//what we will refer to when we want to show this template in Show(). This
+		//name will most likely match the URL endpoint being requested.
+		//
+		//This name must be unique among all parsed templates! This should not be an
+		//issues since the filename/path must be unique already (the OS does not allow
+		//the same filename at the same path!).
+		//
+		//The name CANNOT start with a "/" because we are using an fs.FS.
+		//See https://pkg.go.dev/io/fs@master#ValidPath.
+		name := p
+
+		//Parse the template.
+		_, err = t.New(name).Funcs(funcMap).Parse(string(f))
+		if err != nil {
+			return err
+		}
+
+		if c.Debug {
+			log.Println(p, "stored as", name)
+		}
+
+		//Done, continue walking directory tree.
+		return nil
+	})
+
+	return
+}
+
+// show renders a template as HTML and writes it to w.
+//
+// You should most likely be using Show() instead.
+func show(t *template.Template, w http.ResponseWriter, templateName string, injectedData any) {
 	//Organize data to render template. Some of the config data is provided for
 	//debugging or development purposes.
 	data := struct {
@@ -209,6 +217,13 @@ func Show(w http.ResponseWriter, templateName string, injectedData any) {
 
 	//Clean to make sure we don't have trailing slash before we append file extension.
 	templateName = path.Clean(templateName)
+
+	//Catch if a template starts with a slash, which is not allowed. Log this for
+	//fixing even though we fix it here.
+	if strings.HasPrefix(templateName, "/") {
+		log.Println("pages.Show", "template name must not start with a leading slash; slash automatically removed", templateName)
+		templateName = strings.TrimPrefix(templateName, "/")
+	}
 
 	//Add the extension to the template (file) name if needed. This handles instances
 	//where Show() was called without the extension (which is semi-expected since it
@@ -226,7 +241,7 @@ func Show(w http.ResponseWriter, templateName string, injectedData any) {
 	//being served if the path to the directory is given. Except, we don't want to
 	//use files named "index.html" because it makes finding or opening files harded
 	//in development (many index.html files).
-	exists := cfg.templates.Lookup(templateName)
+	exists := t.Lookup(templateName)
 	if exists == nil {
 		//Create the name to the "index" template, which is simply the end of the
 		//provided path doubled (last directory and filename are the same).
@@ -243,7 +258,7 @@ func Show(w http.ResponseWriter, templateName string, injectedData any) {
 			log.Println(" after: ", index)
 		}
 
-		exists = cfg.templates.Lookup(index)
+		exists = t.Lookup(index)
 		if exists == nil {
 			log.Fatalln("pags.Show", "could not find template", index)
 			return
@@ -252,7 +267,7 @@ func Show(w http.ResponseWriter, templateName string, injectedData any) {
 		templateName = index
 	}
 
-	err := cfg.templates.ExecuteTemplate(w, templateName, data)
+	err := t.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		//handle displaying of the templates if some kind of error occurs.
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -264,6 +279,18 @@ func Show(w http.ResponseWriter, templateName string, injectedData any) {
 	}
 }
 
+// Show renders a template as HTML and writes it to w. ParseTemplates() must have
+// been called first. injectedData is available within the template at the .Data field.
+// templateName should be the path to a template file such as /app/suppliers.html.
+//
+// The path must match a parsed template name. AKA, does the URL being requested match
+// a file within the website/templates/ directory.
+//
+// If you don't need to inject any data into the page, call Page() instead.
+func Show(w http.ResponseWriter, templateName string, injectedData any) {
+	show(cfg.templates, w, templateName, injectedData)
+}
+
 // Page builds and returns a template to w based on the URL path provided in r. This
 // func is used directly in r.Handle() in main.go for pages that don't require any
 // page-specific data to be injected into them. If you need to inject page-specific
@@ -273,17 +300,18 @@ func Page(w http.ResponseWriter, r *http.Request) {
 	//
 	//Clean will removed the trailing slash.
 	//ex.: /app/company/ -> /app/company
-	p := path.Clean(r.URL.Path)
+	templateName := path.Clean(r.URL.Path)
+	templateName = strings.TrimPrefix(templateName, "/")
 
 	//Debug logging.
 	if cfg.Debug {
-		log.Println("pages.Page", "request:", r.URL.Path, "-- cleaned:", p)
+		log.Println("pages.Page", "request:", r.URL.Path, "-- cleaned:", templateName)
 	}
 
 	//If we are showing a help page, just display the page. We don't need to
 	//get any data from the database or session for help pages.
-	if strings.Contains(p, "/help/") {
-		Show(w, p, nil)
+	if strings.Contains(templateName, "/help/") {
+		Show(w, templateName, nil)
 		return
 	}
 
@@ -295,7 +323,7 @@ func Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Show(w, p, pd)
+	Show(w, templateName, pd)
 }
 
 // PageData is the format of our data that we inject into a template. This struct is
