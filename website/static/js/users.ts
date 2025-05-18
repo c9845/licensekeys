@@ -21,30 +21,25 @@ if (document.getElementById("manageUsers")) {
             // - user chose a user: show lookup select inputs & add/edit inputs. (uses addingNew & userData.ID)
             addingNew: false,
 
-            //errors when loading users
+            //List of users.
+            users: [] as user[],
+            usersRetrieved: false,
             msgLoad: '',
             msgLoadType: '',
 
-            //list of users
-            users: [] as user[],
-            usersRetrieved: false,
-
-            //single user selected
+            //Single user selected.
             userSelectedID: 0,
             userData: {
                 Active: true, //New users are always active, because why would you create a new user if they are inactive?
             } as user,
 
-            //adding or updating
+            //Form submission stuff.
             submitting: false,
             msgSave: '',
             msgSaveType: '',
 
-            minPasswordLength: 10, //set in mounted by reading hidden input
-
-            //need multiple password inputs for when adding new user
-            password1: '',
-            password2: '',
+            //Misc.
+            minPasswordLength: 10, //set in mounted by reading hidden input, based on config file value.
 
             //forcing logout
             forceLogoutBtnText: "Force Logout",
@@ -78,7 +73,7 @@ if (document.getElementById("manageUsers")) {
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then(function (j) {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== '') {
                             manageUsers.msgLoad = err;
@@ -92,7 +87,7 @@ if (document.getElementById("manageUsers")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        manageUsers.msgLoad = 'An unknown error occured.  Please try again.';
+                        manageUsers.msgLoad = 'An unknown error occured. Please try again.';
                         manageUsers.msgLoadType = msgTypes.danger;
                         return;
                     });
@@ -142,24 +137,22 @@ if (document.getElementById("manageUsers")) {
                 return;
             },
 
-            //setUIState handles setting the gui state to the "add" or "edit/view" 
+            //setState handles setting the gui state to the "add" or "edit/view" 
             //states per user clicks by setting some variables. This also resets any 
             //inputs to empty/default values as needed. Basically, we flip the value 
             //of the addingNew variable and clear some inputs.
-            setUIState: function () {
-                //User clicked on "lookup" button, user wants to see "lookup" UI. We
-                //don't have to worry about setting the inputs to since showUser()
-                //will be called on choosing a select option and populate the inputs
-                //accordingly.
+            setState: function () {
+                //User clicked on "lookup" button, user wants to see "lookup" UI.
                 if (this.addingNew) {
                     this.addingNew = !this.addingNew;
                     return;
                 }
 
-                //User clicked on "add" button, user wants to see "add" form. Clear 
-                //any existing user data so that the inputs are reset to a blank state.
+                //User clicked on "add" button, user wants to see "add" UI. Clear 
+                //any existing user data so that the inputs are reset to a blank state
+                //for saving of a new user.
                 this.addingNew = !this.addingNew;
-                this.resetUserData();
+                this.resetForm();
 
                 this.msgSave = '';
                 this.msgSaveType = '';
@@ -167,14 +160,15 @@ if (document.getElementById("manageUsers")) {
                 return;
             },
 
-            //resetUserData resets the inputs and toggles when showing the "add user"
+            //resetForm resets the inputs and toggles when showing the "add user"
             //gui, or after a user is added and we empty all the inputs.
-            resetUserData: function () {
+            resetForm: function () {
                 this.userData = {
                     Username: "",
 
                     Active: true, //new users are always active.
                     Administrator: false,
+
                     CreateLicenses: false,
                     ViewLicenses: false,
 
@@ -198,18 +192,15 @@ if (document.getElementById("manageUsers")) {
                 return;
             },
 
-            //showUser populates the "lookup" gui with data about the chosen item. 
-            //This is called when a user is chosen from the list of retrieved users. 
-            //This function is needed in order to set any toggles properly since we 
-            //cannot just do that with Vue v-model.
+            //showUser populates the "lookup" GUI with data about a user chosen from 
+            //the select menu.
             showUser: function () {
-                //Make sure an item was selected. This handles the "Please choose"
-                //option or something similar.
+                //Make sure a user was selected.
                 if (this.userSelectedID < 1) {
                     return;
                 }
 
-                //Get data from the list of items.
+                //Get user's data from the list of users we retrieved.
                 for (let u of (this.users as user[])) {
                     if (u.ID !== this.userSelectedID) {
                         continue;
@@ -228,13 +219,23 @@ if (document.getElementById("manageUsers")) {
                             }
                         }
                     });
-
-                    //Set the item ID in other Vue objects.
-                    modalChangePassword.setUserData(this.userSelectedID);
-                    modalActivate2FA.setUserData(this.userSelectedID);
-                    modalDeactivate2FA.setUserData(this.userSelectedID);
                 }
 
+                //Set the user ID in other Vue objects.
+                this.setUserIDInOtherVueObjects(this.userSelectedID);
+
+                return;
+            },
+
+            //setUserIDInOtherVueObjects passes the user ID from the chosen user to
+            //other Vue objects that manage specific tasks (update password, etc.)
+            //
+            //This function is called in showUser() when a user is chosen from the
+            //select menu list of users.
+            setUserIDInOtherVueObjects(userID: number) {
+                modalChangePassword.setUserData(this.userSelectedID);
+                modalActivate2FA.setUserData(this.userSelectedID);
+                modalDeactivate2FA.setUserData(this.userSelectedID);
                 return;
             },
 
@@ -247,12 +248,11 @@ if (document.getElementById("manageUsers")) {
                     return;
                 }
 
-                //Validation ok.
+                //Make API request.
                 this.msgSave = "Saving...";
                 this.msgSaveType = msgTypes.primary;
                 this.submitting = true;
 
-                //perform api call
                 let data: Object = {
                     data: JSON.stringify(this.userData),
                 };
@@ -260,7 +260,7 @@ if (document.getElementById("manageUsers")) {
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then(function (j) {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== '') {
                             manageUsers.msgSave = err;
@@ -272,6 +272,7 @@ if (document.getElementById("manageUsers")) {
                         //Show success message.
                         manageUsers.msgSave = "Changes saved!";
                         manageUsers.msgSaveType = msgTypes.success;
+
                         setTimeout(function () {
                             manageUsers.msgSave = '';
                             manageUsers.msgSaveType = '';
@@ -282,7 +283,7 @@ if (document.getElementById("manageUsers")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        manageUsers.msgSave = 'An unknown error occured.  Please try again.';
+                        manageUsers.msgSave = 'An unknown error occured. Please try again.';
                         manageUsers.msgSaveType = msgTypes.danger;
                         manageUsers.submitting = false;
                         return;
@@ -301,25 +302,20 @@ if (document.getElementById("manageUsers")) {
 
                 //Validation.
                 this.msgSaveType = msgTypes.danger;
-                if (this.password1 !== this.password2) {
+                if (this.userData.PasswordInput1 !== this.userData.PasswordInput2) {
                     this.msgSave = "Passwords do not match.";
                     return;
                 }
-                if (this.password1.length < this.minPasswordLength) {
+                if (this.userData.PasswordInput1.length < this.minPasswordLength) {
                     this.msgSave = "The password you provided is too short. It must be at least " + this.minPasswordLength + " characters long.";
                     return;
                 }
 
-                //Validation ok.
+                //Make API request.
                 this.msgSave = "Adding...";
                 this.msgSaveType = msgTypes.primary;
                 this.submitting = true;
 
-                //Save password to object.
-                this.userData.PasswordInput1 = this.password1;
-                this.userData.PasswordInput2 = this.password2;
-
-                //Perform api call.
                 let data: Object = {
                     data: JSON.stringify(this.userData),
                 };
@@ -327,7 +323,7 @@ if (document.getElementById("manageUsers")) {
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then(function (j) {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== '') {
                             manageUsers.msgSave = err;
@@ -342,8 +338,9 @@ if (document.getElementById("manageUsers")) {
                         //Show success and reset the form
                         manageUsers.msgSave = "Added!";
                         manageUsers.msgSaveType = msgTypes.success;
+
                         setTimeout(function () {
-                            manageUsers.resetUserData();
+                            manageUsers.resetForm();
                             setToggle('btn-group-toggle', false, true);
                             manageUsers.msgSave = '';
                             manageUsers.msgSaveType = '';
@@ -354,7 +351,7 @@ if (document.getElementById("manageUsers")) {
                     })
                     .catch(function (err) {
                         console.log("fetch() error: >>", err, "<<");
-                        manageUsers.msgSave = 'An unknown error occured.  Please try again.';
+                        manageUsers.msgSave = 'An unknown error occured. Please try again.';
                         manageUsers.msgSaveType = msgTypes.danger;
                         manageUsers.submitting = false;
                         return;
@@ -363,7 +360,8 @@ if (document.getElementById("manageUsers")) {
                 return;
             },
 
-            //addOrUpdate performs the correct action.
+            //addOrUpdate performs the correct action after performing common 
+            //validation.
             addOrUpdate: function () {
                 //Make sure data isn't already being submitted.
                 if (this.submitting) {
@@ -372,7 +370,6 @@ if (document.getElementById("manageUsers")) {
                 }
 
                 //Validation.
-                //This validation is the same for updating or adding.
                 this.msgSaveType = msgTypes.danger;
                 if (this.userData.Username === '' || this.userData.Username === undefined) {
                     this.msgSave = "You must provide a username (email).";
@@ -564,16 +561,26 @@ if (document.getElementById("modal-changePassword")) {
                             return;
                         }
 
-                        //show success and reset the form
-                        modalChangePassword.msg = "Password updated!";
-                        modalChangePassword.msgType = msgTypes.success;
-                        modalChangePassword.password1 = '';
-                        modalChangePassword.password2 = '';
-                        setTimeout(function () {
-                            modalChangePassword.msg = '';
-                            modalChangePassword.submitting = false;
-                        }, defaultTimeout);
-
+                        //Show success and reset the form. Handle different error message
+                        //if a user changed their own password so user knows they will be
+                        //logged out.
+                        let changedOwnPassword: boolean = j.Data.ChangedOwnPassword;
+                        if (changedOwnPassword) {
+                            modalChangePassword.msg = "Password Updated! You will now be logged out.";
+                            modalChangePassword.msgType = msgTypes.success;
+                            setTimeout(function () {
+                                window.location.href = "/?ref=changedPassword";
+                            }, defaultTimeout);
+                        } else {
+                            modalChangePassword.msg = "Password Updated!";
+                            modalChangePassword.msgType = msgTypes.success;
+                            modalChangePassword.password1 = '';
+                            modalChangePassword.password2 = '';
+                            setTimeout(function () {
+                                modalChangePassword.msg = '';
+                                modalChangePassword.submitting = false;
+                            }, defaultTimeout);
+                        }
                         return;
                     })
                     .catch(function (err) {

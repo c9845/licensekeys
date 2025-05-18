@@ -165,7 +165,7 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(password1) < config.Data().MinPasswordLength {
-		output.ErrorInputInvalid("The password you provided is too short.  It should be at least "+strconv.Itoa(config.Data().MinPasswordLength)+" characters long.", w)
+		output.ErrorInputInvalid("The password you provided is too shSaving new passwordort.  It should be at least "+strconv.Itoa(config.Data().MinPasswordLength)+" characters long.", w)
 		return
 	}
 	if password1 != password2 {
@@ -173,7 +173,7 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Generate password.
+	//Generate password hash.
 	hashedPwd, err := pwds.Create(password1)
 	if err != nil {
 		output.Error(err, "Could not add user because of a password issue.", w)
@@ -194,7 +194,17 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 		log.Println("users.ChangePassword", "could not disable logins for user", err)
 	}
 
-	output.UpdateOK(w)
+	//Return data if user changed their own password so we can tell user in the GUI
+	//that they will be logged out.
+	data := struct {
+		ChangedOwnPassword bool
+	}{}
+	if loggedInUserData.ID == userID {
+		data.ChangedOwnPassword = true
+		DeleteSessionIDCookie(w)
+	}
+
+	output.UpdateOKWithData(data, w)
 }
 
 // GetOne gets user data for a single user. If no user ID is provided, the data is

@@ -1,0 +1,98 @@
+{{define "user-activate-2fa-modal"}}
+<div class="modal fade" id="modal-activate2FA">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Activate 2 Factor Authentication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <section v-if="show2FAInfoOnly">
+                    <blockquote class="description description-secondary">
+                        <p>2 Factor Authentication (2FA) provides a secondary level of login security. When 2FA is enabled, a user must provide a 1-time code, in addition to their password, when attempting to log in.</p> 
+                        
+                        <p class="mt-3">Make sure the user has a code generator app (ex.: Authy) installed on their phone before continuing.</p>
+                    </blockquote>
+                </section>
+                
+                <section v-else v-cloak>
+                    <blockquote class="description description-secondary">
+                        To start using 2FA, open your code generator app (ex.: Authy) and scan the QR code below. Then, provide the 6-digit code for verification.
+                    </blockquote>
+                    <hr class="divider">
+
+                    <form>
+                        <fieldset v-bind:disabled="submitting">
+                            <div class="form-group">
+                                <label class="form-label">Code to Scan:</label>
+                                <img 
+                                    v-if="twoFABarcode !== ''"
+                                    v-bind:src="'data:image/png;base64,' + twoFABarcode"
+                                    style="max-height:100%; max-width:100%; display:block; margin:0 auto;"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Verification Code:</label>
+                                <input 
+                                    class="form-control" 
+                                    id="2fa-token" 
+                                    name="2fa-token" 
+                                    type="text" 
+                                    inputmode="numeric" 
+                                    pattern="[0-9]{6}" 
+                                    maxlength="6" 
+                                    placeholder="123456"
+                                    v-model.trim="twoFAVerificationCode"
+                                    autocomplete="off"
+                                    v-bind:disabled="submitting"
+                                    v-on:keydown.prevent.enter="validate"
+                                >
+                            </div>
+                        </fieldset>
+                    </form>
+                    
+                    <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                        [[msg]]
+                    </div>
+                </section>
+            </div>
+            <div class="modal-footer justify-content-start">
+                <div class="btn-group">
+                    <button class="btn btn-primary" type="button" v-if="show2FAInfoOnly" v-on:click="getBarcode">Proceed</button>
+                    <button class="btn btn-primary" type="button" v-else                 v-on:click="validate" v-bind:disabled="submitting">Validate</button>
+                    
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "user-deactivate-2fa-modal"}}
+<div class="modal fade" id="modal-deactivate2FA">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deactivate 2 Factor Authentication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <blockquote class="description description-secondary">
+                    Please confirm you want to deactivate 2FA for this user. Having 2FA enabled increase security for user logins.
+                </blockquote>
+                
+                <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                    [[msg]]
+                </div>
+            </div>
+            <div class="modal-footer justify-content-start">
+                <div class="btn-group">
+                    <button class="btn btn-primary"   type="button" v-on:click="deactivate" v-bind:disabled="submitting">Deactivate</button>
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
