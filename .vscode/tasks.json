@@ -4,47 +4,105 @@
     "version": "2.0.0",
     
     "tasks": [
-        //compile ts to js for the app's files
+        //Uses https://esbuild.github.io/.
+        //TS files are directly compiled into a JS bundle file. Typescript compiler is not needed.
+        //DEV!!!
         {
-            "label": "Compile TS to JS for app files.",
-            "type": "typescript",
-            "tsconfig": "tsconfig.json",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "label": "bundle-js--dev",
+            "command": "./node_modules/.bin/esbuild",
+            "args": [
+                //The file to read what to bundle from.
+                "./website/static/js/esbuild.js",
+
+                //Bundling and minification details.
+                "--bundle",
+                "--outfile=./website/static/js/dist/licensekeys.bundle.js",
+                "--format=esm",
+
+                //Use a specific version of Vue, otherwise the browser throws errors and warnings.
+                "--alias:vue=vue/dist/vue.esm-browser.js",
+                
+                //Need bundle to use tooltips.
+                "--alias:bootstrap=bootstrap/dist/js/bootstrap.bundle.js",
+
+                //Re-bundle/minify when a source file is changed (per files listed in esbuild.js).
+                "--watch",
+            ],
+            "type": "shell",
+            "problemMatcher": [],
             "presentation": {
-                "group": "minify",
-            },
-            "option": "watch"
+                "group": "minifiers",
+            }
         },
 
-        //minify is https://github.com/tdewolff/minify/tree/master/cmd/minify
+        //PRODUCTION!!!! Uses minified third-party libraries and production Vue.
         {
-            "label": "minify-js",
-            "command": "minify -w -v -o website/static/js/script.min.js website/static/js/script.js",
+            "label": "bundle-js--prod",
+            "command": "./node_modules/.bin/esbuild",
+            "args": [
+                //The file to read what to bundle from.
+                "./website/static/js/esbuild.js",
+
+                //Bundling and minification details.
+                "--bundle",
+                "--outfile=./website/static/js/dist/licensekeys.bundle.min.js",
+                "--minify",
+                "--sourcemap",
+                "--format=esm",
+
+                //Use a specific version of Vue, otherwise the browser throws errors and warnings.
+                //USING PROD BUILD! VUE DEVTOOL IN BROWSER WILL NOT WORK!
+                "--alias:vue=vue/dist/vue.esm-browser.prod.js",
+                
+                //Need bundle to use tooltips.
+                //DON'T NEED MINIFIED VERSION, WE WILL MINIFY HERE.
+                "--alias:bootstrap=bootstrap/dist/js/bootstrap.bundle.js",
+
+                //Re-bundle/minify when a source file is changed (per files listed in esbuild.js).
+                "--watch",
+            ],
             "type": "shell",
             "problemMatcher": [],
             "presentation": {
-                "group": "minify",
+                "group": "minifiers",
             }
         },
+
+
+        //Uses https://esbuild.github.io/.
+        //Using esbuild, instead of https://github.com/tdewolff/minify/tree/master/cmd/minify that is
+        // used in other projects, because esbuild can handle CSS minification and this means we only
+        // need one tool to handle both JS and CSS files.
         {
             "label": "minify-css",
-            "command": "minify -w -v -o website/static/css/styles.min.css website/static/css/styles.css",
+            "command": "./node_modules/.bin/esbuild",
+            "args": [
+                //The source file.
+                "./website/static/css/src/styles.css",
+
+                //The destination, minified file.
+                "--outfile=./website/static/css/dist/styles.min.css",
+                "--minify",
+
+                //Re-minifiy when the source file changes.
+                "--watch",
+            ],
             "type": "shell",
             "problemMatcher": [],
             "presentation": {
-                "group": "minify",
+                "group": "minifiers",
             }
         },
+
+
+        //Combine both task, so CTRL + B works.
         {
-            "label": "minify-all",
-            "dependsOn": ["minify-js", "minify-css"],
-            "problemMatcher":[],
-            // "runOptions": {
-            //     "runOn": "folderOpen"
-            // }
-        },
+            "label": "minify & bundle",
+            "dependsOn": ["bundle-js--dev", "bundle-js--prod", "minify-css"],
+            "group": {
+                "kind": "build",
+                "isDefault": true,
+            }
+        }
     ]
 }

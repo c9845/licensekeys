@@ -1,5 +1,3 @@
-{{$showDevHeader := .Development}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -8,17 +6,13 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !! </p>
-		{{end}}
-
 		<!-- HEADER -->
         {{template "header-with-btns" .}}
 
 		<main>
-			<div class="container" id="activityLog">
+			<div class="container">
                 <div class="row">
-                    <div class="col">
+                    <div class="col" id="activityLog">
 
                         <!-- filters -->
                         <div class="card">
@@ -26,112 +20,143 @@
                                 <h5>Filters</h5>
                             </div>
                             <div class="card-body">
-                                <div class="row">
-                                    <div class="col-12 col-md-6">
-                                        <div class="form-group side-by-side">
-                                            <label>User:</label>
-                                            <select 
-                                                class="form-control" 
-                                                v-model.number="userID" 
-                                                v-bind:disabled="apiKeyID > 0"
-                                            >
-                                                <option value="0">All users.</option>
-                                                <template v-if="usersRetrieved">
-                                                    <option v-for="u in users" :key="u.ID" v-bind:value="u.ID">[[u.Username]]</option>
-                                                </template>
-                                            </select>
+                                <form>
+                                    <fieldset>
+                                        <div class="row">
+                                            <!-- left column -->
+                                            <div class="col-12 col-md-6">
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">User:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <select class="form-select" v-model.number="userID" v-bind:disabled="apiKeyID > 0">
+                                                                <option value="0">All users.</option>
+                                                                <template v-if="usersRetrieved">
+                                                                    <option v-for="u in users" :key="u.ID" v-bind:value="u.ID">[[u.Username]]</option>
+                                                                </template>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">API Key:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <select class="form-select" v-model.number="apiKeyID" v-bind:disabled="userID > 0">
+                                                                <option value="0">All API Keys.</option>
+                                                                <template v-if="apiKeysRetrieved">
+                                                                    <option v-for="a in apiKeys" :key="a.ID" v-bind:value="a.ID">[[a.Description]]</option>
+                                                                </template>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">URL:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <select class="form-select" v-model.number="endpoint">
+                                                                <option value="">All URLs.</option>
+                                                                <template v-if="endpointsRetrieved">
+                                                                    <!-- this mess of <template>s and v-if is to limit what endpoints are shown to be chosen from based on looking up for a user or API key -->
+                                                                    <template v-for="e in endpoints">
+                                                                        <template v-if="userID > 0">
+                                                                            <option v-if="!e.includes('api/v1')" v-bind:value="e">[[e]]</option>
+                                                                        </template>
+                                                                        <template v-else-if="apiKeyID > 0">
+                                                                            <option v-if="e.includes('api/v1')" v-bind:value="e">[[e]]</option>
+                                                                        </template>
+                                                                        <template v-else>
+                                                                            <option v-bind:value="e">[[e]]</option>
+                                                                        </template>
+                                                                    </template>
+                                                                </template>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">Search For: 
+                                                            <span 
+                                                                class="text-secondary help-icon fas fa-question-circle" 
+                                                                data-bs-toggle="tooltip" 
+                                                                data-bs-title="Search for content in request data.">
+                                                            </span>
+                                                        </label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <input class="form-control" type="text" v-model.text="searchFor">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div> <!-- end left column-->
+                                            
+                                            <!-- right column -->
+                                            <div class="col-12 col-md-6">
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">Start Date:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <input class="form-control" type="date" v-model.text="startDate">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">End Date:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <input class="form-control" type="date" v-model.text="endDate">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">Max Rows Returned:
+                                                            <span 
+                                                                class="text-secondary help-icon fas fa-question-circle" 
+                                                                data-bs-toggle="tooltip" 
+                                                                data-bs-title="Ignored when a date range is provided.">
+                                                            </span>
+                                                        </label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <input class="form-control" type="number" min="1" step="1" v-model.number="rows">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">Pretty Print:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <div class="btn-group" role="group">
+                                                                <input class="btn-check" type="radio" name="prettyPrintJSON" id="prettyPrintJSON-true" autocomplete="off" v-model="prettyPrintJSON" v-bind:value="true">
+                                                                <label class="btn btn-secondary" for="prettyPrintJSON-true">Yes</label>
+                                                              
+                                                                <input class="btn-check" type="radio" name="prettyPrintJSON" id="prettyPrintJSON-false" autocomplete="off" v-model="prettyPrintJSON" v-bind:value="false">
+                                                                <label class="btn btn-secondary" for="prettyPrintJSON-false">No</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">Show Referror:</label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                            <div class="btn-group" role="group">
+                                                                <input class="btn-check" type="radio" name="showReferrer" id="showReferrer-true" autocomplete="off" v-model="showReferrer" v-bind:value="true">
+                                                                <label class="btn btn-secondary" for="showReferrer-true">Yes</label>
+                                                              
+                                                                <input class="btn-check" type="radio" name="showReferrer" id="showReferrer-false" autocomplete="off" v-model="showReferrer" v-bind:value="false">
+                                                                <label class="btn btn-secondary" for="showReferrer-false">No</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div> <!-- end right column -->
                                         </div>
-                                        <div class="form-group side-by-side">
-                                            <label>API Key:</label>
-                                            <select 
-                                                class="form-control" 
-                                                v-model.number="apiKeyID" 
-                                                v-bind:disabled="userID > 0"
-                                            >
-                                                <option value="0">All API Keys.</option>
-                                                <template v-if="apiKeysRetrieved">
-                                                    <option v-for="a in apiKeys" :key="a.ID" v-bind:value="a.ID">[[a.Description]]</option>
-                                                </template>
-                                            </select>
-                                        </div>
-                                        <div class="form-group side-by-side">
-                                            <label>URL:</label>
-                                            <select class="form-control" v-model.trim="endpoint">
-                                                <option value="">All URLs.</option>
-                                                <template v-if="endpointsRetrieved">
-                                                    <!-- this mess of <template>s and v-if is to limit what endpoints are shown to be chosen from based on looking up for a user or API key -->
-                                                    <template v-for="e in endpoints">
-                                                        <template v-if="userID > 0">
-                                                            <option v-if="!e.includes('api/v1')" v-bind:value="e">[[e]]</option>
-                                                        </template>
-                                                        <template v-else-if="apiKeyID > 0">
-                                                            <option v-if="e.includes('api/v1')" v-bind:value="e">[[e]]</option>
-                                                        </template>
-                                                        <template v-else>
-                                                            <option v-bind:value="e">[[e]]</option>
-                                                        </template>
-                                                    </template>
-                                                </template>
-                                            </select>
-                                        </div>
-                                        <div class="form-group side-by-side">
-                                            <label>
-                                                Search For: 
-                                                <span 
-                                                    class="text-secondary help-icon fas fa-question-circle" 
-                                                    data-toggle="tooltip" 
-                                                    title="Search for content in request data.">
-                                                </span>
-                                            </label>
-                                            <input class="form-control" type="text" v-model.trim="searchFor">
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-md-6">
-                                        <div class="form-group side-by-side">
-                                            <label>Start Date:</label>
-                                            <input type="date" class="form-control" v-model.trim="startDate">
-                                        </div>
-                                        <div class="form-group side-by-side">
-                                            <label>End Date:</label>
-                                            <input type="date" class="form-control" v-model.trim="endDate">
-                                        </div>
-                                        <div class="form-group side-by-side">
-                                            <label>
-                                                Max Rows Returned:
-                                                <span 
-                                                    class="text-secondary help-icon fas fa-question-circle" 
-                                                    data-toggle="tooltip" 
-                                                    title="Ignored when a date range is provided.">
-                                                </span>
-                                            </label>
-                                            <input class="form-control" type="number" min="0" step="1" v-model.number="rows">
-                                        </div>
-                                        <div class="form-group side-by-side">
-                                            <label>Pretty Print:</label>
-                                            <div class="btn-group btn-group-toggle" id="prettyPrintJSON" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setPrettyPrint(true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setPrettyPrint(false)">No
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="form-group side-by-side">
-                                            <label>Show Referrer:</label>
-                                            <div class="btn-group btn-group-toggle" id="showReferrer" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setShowReferrer(true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setShowReferrer(false)">No
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                    </fieldset>
+                                </form>
+                                
+                                <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
                                     [[msg]]
                                 </div>
                             </div>
@@ -155,19 +180,19 @@
                                 </h5>
                                 <div class="card-header-btn">
                                     <div class="dropdown">
-                                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" data-toggle="dropdown">Charts </button>
-                                        <div class="dropdown-menu dropdown-menu-right">
-                                            <a class="dropdown-item" href="/app/administration/activity-log/activity-over-time-of-day/">Activity Over Time of Day</i></a>
-                                            <a class="dropdown-item" href="/app/administration/activity-log/max-and-avg-duration-by-month/">Max & Avg. Duration of Requests by Month</i></a>
-                                            <a class="dropdown-item" href="/app/administration/activity-log/duration-of-latest-requests/">Duration of Latest Requests</i></a>
-                                            <a class="dropdown-item" href="/app/administration/activity-log/duration-by-endpoint/">Duration By Endpoint</i></a>
-                                        </div>
+                                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Charts</button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="/app/administration/activity-log/activity-over-time-of-day/">Activity Over Time of Day</i></a></li>
+                                            <li><a class="dropdown-item" href="/app/administration/activity-log/max-and-avg-duration-by-month/">Max & Avg. Duration of Requests by Month</i></a></li>
+                                            <li><a class="dropdown-item" href="/app/administration/activity-log/duration-of-latest-requests/">Duration of Latest Requests</i></a></li>
+                                            <li><a class="dropdown-item" href="/app/administration/activity-log/duration-by-endpoint/">Duration By Endpoint</i></a></li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    <table class="table table-hover table-sm table-dense-always">
+                                    <table class="table table-hover table-sm">
                                         <thead class="no-border-top">
                                             <th class="whitespace-no-wrap">Datetime</th>
                                             <th>User/API Key</th>
@@ -192,19 +217,19 @@
                                                     
                                                     <td class="method whitespace-no-wrap">
                                                         <span>[[a.Method]]</span> 
-                                                        <span>([[a.TimeDuration]]ms)</span>
+                                                        <span> ([[a.TimeDuration]]ms)</span>
                                                     </td>
                                                     
                                                     <td class="data">
                                                         <span>
                                                             <span v-if="showReferrer" class="url whitespace-no-wrap">Endpoint:</span>
-                                                            <span class="text-monospace">[[a.URL]]</span>
+                                                            <span class="font-monospace">[[a.URL]]</span>
                                                         </span>
                                                         <br>
 
                                                         <span v-if="showReferrer">
                                                             <span>Referrer:</span>
-                                                            <span class="text-monospace">[[a.Referrer]]</span>
+                                                            <span class="font-monospace">[[a.Referrer]]</span>
                                                             <br>
                                                         </span>
 
@@ -229,6 +254,5 @@
 
 		{{template "footer"}}
 		{{template "html_scripts" .}}
-        {{template "data-toggle-tooltip"}}
 	</body>
 </html>

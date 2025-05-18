@@ -1,5 +1,3 @@
-{{$showDevHeader := .Development}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -8,10 +6,6 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !! </p>
-		{{end}}
-
 		<!-- HEADER -->
         {{template "header-with-btns" .}}
 
@@ -19,7 +13,7 @@
 			<div class="container">
 				<div class="row">
                    <div class="col">
-                        <div class="card" id="activityLogChartOverTimeOfDay">
+                        <div class="card" id="activityOverTimeOfDay">
                             <div class="card-header">
                                 <h5>Activity Log Chart, Activity Over Time of Day</h5>
                                 <div class="card-header-btn">
@@ -28,10 +22,9 @@
                             </div>
                             <div class="card-body">
                                 <div v-show="showHelp" v-cloak>
-									<div class="alert alert-primary">
-                                        This chart shows the amount of user activity over the course of a day, grouped into 10-minute intervals. Use this chart to see when users are busy using the app.
+									<div class="alert alert-primary mb-3">
+                                        This chart shows the amount of user activity grouped into 10-minute intervals. Use this chart to determine when your users are most active in this app.
 									</div>
-									<br>	
 								</div>
 
 								<div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
@@ -49,7 +42,6 @@
         </main>
 
         {{template "footer"}}
-        {{template "chart-js" .}}
 		{{template "html_scripts" .}}
 	</body>
 </html>

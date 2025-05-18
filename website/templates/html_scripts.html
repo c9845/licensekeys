@@ -1,42 +1,16 @@
 {{define "html_scripts"}}
-    <!-- 
-        Serve files from local disk or internet CDN.
-
-        Serving files from local disk is useful for installs that have internet access 
-        firewalled off, internet access is slow, network is air-gapped, you just want 
-        to use known good files (no auto updates), or you just want to serve files
-        locally.
+    <!-- Our JS -->
+    <!--
+        Our JS file has Vue and Bootstrap bundled into it. These third party libraries
+        are retrieved from NPM. Thereforce Vue and Bootstrap are always served from
+        local files.
     -->
-    {{if .UseLocalFiles}}
-        <script src='{{static "/static/js/vendor/jquery-3.6.3.slim.min.js"}}'></script>
-        <script src='{{static "/static/js/vendor/popper-1.16.1.min.js"}}'></script>
-        <script src='{{static "/static/js/vendor/bootstrap-4.6.2.min.js"}}'></script>
-
-        {{if .Development}}
-        <script src='{{static "/static/js/vendor/vue-2.7.16.js"}}'></script>
-        {{else}}
-        <script src='{{static "/static/js/vendor/vue-2.7.16.min.js"}}'></script>
-        {{end}}
-    {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.slim.js" integrity="sha512-M3zrhxXOYQaeBJYLBv7DsKg2BWwSubf6htVyjSkjc9kPqx7Se98+q1oYyBJn2JZXzMaZvUkB8QzKAmeVfzj9ug==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        
-        <!-- looked at updating to 5.x in nov2021 but there is a lot that changed layout wise and would take a ton of time to update our custom CSS to look right again -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js" integrity="sha256-/ijcOLwFf26xEYAjW75FizKVo5tnTYiQddPZoLUHHZ8=" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-        {{if .Development}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.16/vue.js" integrity="sha512-LnT1nhi1a/7Iu/cSAwUdqMMTSrh6WXC15R9Tge+5IY4EanqNDRuSPy0Sf9ls2qE1EnKmfb1IZYTWL/WHu/40VA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        {{else}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.16/vue.min.js" integrity="sha512-Wx8niGbPNCD87mSuF0sBRytwW2+2ZFr7HwVDF8krCb3egstCc4oQfig+/cfg2OHd82KcUlOYxlSDAqdHqK5TCw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        {{end}}
-    {{end}}
-
-    <!-- Our custom javascript -->
     {{if .Development}}
-        <script src="/static/js/script.js"></script>
+    <script type="module" src="/static/js/dist/licensekeys.bundle.js"></script>
     {{else}}
-        <script src='{{static "/static/js/script.min.js"}}'></script>
+    <script type="module" src='{{static "/static/js/dist/licensekeys.bundle.min.js"}}'></script>
     {{end}}
+    
 {{end}}
 
 <!-- bootstrap tooltips are only activated on pages that need them -->

@@ -17,18 +17,18 @@
 		<!-- HEADER -->
 		{{template "header-with-btns" .}}
 
+        <!-- hidden input to relay min length into Vue for validation -->
+        <input type="hidden" id="minPasswordLength" value="{{$minPasswordLength}}">
+
 		<main>
 			<div class="container">
 				<div class="row justify-content-center">
-                    <div class="col-12 col-sm-10 col-md-8 col-lg-6" id="manageUsers">
+                    <div class="col-12 col-mg-8 col-xl-6" id="manageUsers">
 
-                        <!-- hidden input to relay min length into Vue for validation -->
-                        <input type="hidden" id="minPasswordLength" value="{{$minPasswordLength}}">
-                        
                         <!-- lookup user, only shown when viewing/editing -->
                         <div class="card" v-if="addingNew === false" v-cloak>
                             <div class="card-header">
-                                <h5>User Management</h5>
+                                <h5>Users</h5>
                                 <div class="card-header-btn">
                                     <button class="btn btn-outline-primary btn-sm" v-on:click="setState">
                                         <i class="fas fa-plus"></i>
@@ -36,16 +36,32 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="form-group">
-                                    <label>Users:</label>
-                                    <select class="form-control" v-model.number="userSelectedID" v-on:change="showUser">
-                                        <option v-if="!usersRetrieved">Loading...</option>
-                                        <template v-else>
-                                            <option value="0" disabled>Please choose.</option>
-                                            <option v-for="(i, index) in users" :key="index" v-bind:value="i.ID">[[i.Username]] <span v-if="!i.Active">(inactive)</span></option>
-                                        </template>
-                                    </select>
-                                </div>
+                                <form>
+                                    <fieldset>
+                                        <div class="form-group">
+                                            <label class="form-label">Users:</label>
+                                            <select class="form-select" v-model.number="userSelectedID" v-on:change="showUser">
+                                                <template v-if="!usersRetrieved">
+                                                    <option value="0" disabled selected>Loading...</option>
+                                                </template>
+                                                <template v-else-if="users.length === 0">
+                                                    <option value="0" disabled selected>No users exist.</option>
+                                                </template>
+                                                <template v-else>
+                                                    <option value="0" disabled selected>Please choose.</option>
+                                                    <option 
+                                                        v-for="u in users"
+                                                        :key="u.ID"
+                                                        v-bind:value="u.ID"
+                                                    >
+                                                        [[u.Username]] <span v-if="!u.Active"> (inactive)</span>
+                                                    </option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </fieldset>
+                                </form>
+
                                 <div class="alert" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
                                     [[msgLoad]]
                                 </div>
@@ -57,131 +73,223 @@
                             <div class="card-header">
                                 <h5>[[addEditCardTitle]]</h5>
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setState">
-                                        <i class="fas fa-search" v-cloak></i>
-                                    </button>
+                                    <template v-if="addingNew">
+                                        <button class="btn btn-outline-primary btn-sm" type="button" v-on:click="setState">
+                                            <i class="fas fa-search" v-cloak></i>
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Tasks</button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <button 
+                                                        class="dropdown-item" 
+                                                        type="button"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modal-changePassword"
+                                                        v-on:click="resetChangePasswordModalForm"
+                                                        v-bind:disabled="!userData.Active"
+                                                    >
+                                                        Change Password
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <button 
+                                                        class="dropdown-item" 
+                                                        type="button"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modal-forceLogout"
+                                                        v-bind:disabled="!userData.Active"
+                                                    >
+                                                        Force Logout
+                                                    </button>
+                                                </li>
+
+                                                {{if $appSettings.Allow2FactorAuth}}
+                                                <li>
+                                                    <button 
+                                                        v-if="userData.TwoFactorAuthEnabled" 
+                                                        class="dropdown-item" 
+                                                        type="button"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modal-deactivate2FA"
+                                                    >
+                                                        Deactivate 2 Factor Auth.
+                                                    </button>
+                                                    <button 
+                                                        v-else 
+                                                        class="dropdown-item" 
+                                                        type="button"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modal-activate2FA"
+                                                        v-on:click="reset2FAActivationModalForm"
+                                                        v-bind:disabled="!userData.Active"
+                                                    >
+                                                        Activate 2 Factor Auth.
+                                                    </button>
+                                                </li>
+                                                {{end}}
+                                            </ul>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                             <div class="card-body"> 
-                                <!-- basics, password, 2fa, force logout -->
-                                <section>
-                                    <!-- basics -->
-                                    <div class="form-group" v-if="addingNew === false">
-                                        <label>User ID:</label>
-                                        <input type="text" class="form-control" v-model="userData.ID" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Username: <small class="text-muted">(An email address.)</small></label>
-                                        <input type="email" class="form-control text-lowercase" v-model="userData.Username">
-                                    </div>
-                                </section>
-                                <hr class="divider">
-                                    
-                                <section>
-                                    <!-- password, 2fa, force logout -->
-                                    <fieldset v-if="addingNew">
-                                        <div class="form-group">
-                                            <label>Password: <small class="text-muted">(Min. {{$minPasswordLength}} characters.)</small></label>
-                                            <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="userData.PasswordInput1">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Password, again:</label>
-                                            <input type="password" class="form-control" minlength="{{$minPasswordLength}}" v-model="userData.PaswswordInput2">
-                                        </div>
-                                    </fieldset>
-                                    <fieldset v-else>
-                                        <div class="form-group">
-                                            <button 
-                                                class="btn btn-outline-secondary btn-block" 
-                                                data-toggle="modal" 
-                                                data-target="#modal-changePassword"
-                                            >
-                                                Change Password
-                                            </button>
-                                        </div>
-                                        <div class="form-group">
-                                            <button 
-                                                class="btn btn-outline-secondary btn-block" 
-                                                v-on:click="forceLogout"
-                                            >
-                                                [[forceLogoutBtnText]]
-                                            </button>
-                                        </div>
-    
-                                        {{if $appSettings.Allow2FactorAuth}}
-                                        <!-- show certain 2fa button/modal based on if user currently has 2fa enabled and if app setting enables 2fa -->
-                                        <div class="form-group">
-                                            <button 
-                                                v-if="userData.TwoFactorAuthEnabled" 
-                                                class="btn btn-outline-secondary btn-block" 
-                                                data-toggle="modal" 
-                                                data-target="#modal-deactivate2FA"
-                                            >
-                                                Deactivate 2 Factor Auth
-                                            </button>
-                                            <button 
-                                                v-else 
-                                                class="btn btn-outline-secondary btn-block" 
-                                                data-toggle="modal" 
-                                                data-target="#modal-activate2FA"
-                                                v-on:click="reset2FAActivationModal"
-                                            >
-                                                Activate 2 Factor Auth
-                                            </button>
-                                        </div>
-                                        {{end}}
-                                    </fieldset>
-                                </section>
+                                <form>
+                                    <fieldset v-bind:disabled="submitting">
+                                        <!-- basic user info -->
+                                        <section>
+                                            <div class="form-group">
+                                                <label class="form-label">Username: <small class="text-muted">(An email address.)</small></label>
+                                                <input class="form-control text-lowercase" type="email" v-model.trim="userData.Username">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">First Name:</label>
+                                                <input class="form-control" type="text" v-model.trim="userData.Fname">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Last Name:</label>
+                                                <input class="form-control" type="text" v-model.trim="userData.Lname">
+                                            </div>
+                                        </section>
+                                        <hr class="divider">
 
-                                <!-- permissions-->
-                                <section>
-                                    <div class="form-group side-by-side">
-                                        <label>Active:</label>
-                                        <div class="btn-group btn-group-toggle" id="Active" data-toggle="buttons">
-                                            <label class="btn btn-secondary" data-switch="true">
-                                                <input type="radio" v-on:click="setField('Active', true)">Yes
-                                            </label>
-                                            <label class="btn btn-secondary" data-switch="false">
-                                                <input type="radio" v-on:click="setField('Active', false)">No
-                                            </label>
+                                        <!-- password inputs, only when adding a new user -->
+                                        <section v-if="addingNew">
+                                            <div class="form-group">
+                                                <label class="form-label">Password: <small class="text-muted">(At least {{$minPasswordLength}} characters.)</small></label>
+                                                <input class="form-control" type="password" minlength="{{$minPasswordLength}}" v-model="userData.PasswordInput1">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Password, again:</label>
+                                                <input class="form-control" type="password" minlength="{{$minPasswordLength}}" v-model="userData.PasswordInput2">
+                                            </div>
+                                        </section>
+                                        <hr class="divider" v-if="addingNew">
+                                        
+                                        <!-- 2FA status -->
+                                        {{if $appSettings.Allow2FactorAuth}}
+                                        <section>
+                                            <template v-if="userData.TwoFactorAuthEnabled">
+                                                <div class="alert alert-primary">2 Factor Authentication is enabled for this user.</div>
+                                            </template>
+
+                                            {{if $appSettings.Force2FactorAuth}}
+                                            <template v-else>
+                                                <div class="alert alert-danger">2 Factor Authentication is required, but is not enabled for this user. This user will not be able to log in.</div>
+                                            </template>
+                                            {{else}}
+                                            <template v-else>
+                                                <div class="alert alert-warning">2 Factor Authentication is not enabled for this user. You should enable 2 Factor Authentication, from the Tasks menu, for improved security.</div>
+                                            </template>
+                                            {{end}}
+                                        </section>
+                                        <hr class="divider">
+                                        {{end}}
+
+                                    <!-- permissions -->
+                                    <section id="permissions">
+                                        <h5>
+                                            <span class="text-secondary pointer" data-bs-toggle="tooltip" data-bs-title="'Click to show/hide descriptions.'" v-on:click="hidePermissionDescriptions = !hidePermissionDescriptions">
+                                                <span v-if="hidePermissionDescriptions" class="fas fa-angle-double-down"></span>
+                                                <span v-else                            class="fas fa-angle-double-up"></span>
+                                            </span>
+                                            Permissions:
+                                        </h5>
+
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">Active:</label>
+                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="Active" id="Active-true" autocomplete="off" v-model="userData.Active" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="Active-true">Yes</label>
+                                                        
+                                                        <input class="btn-check" type="radio" name="Active" id="Active-false" autocomplete="off" v-model="userData.Active" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="Active-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>Can the user access the app.</p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group side-by-side">
-                                        <label>Administrator:</label>
-                                        <div class="btn-group btn-group-toggle" id="Administrator" data-toggle="buttons">
-                                            <label class="btn btn-secondary" data-switch="true">
-                                                <input type="radio" v-on:click="setField('Administrator', true)">Yes
-                                            </label>
-                                            <label class="btn btn-secondary" data-switch="false">
-                                                <input type="radio" v-on:click="setField('Administrator', false)">No
-                                            </label>
+
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">Administrator:</label>
+                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="Administrator" id="Administrator-true" autocomplete="off" v-model="userData.Administrator" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="Administrator-true">Yes</label>
+                                                        
+                                                        <input class="btn-check" type="radio" name="Administrator" id="Administrator-false" autocomplete="off" v-model="userData.Administrator" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="Administrator-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>Can the user manage other users, modify company settings, view logs, or perform other administrative tasks.</p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group side-by-side">
-                                        <label>CreateLicenses:</label>
-                                        <div class="btn-group btn-group-toggle" id="CreateLicenses" data-toggle="buttons">
-                                            <label class="btn btn-secondary" data-switch="true">
-                                                <input type="radio" v-on:click="setField('CreateLicenses', true)">Yes
-                                            </label>
-                                            <label class="btn btn-secondary" data-switch="false">
-                                                <input type="radio" v-on:click="setField('CreateLicenses', false)">No
-                                            </label>
+
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">CreateLicenses:</label>
+                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="CreateLicenses" id="CreateLicenses-true" autocomplete="off" v-model="userData.CreateLicenses" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="CreateLicenses-true">Yes</label>
+                                                        
+                                                        <input class="btn-check" type="radio" name="CreateLicenses" id="CreateLicenses-false" autocomplete="off" v-model="userData.CreateLicenses" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="CreateLicenses-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>Create and rewnew licenses.</p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group side-by-side">
-                                        <label>ViewLicenses:</label>
-                                        <div class="btn-group btn-group-toggle" id="ViewLicenses" data-toggle="buttons">
-                                            <label class="btn btn-secondary" data-switch="true">
-                                                <input type="radio" v-on:click="setField('ViewLicenses', true)">Yes
-                                            </label>
-                                            <label class="btn btn-secondary" data-switch="false">
-                                                <input type="radio" v-on:click="setField('ViewLicenses', false)">No
-                                            </label>
+
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">ViewLicenses:</label>
+                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="ViewLicenses" id="ViewLicenses-true" autocomplete="off" v-model="userData.ViewLicenses" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="ViewLicenses-true">Yes</label>
+                                                        
+                                                        <input class="btn-check" type="radio" name="ViewLicenses" id="ViewLicenses-false" autocomplete="off" v-model="userData.ViewLicenses" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="ViewLicenses-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>View existing licenses, and download a license file.</p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </section>
-                                
-                                <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                                    </section>
+                                    </fieldset>
+                                </form>
+                                    
+                                <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                                     [[msgSave]]
                                 </div>
                             </div> <!-- end .card-body-->
@@ -191,7 +299,7 @@
                         </div> <!-- end .card for viewing/editing/adding-->
 
                     </div>
-				</div>
+                </div>
 			</div>
         </main>
         
@@ -203,6 +311,33 @@
         
         <!-- deactivate 2 factor auth, just show a confirmation modal -->
         {{template "user-deactivate-2fa-modal" .}}
+
+        <!-- modal to force a user to logout. -->
+        <div class="modal fade" id="modal-forceLogout">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Force Logout</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="description description-secondary">
+                            Forcing a user to logout immediately ends all existing sessions for a user and requires them to log back in.
+                        </blockquote>
+                        
+                        <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                            [[msg]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-primary"   type="button" v-on:click="forceLogout" v-bind:disabled="submitting">Force Logout</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
 		{{template "footer"}}

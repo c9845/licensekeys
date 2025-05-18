@@ -1,7 +1,5 @@
 package db
 
-//This table stores the users for this app.
-
 import (
 	"context"
 	"crypto/rand"
@@ -13,11 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c9845/licensekeys/v3/config"
 	"github.com/c9845/licensekeys/v3/timestamps"
 	"github.com/c9845/licensekeys/v3/users/pwds"
 	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 )
+
+//This table stores the users for this app.
 
 // TableUsers is the name of the table
 const TableUsers = "users"
@@ -47,8 +48,10 @@ type User struct {
 	Username            string
 	Password            string `json:"-"`
 	BadPasswordAttempts uint8  `json:"-"`
+	Fname               string
+	Lname               string
 
-	//Access control permissions.
+	//Permissions.
 	Administrator  bool //can user create other users, apps, signing details, etc.
 	CreateLicenses bool //can user create licenses.
 	ViewLicenses   bool //can user view and download licenses.
@@ -79,6 +82,8 @@ const (
 			Username TEXT NOT NULL,
 			Password TEXT NOT NULL,
 			BadPasswordAttempts INTEGER NOT NULL DEFAULT 0,
+			Fname TEXT NOT NULL DEFAULT '',
+			Lname TEXT NOT NULL DEFAULT '',
 
 			Administrator INTEGER NOT NULL DEFAULT 0,
 			CreateLicenses INTEGER NOT NULL DEFAULT 0,
@@ -90,6 +95,7 @@ const (
 		)
 	`
 
+	//indexes
 	createIndexUsersUsername = `CREATE INDEX IF NOT EXISTS ` + TableUsers + `__Username_idx ON ` + TableUsers + ` (Username)`
 	createIndexUsersActive   = `CREATE INDEX IF NOT EXISTS ` + TableUsers + `__Active_idx ON ` + TableUsers + ` (Active)`
 )
@@ -130,6 +136,12 @@ func insertInitialUser(c *sqlx.DB) (err error) {
 		InitialUserPassword = strconv.FormatInt(now, 10)
 	}
 
+	//For development, use username as password.
+	if config.Data().Development {
+		log.Println("users.insertInitialUser", "***USING DEFAULT USER AS PASSWORD***")
+		InitialUserPassword = InitialUserUsername
+	}
+
 	hashedPwd, err := pwds.Create(InitialUserPassword)
 	if err != nil {
 		return
@@ -137,12 +149,14 @@ func insertInitialUser(c *sqlx.DB) (err error) {
 
 	u := User{
 		Active:          true,
-		Administrator:   true,
-		CreateLicenses:  true,
-		ViewLicenses:    true,
 		CreatedByUserID: 0, //since this user is the initial user, no one created it
 		Username:        InitialUserUsername,
 		Password:        hashedPwd,
+		Fname:           "initial",
+		Lname:           "user",
+		Administrator:   true,
+		CreateLicenses:  true,
+		ViewLicenses:    true,
 	}
 
 	err = u.Insert(ctx)
@@ -156,10 +170,17 @@ func GetUsers(ctx context.Context, activeOnly bool) (uu []User, err error) {
 		FROM ` + TableUsers + ` 
 	`
 
-	b := sqldb.Bindvars{}
+	var wheres []string
+	var b sqldb.Bindvars
+
 	if activeOnly {
-		q += `WHERE (Active = ?)`
+		w := `(Active = ?)`
+		wheres = append(wheres, w)
 		b = append(b, true)
+	}
+
+	if len(wheres) > 0 {
+		q += ` WHERE ` + strings.Join(wheres, " AND ")
 	}
 
 	q += ` ORDER BY Active DESC, Username ASC`
@@ -179,7 +200,8 @@ func GetUserByID(ctx context.Context, id int64, columns sqldb.Columns) (u User, 
 	q := `
 		SELECT ` + cols + `
 		FROM ` + TableUsers + `
-		WHERE ID=?
+		WHERE 
+			(ID = ?)
 	`
 
 	c := sqldb.Connection()
@@ -197,7 +219,8 @@ func GetUserByUsername(ctx context.Context, username string, columns sqldb.Colum
 	q := `
 		SELECT ` + cols + `
 		FROM ` + TableUsers + `
-		WHERE Username = ?
+		WHERE 
+			(Username = ?)
 	`
 
 	c := sqldb.Connection()
@@ -209,16 +232,27 @@ func GetUserByUsername(ctx context.Context, username string, columns sqldb.Colum
 // a user.
 func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 	//Santize.
+	u.Fname = strings.TrimSpace(u.Fname)
+	u.Lname = strings.TrimSpace(u.Lname)
 	u.Username = strings.ToLower(strings.TrimSpace(u.Username))
 
 	//Validate.
+	if u.Fname == "" {
+		errMsg = "You must provide the user's first name."
+		return
+	}
+	if u.Lname == "" {
+		errMsg = "You must provide the user's last name."
+		return
+	}
 	if u.Username == "" {
 		errMsg = "You must provide the user's username.  This must be an email address."
 		return
 	}
 
 	//Make sure username is actually an email address.
-	//This differs from the regex in common.ts since that regex didn't work in go for
+	//
+	//This differs from the regex in common.ts since that regex didn't work in Go for
 	//some odd reason. We cannot use backtick encapsulated string b/c the backtick
 	//symbol is used in the regex pattern.
 	rx, err := regexp.Compile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
@@ -231,15 +265,15 @@ func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 		}
 	}
 
-	//Check if a user with this username already exists. This uses the ID value to
-	//handle if we are updating an already existing user where the same name would
-	//be allowed. We don't care if a user is inactive.
+	//Check if a user with this username already exists.
+	//
+	//This uses the ID value to handle if we are updating an already existing user
+	//where the same name would be allowed.  We don't care if a user is inactive.
 	existing, err := GetUserByUsername(ctx, u.Username, sqldb.Columns{"ID"})
 	if err != nil && err != sql.ErrNoRows {
 		return "Could not look up if a user with this username already exists.", err
 	} else if (err == nil && u.ID > 0 && u.ID != existing.ID) || (err == nil && u.ID == 0) {
-		errMsg = "A user with this username already exists."
-		return
+		return "A user with this username already exists.", nil
 	}
 
 	//Make sure any related permissions are set properly. Ex.: If a user has a "Write"
@@ -262,22 +296,26 @@ func (u *User) Validate(ctx context.Context) (errMsg string, err error) {
 	return "", nil
 }
 
-// Insert saves a user to the database.
+// Insert saves a new user.
 func (u *User) Insert(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
-		"Username",
-		"Password",
 		"Active",
 		"CreatedByUserID",
+		"Username",
+		"Password",
+		"Fname",
+		"Lname",
 		"Administrator",
 		"CreateLicenses",
 		"ViewLicenses",
 	}
 	b := sqldb.Bindvars{
-		u.Username,
-		u.Password,
 		u.Active,
 		u.CreatedByUserID,
+		u.Username,
+		u.Password,
+		u.Fname,
+		u.Lname,
 		u.Administrator,
 		u.CreateLicenses,
 		u.ViewLicenses,
@@ -305,11 +343,14 @@ func (u *User) Insert(ctx context.Context) (err error) {
 	return
 }
 
-// Update saves changes to a user
+// Update saves changes to a user.
 func (u *User) Update(ctx context.Context) (err error) {
 	cols := sqldb.Columns{
-		"Username",
+		"DatetimeModified",
 		"Active",
+		"Username",
+		"Fname",
+		"Lname",
 		"Administrator",
 		"CreateLicenses",
 		"ViewLicenses",
@@ -330,8 +371,11 @@ func (u *User) Update(ctx context.Context) (err error) {
 	_, err = stmt.ExecContext(
 		ctx,
 
-		u.Username,
+		timestamps.YMDHMS(),
 		u.Active,
+		u.Username,
+		u.Fname,
+		u.Lname,
 		u.Administrator,
 		u.CreateLicenses,
 		u.ViewLicenses,
@@ -349,7 +393,7 @@ func SetNewPassword(ctx context.Context, userID int64, passwordHash string) (err
 		SET 
 			Password = ?
 		WHERE 
-			ID = ?
+			(ID = ?)
 	`
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)
@@ -374,8 +418,10 @@ func SetNewPassword(ctx context.Context, userID int64, passwordHash string) (err
 func Save2FASecret(ctx context.Context, userID int64, secret string) (err error) {
 	q := `
 		UPDATE ` + TableUsers + `
-		SET TwoFactorAuthSecret = ?
-		WHERE ID = ?
+		SET 
+			TwoFactorAuthSecret = ?
+		WHERE 
+			(ID = ?)
 	`
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)
@@ -394,16 +440,7 @@ func Save2FASecret(ctx context.Context, userID int64, secret string) (err error)
 	return
 }
 
-// Enable2FAForAll is a random value that allows the use of the Enable2FA func to
-// turn 2FA on/off for all users. This random value is used so that someone can't
-// just code in a value easily when using this func and mistakenly turn 2FA on/off
-// for all users.
-const Enable2FAForAll int64 = -132674
-
 // Enable2FA sets 2fa on or off for a user.
-//
-// This also works for all users, but only if userID is set to Enable2FAForAll. Be
-// careful! This was added to support turning 2fa on/off in development and testing.
 func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
 	cols := sqldb.Columns{
 		"DatetimeModified",
@@ -421,12 +458,7 @@ func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
 	}
 
 	q := `UPDATE ` + TableUsers + ` SET ` + colString + ` WHERE ID = ?`
-
-	if userID == Enable2FAForAll {
-		q = strings.Replace(q, "WHERE ID = ?", "WHERE ID > 0", 1)
-	} else {
-		b = append(b, userID)
-	}
+	b = append(b, userID)
 
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)
@@ -446,8 +478,10 @@ func Enable2FA(ctx context.Context, userID int64, turnOn bool) (err error) {
 func Set2FABadAttempts(ctx context.Context, userID int64, badValue uint8) error {
 	q := `
 		UPDATE ` + TableUsers + `
-		SET TwoFactorAuthBadAttempts = ?
-		WHERE ID = ?
+		SET 
+			TwoFactorAuthBadAttempts = ?
+		WHERE 
+			(ID = ?)
 	`
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)
@@ -473,8 +507,10 @@ func Set2FABadAttempts(ctx context.Context, userID int64, badValue uint8) error 
 func SetPasswordBadAttempts(ctx context.Context, userID int64, badValue uint8) error {
 	q := `
 		UPDATE ` + TableUsers + `
-		SET BadPasswordAttempts = ?
-		WHERE ID = ?
+		SET 
+			BadPasswordAttempts = ?
+		WHERE 
+			(ID = ?)
 	`
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)

@@ -1,16 +1,27 @@
 {
     "compilerOptions": {
-        "target": "es5",
-        // "watch": true,
         "removeComments": false,
+        "target": "ES2022",
+        "module": "ES2022",
+        "moduleResolution": "node",
+        
+        //Typescript compiler is just used for checking code, not compilings TS to JS.
+        //ESBuild handles bundling TS into a single JS.
+        "noEmit": true,
+        
+        "allowImportingTsExtensions": true,
+        "skipLibCheck": true,
         "lib": [
-            "es6",
             "dom",
-            "es2017",
+            "ES2022"
         ],
-        "outFile": "website/static/js/script.js",
+
+        "strict": true
     },
     "include": [
-        "website/static/js/*.ts"
+        "website/static/js/src/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
     ]
 }

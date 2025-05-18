@@ -1,5 +1,6 @@
 /**
  * fetch.ts
+ * 
  * This file holds functions to help deal with fetch() requests.
  */
 
@@ -40,6 +41,11 @@ function objectToString(obj: Object): string {
 //removeDoubleSlash removes a double slash in a url replacing it with a single
 //slash. Double slashes are a typo mistake and should be fixed.
 function removeDoubleSlash(url: string): string {
+    if (url === undefined) {
+        console.log("removeDoubleSlash", "url is undefined!");
+        return "";
+    }
+
     //check if a double slash exists to show a warning
     if (url.includes("//")) {
         console.log("URL contains a double slash, this should be fixed.", url);
@@ -51,7 +57,7 @@ function removeDoubleSlash(url: string): string {
 }
 
 //get builds a get request to use in fetch().
-function get(url: string, formValues: Object): Request {
+export function get(url: string, formValues: Object): Request {
     //make sure url doesn't have double slashes by mistake
     url = removeDoubleSlash(url);
 
@@ -77,7 +83,7 @@ function get(url: string, formValues: Object): Request {
 }
 
 //post build a post request to use in fetch()
-function post(url: string, formValues: Object): Request {
+export function post(url: string, formValues: Object): Request {
     //make sure url doesn't have double slashes by mistake
     url = removeDoubleSlash(url);
 
@@ -126,32 +132,32 @@ function postFile(url: string, fileData: FormData): Request {
 // - 200 when requests complete successfully
 // - 500 when an error occured on the server (validation issue, db issue, etc.)
 //Handle any other status codes (page not found, server unavailable, network issue, etc) via .catch().
-function handleRequestErrors(response: Response): Response {
+export function handleRequestErrors(response: Response): Response {
     let serverResponseCodes: number[] = [200, 500];
+
     if (serverResponseCodes.indexOf(response.status) == -1) {
         //console.log("fetch request error: bad status");
         //fetch().catch will handle this...
         //@ts-ignore promise only refers to type but is being used as a value
-        return Promise.reject(new Error(response.statusText));
+        return Promise.reject(response);
     }
 
     //everything ok, move to next promise
     //@ts-ignore promise only refers to type but is being used as a value
-    return Promise.resolve(response)
+    return Promise.resolve(response);
 }
 
 //getJSON gets the response body for a fetch() request as json which is how our golang server
 //send back all response data
-function getJSON(response: Response): ResponseData {
-    //@ts-ignore
-    let j: ResponseData = (response.json() as unknown as ResponseData)
+export function getJSON(response: Response): ResponseData {
+    let j: any = response.json();
     return j
 }
 
 //handleAPIErrors checks if an api call resulted in an error and responds with
 //an error message to show to the user
 //if there isn't an error, this responds with a blank string
-function handleAPIErrors(j: ResponseData): string {
+export function handleAPIErrors(j: ResponseData): string {
     //check if an error occured and the error can be displayed in the gui
     if (j.OK === false) {
         return j.ErrorData.Message;

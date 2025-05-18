@@ -1,12 +1,15 @@
 /**
- * activity-log-chart-over-time-of-day.ts
+ * activity-over-time-of-day.ts
  * 
  * This builds the chart that shows the activity within the app over the time of day
  * as a means of determine when the app is most being used. This is useful for 
  * identifying when your users are most active in the app.
  */
 
-/// <reference path="common.ts" />
+import { createApp } from "vue";
+import { Chart, ChartOptions } from "chart.js/auto"; //auto just makes importing easier.
+import { msgTypes, apiBaseURL } from "./common";
+import { get, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 
 //chart is stored outside of Vue object to prevent "maximum call stack size exceeded".
 let activityOverTimeOfDayChart = undefined;
@@ -29,26 +32,31 @@ interface activityOverTimeOfDay {
     HoursMinutesDecimal: number, //3:30 = 3.5
 }
 
-if (document.getElementById("activityLogChartOverTimeOfDay")) {
-    //@ts-ignore cannot find name Vue
-    var activityLogChartOverTimeOfDay = new Vue({
-        name: 'activityLogChartOverTimeOfDay',
-        delimiters: ['[[', ']]'],
-        el: '#activityLogChartOverTimeOfDay',
-        data: {
-            showHelp: false,
+if (document.getElementById("activityOverTimeOfDay")) {
+    const activityOverTimeOfDay = createApp({
+        name: 'activityOverTimeOfDay',
 
-            //Raw data to build chart with.
-            rawData: [] as activityOverTimeOfDay[],
+        compilerOptions: {
+            delimiters: ["[[", "]]"],
+        },
 
-            //Errors.
-            msg: "",
-            msgType: "",
+        data() {
+            return {
+                //Show help, description of what chart is showing.
+                showHelp: false,
 
-            //endpoints
-            urls: {
-                overTimeOfDay: "/api/activity-log/over-time-of-day/",
-            },
+                //Raw data to build chart with.
+                rawData: [] as activityOverTimeOfDay[],
+
+                //Errors.
+                msg: "",
+                msgType: "",
+
+                //endpoints
+                urls: {
+                    overTimeOfDay: apiBaseURL + "activity-log/over-time-of-day/",
+                },
+            }
         },
         methods: {
             //getData retrieves the data from the server.
@@ -60,40 +68,40 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                 fetch(get(this.urls.overTimeOfDay, reqParams))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            activityLogChartOverTimeOfDay.msg = err;
-                            activityLogChartOverTimeOfDay.msgType = msgTypes.danger;
+                        if (err !== "") {
+                            this.msg = err;
+                            this.msgType = msgTypes.danger;
                             return;
                         }
 
                         //Save data for charting.
-                        activityLogChartOverTimeOfDay.rawData = j.Data || [];
-                        activityLogChartOverTimeOfDay.msg = "";
+                        this.rawData = j.Data || [];
+                        this.msg = "";
 
                         //Build the chart.
-                        activityLogChartOverTimeOfDay.buildChart();
+                        this.buildChart();
 
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLogChartOverTimeOfDay.msg = 'An unknown error occurred. Please try again.';
-                        activityLogChartOverTimeOfDay.msgType = msgTypes.danger;
+                        this.msg = "An unknown error occurred. Please try again.";
+                        this.msgType = msgTypes.danger;
                         return;
                     });
 
                 return;
             },
 
-            //buildChart takes the raw data retrieved in getData() and builds and 
-            //shows the chart.
+            //buildChart takes the raw data retrieved in getData() and builds and shows 
+            //the chart.
             buildChart: function () {
                 //Where chart will be shown.
-                const elemID: string = 'activity-over-time-of-day-chart';
-                var ctx: HTMLElement = document.getElementById(elemID);
+                const elemID: string = "activity-over-time-of-day-chart";
+                var ctx: HTMLElement = document.getElementById(elemID)!;
 
                 //Get the data points to chart.
                 let points = [];
@@ -113,27 +121,27 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                 }
 
                 //Set chart options.
-                let ops = {
+                let ops: ChartOptions = {
                     scales: {
                         x: {
-                            type: 'linear',
+                            type: "linear",
+                            min: 0,
+                            max: 24,
                             ticks: {
-                                min: 0,
-                                max: 24,
                                 stepSize: 1,
                             }
-                        },
+                        }
                     },
                     animation: {
-                        duration: 0, //don't animate chart when it is shown for better performance
+                        duration: 0, //don't animate for improved performance
                     },
                     plugins: {
                         legend: {
-                            display: false, //don't show legend since we will describe data ourselves; legend is a bit messy
+                            display: false,
                         },
                         tooltip: {
                             callbacks: {
-                                label: function (context) {
+                                label: function (context: any) {
                                     //Handle single digit hours and minutes, always
                                     //use two digits so tooltips are more consistent.
                                     let hours: string = (context.raw.hours).toString();
@@ -151,7 +159,7 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                                 }
                             }
                         }
-                    },
+                    }
                 };
 
                 //Generate the chart.
@@ -159,7 +167,6 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                 activityOverTimeOfDayChart = new Chart(ctx, {
                     type: 'scatter',
                     data: {
-                        //labels: xAxis,
                         datasets: [
                             {
                                 label: "points",        //label for legend, but legend isn't used
@@ -175,10 +182,11 @@ if (document.getElementById("activityLogChartOverTimeOfDay")) {
                 return;
             },
         },
+
         mounted() {
             //Make request to get data, which will then build the chart.
             this.getData();
             return;
         }
-    });
+    }).mount("#activityOverTimeOfDay");
 }

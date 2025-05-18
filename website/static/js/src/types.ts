@@ -218,24 +218,31 @@ interface license {
     RenewedToLicenseID: number | null, //null when license hasn't been renewed.
 }
 
+//user handles interacting with authenticated users of the app.
 interface user {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
-    CreatedByUserID: number,
     Active: boolean,
+    CreatedByUserID: number,
 
-    Username: string,
-    Password: string, //never used client side
+    Username: string, //email address.
+    Password: string, //SHOULD ALWAYS BE BLANK! DON'T USE THIS FIELD!
     BadPasswordAttempts: number, //never used client side
+    Fname: string,
+    Lname: string,
 
     Administrator: boolean,
     CreateLicenses: boolean,
     ViewLicenses: boolean,
 
     TwoFactorAuthEnabled: boolean,
-    TwoFactorAuthSecret: string,
-    TwoFactorAuthBadAttempts: number,
+    TwoFactorAuthSecret: string, //SHOULD ALWAYS BE BLANK! DON'T USE THIS FIELD!
+    TwoFactorAuthBadAttempts: number, //SHOULD ALWAYS BE BLANK! DON'T USE THIS FIELD!
+
+    //Used when setting password.
+    PasswordInput1: string,
+    PasswordInput2: string,
 }
 
 interface downloadHistory {

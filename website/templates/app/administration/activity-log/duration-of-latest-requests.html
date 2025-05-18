@@ -1,5 +1,3 @@
-{{$showDevHeader := .Development}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -8,10 +6,6 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !! </p>
-		{{end}}
-
 		<!-- HEADER -->
         {{template "header-with-btns" .}}
 
@@ -28,10 +22,9 @@
                             </div>
                             <div class="card-body">
                                 <div v-show="showHelp" v-cloak>
-									<div class="alert alert-primary">
-                                        This chart shows the amount of time it took the app to respond to the latest requests. This can be used to see if the app is getting slower.
+									<div class="alert alert-primary mb-3">
+                                        This chart shows the amount of time it took the app to respond to the latest requests.
 									</div>
-									<br>	
 								</div>
 
                                 <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
@@ -49,7 +42,6 @@
         </main>
 
         {{template "footer"}}
-        {{template "chart-js" .}}
 		{{template "html_scripts" .}}
 	</body>
 </html>

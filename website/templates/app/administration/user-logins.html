@@ -1,5 +1,3 @@
-{{$showDevHeader := .Development}}
-
 <!DOCTYPE html>
 <html>
 
@@ -10,10 +8,6 @@
 </head>
 
 <body>
-    {{if $showDevHeader}}
-    <p class="text-center text-danger">!! DEV MODE !! </p>
-    {{end}}
-
     <!-- HEADER -->
     {{template "header-with-btns" .}}
 
@@ -28,28 +22,42 @@
                             <h5>Filters</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-12 col-md-6">
-                                    <div class="form-group side-by-side">
-                                        <label>User:</label>
-                                        <select class="form-control" v-model.number="userID">
-                                            <option value="0">All users.</option>
-                                            <template v-if="usersRetrieved">
-                                                <option v-for="u in users" :key="u.ID" v-bind:value="u.ID">
-                                                    [[u.Username]]</option>
-                                            </template>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <div class="form-group side-by-side">
-                                        <label>Rows Returned:</label>
-                                        <input class="form-control" type="number" min="0" step="1" v-model.number="rows">
-                                    </div>
-                                </div>
-                            </div>
+                            <form>
+                                <fieldset>
+                                    <div class="row">
+                                        <!-- left column -->
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">User:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <select class="form-select" v-model.number="userID" v-bind:disabled="apiKeyID > 0">
+                                                            <option value="0">All users.</option>
+                                                            <template v-if="usersRetrieved">
+                                                                <option v-for="u in users" :key="u.ID" v-bind:value="u.ID">[[u.Username]]</option>
+                                                            </template>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div> <!-- end left column -->
 
-                            <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                        <!-- right column -->
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">Max Rows Returned:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <input class="form-control" type="number" min="1" step="1" v-model.number="rows">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </fieldset>
+                            </form>
+
+                            <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
                                 [[msg]]
                             </div>
                         </div>
@@ -78,16 +86,16 @@
                                     <thead class="no-border-top">
                                         <th class="whitespace-no-wrap">Datetime</th>
                                         <th>User</th>
-                                        <th v-tooltip="'If a 2FA token was provided.'">2FA</th>
+                                        <th><span class="pointer" data-bs-toggle="tooltip" data-bs-title="If a 2FA token was provided.">2FA</span></th>
                                         <th>IP Address</th>
                                         <th>User Agent</th>
                                     </thead>
                                     <tbody>
                                         <tr v-if="loginsRetrieved === false">
-                                            <td>User login history not retrieved yet.</td>
+                                            <td colspan="5">User login history not retrieved yet.</td>
                                         </tr>
                                         <tr v-else-if="logins.length === 0">
-                                            <td>No logins retrieved.</td>
+                                            <td colspan="5">No logins retrieved.</td>
                                         </tr>
                                         <template v-else>
                                             <tr v-for="l in logins" v-bind:data-loginid="l.ID">
@@ -113,7 +121,6 @@
 
     {{template "footer"}}
     {{template "html_scripts" .}}
-    {{template "data-toggle-tooltip"}}
 </body>
 
 </html>

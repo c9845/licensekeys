@@ -6,31 +6,40 @@
  * specific request/endpoints are very slow.
  */
 
-/// <reference path="common.ts" />
+import { createApp } from "vue";
+import { Chart, ChartOptions } from "chart.js/auto"; //auto just makes importing easier.
+import { msgTypes, apiBaseURL } from "./common";
+import { get, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 
 //chart is stored outside of Vue object to prevent "maximum call stack size exceeded".
 let activityDurationChart = undefined;
 
+var durationLatestRequests: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
 if (document.getElementById("activityLogChartLatestRequestsDuration")) {
-    //@ts-ignore cannot find name Vue
-    var activityLogChartLatestRequestsDuration = new Vue({
+    durationLatestRequests = createApp({
         name: 'activityLogChartLatestRequestsDuration',
-        delimiters: ['[[', ']]'],
-        el: '#activityLogChartLatestRequestsDuration',
-        data: {
-            showHelp: false,
 
-            //Raw data to build chart with.
-            rawData: [] as activityLog[],
+        compilerOptions: {
+            delimiters: ["[[", "]]"],
+        },
 
-            //Errors.
-            msg: "",
-            msgType: "",
+        data() {
+            return {
+                //Show help, description of what chart is showing.
+                showHelp: false,
 
-            //endpoints
-            urls: {
-                latestDur: "/api/activity-log/latest-requests-duration/",
-            },
+                //Raw data to build chart with.
+                rawData: [] as activityLog[],
+
+                //Errors.
+                msg: "",
+                msgType: "",
+
+                //endpoints
+                urls: {
+                    latestDur: apiBaseURL + "activity-log/latest-requests-duration/",
+                },
+            }
         },
         methods: {
             //getData retrieves the data from the server.
@@ -38,43 +47,33 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
                 this.msg = "Retrieving data, this may take a while...";
                 this.msgType = msgTypes.primary;
 
-                //Check if we should ignore PDF creation from data retrieved since
-                //PDF creation takes a while causing data to be skewed.
-                let sp: URLSearchParams = new URLSearchParams(document.location.search);
-                let ignore: boolean = true;
-                if (sp.has("ignorePDF") && sp.get("ignorePDF") === "false") {
-                    ignore = false
-                }
-
                 //Make API request.
-                let reqParams: Object = {
-                    ignorePDF: ignore,
-                };
+                let reqParams: Object = {};
                 fetch(get(this.urls.latestDur, reqParams))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            activityLogChartLatestRequestsDuration.msg = err;
-                            activityLogChartLatestRequestsDuration.msgType = msgTypes.danger;
+                        if (err !== "") {
+                            this.msg = err;
+                            this.msgType = msgTypes.danger;
                             return;
                         }
 
                         //Save data for charting.
-                        activityLogChartLatestRequestsDuration.rawData = j.Data || [];
-                        activityLogChartLatestRequestsDuration.msg = "";
+                        this.rawData = j.Data || [];
+                        this.msg = "";
 
                         //Build the chart.
-                        activityLogChartLatestRequestsDuration.buildChart();
+                        this.buildChart();
 
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        activityLogChartLatestRequestsDuration.msg = 'An unknown error occurred. Please try again.';
-                        activityLogChartLatestRequestsDuration.msgType = msgTypes.danger;
+                        this.msg = "An unknown error occurred. Please try again.";
+                        this.msgType = msgTypes.danger;
                         return;
                     });
 
@@ -86,10 +85,9 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
             buildChart: function () {
                 //Where chart will be shown.
                 const elemID: string = 'activity-request-duration-chart';
-                var ctx: HTMLElement = document.getElementById(elemID);
+                var ctx: HTMLElement = document.getElementById(elemID)!;
 
                 //Get the data points to chart.
-                //get the data points to chart
                 let xAxisLabels = [];
                 let yAxisPoints = [];
                 for (let r of (this.rawData as activityLog[])) {
@@ -98,41 +96,52 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
                 }
 
                 //Set chart options.
-                let ops = {
-                    legend: {
-                        display: false, //don't show legend since we will describe data ourselves; legend is a bit messy
-                    },
+                let ops: ChartOptions = {
                     scales: {
                         y: {
                             type: "linear",
+                            min: 0,
                             position: "left",
                             ticks: {
-                                min: 0,
-                                maxTicksLimit: 10, //doesn't work?
+                                maxTicksLimit: 10,
                             }
                         },
+                        x: {
+                            //Don't show the x-axis, it will end up just being dates anway
+                            //and most likely, all the same date since the activity shown
+                            //is the most recent and typically there is a lot.
+                            display: false,
+                        }
                     },
                     animation: {
-                        duration: 0, //don't animate chart when it is shown for better performance
+                        duration: 0, //don't animate for improved performance
                     },
                     plugins: {
+                        legend: {
+                            display: false,
+                        },
                         tooltip: {
                             callbacks: {
-                                //title modifies the tooltip to show the URL as the title instead of the date
-                                //Don't really know why we need the [0] index here b/c we don't need it for labels.
-                                title: function (context) {
+                                //title modifies the tooltip to show the URL as the title 
+                                //instead of the date (x axis label). Showing the URL is
+                                //more useful to us so that we can identify why endpoint
+                                //took so long to respond.
+                                //
+                                title: function (context: any) {
+                                    //Get index of data hovered on.
+                                    //
+                                    //Don't really know why we need the [0] index here
+                                    //since there always seems to be only one element in
+                                    //the array.
                                     let index: number = context[0].dataIndex;
-                                    let point = activityLogChartLatestRequestsDuration.rawData[index];
-                                    return point.Method + ": " + point.URL;
-                                },
 
-                                //this modifies the tooltip label to show the produced lot number or container code when a point is hovered
-                                //Showing this extra info is helpful for figuring out what batch/raw material a point belongs to for diagnosing issues.
-                                label: function (context) {
-                                    let index: number = context.dataIndex;
-                                    let point = activityLogChartLatestRequestsDuration.rawData[index];
-                                    return point.DatetimeCreated + " (" + point.TimeDuration + "ms)";
-                                }
+                                    //Look up matching data from data we retreived from
+                                    //the database.
+                                    let data: activityLog = durationLatestRequests.rawData[index];
+
+                                    //Build the test we want to display
+                                    return data.Method + ": " + data.URL;
+                                },
                             }
                         }
                     }
@@ -160,10 +169,11 @@ if (document.getElementById("activityLogChartLatestRequestsDuration")) {
                 return;
             },
         },
+
         mounted() {
             //Make request to get data, which will then build the chart.
             this.getData();
             return;
         }
-    });
+    }).mount("#activityLogChartLatestRequestsDuration");
 }

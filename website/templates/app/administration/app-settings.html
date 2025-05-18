@@ -1,5 +1,3 @@
-{{$showDevHeader := .Development}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -8,133 +6,181 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
-		{{end}}
-
 		<!-- HEADER -->
 		{{template "header-with-btns" .}}
 
 		<main>
 			<div class="container" >
 				<div class="row justify-content-center">
-                    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
-                        <div class="card" id="manageApp">
+                    <div class="col-12 col-lg-8 col-xl-6" id="manageAppSettings">
+
+                        <div class="card">
                             <div class="card-header">
                                 <h5>App Settings</h5>
                             </div>
                             <div class="card-body">
-                                <blockquote class="section-description section-description-secondary">
-                                    These settings change functionality of this app.
+                                <blockquote class="description description-secondary">
+                                    These settings change how the app functions. For information about what each setting does, see the <a href="#">help documentation</a>.
                                 </blockquote>
                                 <hr class="divider">
 
-                                <section>
-                                    <div class="app-setting">
-                                        <div class="form-group side-by-side">
-                                            <label>EnableActivityLogging:</label>
-                                            <div class="btn-group btn-group-toggle" id="EnableActivityLogging" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setField('EnableActivityLogging', true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setField('EnableActivityLogging', false)">No
-                                                </label>
+                                <form>
+                                    <fieldset>
+                                        <!-- More admin related stuff. -->
+                                        <section>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">EnableActivityLogging:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="btn-group" role="group">
+                                                            <input class="btn-check" type="radio" name="EnableActivityLogging" id="EnableActivityLogging-true" autocomplete="off" v-model="appSettings.EnableActivityLogging" v-bind:value="true">
+                                                            <label class="btn btn-secondary" for="EnableActivityLogging-true">Yes</label>
+                                                          
+                                                            <input class="btn-check" type="radio" name="EnableActivityLogging" id="EnableActivityLogging-false" autocomplete="off" v-model="appSettings.EnableActivityLogging" v-bind:value="false">
+                                                            <label class="btn btn-secondary" for="EnableActivityLogging-false">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <blockquote class="description description-secondary">
+                                                            <span class="badge text-bg-secondary">Default: Yes</span> 
+                                                            <p>Track each user's interaction with the app for auditing purposes.</p>
+                                                        </blockquote>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <blockquote class="section-description section-description-secondary">
-                                            <span class="badge badge-secondary app-setting-default">Default: Yes</span> <a href="/help/activity-logging/"><i class="fas fa-question-circle"></i></a>
-                                            <p>Track each user interaction with the app for auditing purposes.</p>
-                                        </blockquote>
-                                    </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">AllowAPIAccess:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="btn-group" role="group">
+                                                            <input class="btn-check" type="radio" name="AllowAPIAccess" id="AllowAPIAccess-true" autocomplete="off" v-model="appSettings.AllowAPIAccess" v-bind:value="true">
+                                                            <label class="btn btn-secondary" for="AllowAPIAccess-true">Yes</label>
+                                                          
+                                                            <input class="btn-check" type="radio" name="AllowAPIAccess" id="AllowAPIAccess-false" autocomplete="off" v-model="appSettings.AllowAPIAccess" v-bind:value="false">
+                                                            <label class="btn btn-secondary" for="AllowAPIAccess-false">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <blockquote class="description description-secondary">
+                                                            <span class="badge text-bg-secondary">Default: Yes</span> 
+                                                            <p>Track each user's interaction with the app for auditing purposes.</p>
+                                                        </blockquote>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">HideLogin:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="btn-group" role="group">
+                                                            <input class="btn-check" type="radio" name="HideLogin" id="HideLogin-true" autocomplete="off" v-model="appSettings.HideLogin" v-bind:value="true">
+                                                            <label class="btn btn-secondary" for="HideLogin-true">Yes</label>
+                                                          
+                                                            <input class="btn-check" type="radio" name="HideLogin" id="HideLogin-false" autocomplete="off" v-model="appSettings.HideLogin" v-bind:value="false">
+                                                            <label class="btn btn-secondary" for="HideLogin-false">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <blockquote class="description description-secondary">
+                                                            <span class="badge text-bg-secondary">Default: No</span> 
+                                                            <p>Hide the link to the login page on the welcome page.</p>
+                                                        </blockquote>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </section>
+                                        <hr class="divider">
 
-                                    <div class="app-setting">
-                                        <div class="form-group side-by-side">
-                                            <label>AllowAPIAccess:</label>
-                                            <div class="btn-group btn-group-toggle" id="AllowAPIAccess" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setField('AllowAPIAccess', true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setField('AllowAPIAccess', false)">No
-                                                </label>
+                                        <!-- User authentication stuff. -->
+                                        <section>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">Allow2FactorAuth:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="btn-group" role="group">
+                                                            <input class="btn-check" type="radio" name="Allow2FactorAuth" id="Allow2FactorAuth-true" autocomplete="off" v-model="appSettings.Allow2FactorAuth" v-bind:value="true">
+                                                            <label class="btn btn-secondary" for="Allow2FactorAuth-true">Yes</label>
+                                                          
+                                                            <input class="btn-check" type="radio" name="Allow2FactorAuth" id="Allow2FactorAuth-false" autocomplete="off" v-model="appSettings.Allow2FactorAuth" v-bind:value="false">
+                                                            <label class="btn btn-secondary" for="Allow2FactorAuth-false">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <blockquote class="description description-secondary">
+                                                            <span class="badge text-bg-secondary">Default: Yes</span> 
+                                                            <p>Improve security by allowing users to use code-generator based one-time-use code when logging into the app.</p>
+                                                        </blockquote>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <blockquote class="section-description section-description-secondary">
-                                            <span class="badge badge-secondary app-setting-default">Default: No</span> <a href="/help/api-and-api-keys/"><i class="fas fa-question-circle"></i></a>
-                                            <p>Enable access to a subset of this app's data and functionality via external apps. This is used for integration with other software tools you use.</p>
-                                        </blockquote>
-                                    </div>
-                                </section>
-                                <hr class="divider">
-
-                                <section>
-                                    <div class="app-setting">
-                                        <div class="form-group side-by-side">
-                                            <label>Allow2FactorAuth:</label>
-                                            <div class="btn-group btn-group-toggle" id="Allow2FactorAuth" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setField('Allow2FactorAuth', true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setField('Allow2FactorAuth', false)">No
-                                                </label>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">Force2FactorAuth:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="btn-group" role="group">
+                                                            <input class="btn-check" type="radio" name="Force2FactorAuth" id="Force2FactorAuth-true" autocomplete="off" v-model="appSettings.Force2FactorAuth" v-bind:value="true">
+                                                            <label class="btn btn-secondary" for="Force2FactorAuth-true">Yes</label>
+                                                          
+                                                            <input class="btn-check" type="radio" name="Force2FactorAuth" id="Force2FactorAuth-false" autocomplete="off" v-model="appSettings.Force2FactorAuth" v-bind:value="false">
+                                                            <label class="btn btn-secondary" for="Force2FactorAuth-false">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <blockquote class="description description-secondary">
+                                                            <span class="badge text-bg-secondary">Default: No</span> 
+                                                            <p>Improve security by forcing users to use code-generator based one-time use code when logging into the app.</p>
+                                                        </blockquote>
+                                                        <div v-if="appSettings.Force2FactorAuth" v-cloak>
+                                                            <div class="alert alert-warning mt-3">
+                                                                This will automatically set Allow2FactorAuth to Yes when turned on.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <blockquote class="section-description section-description-secondary">
-                                            <span class="badge badge-secondary app-setting-default">Default: Yes</span> <a href="/help/two-factor-authentication/"><i class="fas fa-question-circle"></i></a>
-                                            <p>Improve security by allowing users to use code-generator based one-time use codes when logging into the app.</p>
-                                        </blockquote>
-                                    </div>
-
-                                    <div class="app-setting" v-if="settings.Allow2FactorAuth">
-                                        <div class="form-group side-by-side">
-                                            <label>Force2FactorAuth:</label>
-                                            <div class="btn-group btn-group-toggle" id="Force2FactorAuth" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setField('Force2FactorAuth', true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setField('Force2FactorAuth', false)">No
-                                                </label>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="form-label col-sm-6">ForceSingleSession:</label>
+                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="btn-group" role="group">
+                                                            <input class="btn-check" type="radio" name="ForceSingleSession" id="ForceSingleSession-true" autocomplete="off" v-model="appSettings.ForceSingleSession" v-bind:value="true">
+                                                            <label class="btn btn-secondary" for="ForceSingleSession-true">Yes</label>
+                                                          
+                                                            <input class="btn-check" type="radio" name="ForceSingleSession" id="ForceSingleSession-false" autocomplete="off" v-model="appSettings.ForceSingleSession" v-bind:value="false">
+                                                            <label class="btn btn-secondary" for="ForceSingleSession-false">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <blockquote class="description description-secondary">
+                                                            <span class="badge text-bg-secondary">Default: Yes</span>
+                                                            <p>Improve security by only allowing a user to have one active session in the app. If a user logs into the app on another device, any prior logins will become invalid until the user logs in again.</p>
+                                                        </blockquote>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <blockquote class="section-description section-description-secondary">
-                                            <span class="badge badge-secondary app-setting-default">Default: No</span> <a href="/help/two-factor-authentication/"><i class="fas fa-question-circle"></i></a>
-                                            <p>Improve security by forcing users to use code-generator based one-time use code when logging into the app.</p>
-                                        </blockquote>
-                                        <div v-if="settings.Force2FactorAuth" v-cloak>
-                                            <div class="alert alert-warning mt-4">
-                                                This will automatically set Allow2FactorAuth to Yes when turned on.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="app-setting">
-                                        <div class="form-group side-by-side">
-                                            <label>ForceSingleSession:</label>
-                                            <div class="btn-group btn-group-toggle" id="ForceSingleSession" data-toggle="buttons">
-                                                <label class="btn btn-secondary" data-switch="true">
-                                                    <input type="radio" v-on:click="setField('ForceSingleSession', true)">Yes
-                                                </label>
-                                                <label class="btn btn-secondary" data-switch="false">
-                                                    <input type="radio" v-on:click="setField('ForceSingleSession', false)">No
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <blockquote class="section-description section-description-secondary">
-                                            <span class="badge badge-secondary app-setting-default">Default: Yes</span>
-                                            <p>Improve security by allowing a user to have only one active session at any time. If a user logs into the app from another device, any existing sessions will become invalid.</p>
-                                        </blockquote>
-                                    </div>
-                                </section>
-
-                                <div class="alert" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                                        </section>
+                                        <hr class="divider">
+                                    </fieldset>
+                                </form>
+                                
+                                <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
                                     [[msg]]
                                 </div>
                             </div> <!-- end .card-body-->
                             <div class="card-footer">
-                                <button class="btn btn-primary" type="button" v-on:click="save" v-bind:disabled="submitting">Save</button>
+                                <button class="btn btn-primary" type="button" v-on:click="update" v-bind:disabled="submitting">Save</button>
                             </div>
                         </div> <!-- end .card-->
                     </div> <!-- end .col-->

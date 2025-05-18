@@ -208,8 +208,9 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetOne gets user data for a single user. If no user ID is provided, the data is
-// returned for the currently logged in user. This was added to support the user
-// profile page.
+// returned for the currently logged in user.
+//
+// This is used to support the user profile page.
 func GetOne(w http.ResponseWriter, r *http.Request) {
 	//Get ID of user to look up data for.
 	userID, _ := strconv.ParseInt(r.FormValue("userID"), 10, 64)
@@ -259,10 +260,7 @@ func ClearLoginHistory(w http.ResponseWriter, r *http.Request) {
 
 	//Delete.
 	rowsDeleted, err := db.ClearUserLogins(r.Context(), priorToDate)
-	if err != nil && strings.Contains(err.Error(), "DELETE command denied to user") {
-		output.Error(err, "The database user does not have the DELETE privilege. Please assign this privilege to be able to complete this task.", w)
-		return
-	} else if err != nil {
+	if err != nil {
 		output.Error(err, "Could not clear user login history.", w)
 		return
 	}

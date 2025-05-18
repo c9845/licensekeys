@@ -1,4 +1,3 @@
-{{$showDevHeader := .Development}}
 {{$errorData := .InjectedData.Data}}
 
 <!DOCTYPE html>
@@ -9,10 +8,6 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
-		{{end}}
-
 		<!-- HEADER -->
 		{{template "header-without-btns"}}	
 

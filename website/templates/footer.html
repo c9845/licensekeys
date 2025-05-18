@@ -1,18 +1,19 @@
 {{define "footer"}}
 <!-- footer will be, at minimum, located at the bottom of the window -->
+<!-- not using mt-3 to match header mb-3 since we need to know footer height/margin height for sticky footer calculations -->
 <footer class="sticky">
     <div class="container">
         <div class="row">
             <div class="col">
                 <p class="text-center">
-                    <a href="/app/">App</a> &bull; <a href="/help/">Help</a>
+                    <a href="/app/">App</a> &bull; <a href="/help/">Help</a><!-- &bull; <a href="/about/">About</a> &bull; <a href="/terms/">Terms</a> -->
                 </p>
             </div>
         </div>
         <div class="row">
             <div class="col">
                 <p class="text-center">
-                    <a href="#">&copy; 2021 - <span id="footer-end-year"></span> c9845</a>
+                    <a href="#">&copy; 2023 - <span id="footer-end-year"></span> Droplet Labs</a>
                 </p>
             </div>
         </div>
