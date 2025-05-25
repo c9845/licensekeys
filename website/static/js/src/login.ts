@@ -1,5 +1,6 @@
 /**
  * login.ts
+ * 
  * The code in this file handles user login.
  * 
  * 2 factor authentication is handled like so: The user provides username and password. 
@@ -13,70 +14,77 @@
  * of a password or code.
  */
 
-/// <reference path="common.ts" />
-/// <reference path="fetch.ts" />
+import { createApp, nextTick } from "vue";
+import { isEmail, msgTypes } from "./common";
+import { post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 
 if (document.getElementById("login")) {
-    //@ts-ignore cannot find name Vue
-    var login = new Vue({
-        name: 'login',
-        delimiters: ['[[', ']]'],
-        el: '#login',
-        data: {
-            username: '',
-            password: '',
+    const login = createApp({
+        name: "login",
 
-            //errors
-            msg: '',
-            msgType: '',
-            submitting: false,
+        compilerOptions: {
+            delimiters: ["[[", "]]"],
+        },
 
-            //2fa
-            show2FAInput: false,
-            twoFAVerificationCode: '',
+        data() {
+            return {
+                username: "",
+                password: "",
 
-            //endpoints
-            urls: {
-                loginAuth: "/login/",
-                mainApp: "/app/",
+                //Errors.
+                msg: "",
+                msgType: "",
+                submitting: false,
+
+                //2FA stuff.
+                show2FAInput: false,
+                twoFAVerificationCode: "",
+
+                //Endpoints.
+                urls: {
+                    loginAuth: "/app/login/",
+
+                    mainApp: "/app/", //redirect to page.
+                }
             }
         },
+
         methods: {
-            login: function () {
-                //Make sure user isn't already trying to log in.
+            login() {
+                //make sure user isn't already trying to log in
                 if (this.submitting) {
                     console.log("already submitting...");
                     return;
                 }
 
-                //Validation.
+                //validation
                 if (this.username.length === 0) {
                     return;
                 }
                 if (isEmail(this.username) === false) {
-                    this.msg = 'You must provide an email address as a username.';
+                    this.msg = "You must provide an email address as a username.";
                     this.msgType = msgTypes.danger;
                     return;
                 }
                 if (this.password.length === 0) {
-                    this.msg = 'You must provide a password.';
+                    this.msg = "You must provide a password.";
                     this.msgType = msgTypes.danger;
                     return;
                 }
                 if (this.show2FAInput && this.twoFAVerificationCode.length !== 6) {
-                    this.msg = 'Your 2FA code must be exactly 6 numeric characters.';
+                    this.msg = "Your 2FA code must be exactly 6 numeric characters.";
                     this.msgType = msgTypes.danger;
                     return
                 }
 
-                //Validation ok.
-                this.msg = 'Logging in...';
+                //Make API request.
+                //
+                //If this is successful, session data will be set in cookie by response 
+                //and we will redirect user to the main logged in page.
+                this.msg = "Logging in...";
                 this.msgType = msgTypes.primary;
                 this.submitting = true;
 
-                //Make request to try logging user in. If this is successful, session 
-                //data will be set in cookie by response and we will redirect user to 
-                //the main logged in page.
                 let data: Object = {
                     username: this.username,
                     password: this.password,
@@ -85,12 +93,13 @@ if (document.getElementById("login")) {
                 fetch(post(this.urls.loginAuth, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            login.msg = err;
-                            login.msgType = msgTypes.danger;
+                        if (err !== "") {
+                            this.msg = err;
+                            this.msgType = msgTypes.danger;
+                            this.submitting = false;
                             return;
                         }
 
@@ -99,12 +108,12 @@ if (document.getElementById("login")) {
                         let resType: string = j.Type;
                         if (resType === "login2FATokenRequired") {
                             //Show user 2fa token input.
-                            login.show2FAInput = true;
-                            login.msg = '';
+                            this.show2FAInput = true;
+                            this.msg = "";
+                            this.submitting = false;
 
-                            //@ts-ignore
-                            Vue.nextTick(function () {
-                                document.getElementById('token').focus();
+                            nextTick(function () {
+                                (document.getElementById("token") as HTMLElement).focus();
                             });
 
                             return;
@@ -113,8 +122,9 @@ if (document.getElementById("login")) {
                             //Show user error message that they need to have admin set up 
                             //2fa for them, 2fa is required and this user does not have
                             //2fa set up yet.
-                            login.msg = "2 Factor Authentication (2FA) is required but you do not have it set up.  Please see an administator to set up 2FA.";
-                            login.msgType = msgTypes.danger;
+                            this.msg = "2 Factor Authentication (2FA) is required but you do not have it set up. Please see an administator to set up 2FA.";
+                            this.msgType = msgTypes.danger;
+                            this.submitting = false;
                             return;
                         }
                         else if (resType === "loginOK") {
@@ -124,32 +134,36 @@ if (document.getElementById("login")) {
                             //and 2fa token.
                             //
                             //Redirect user to main logged in page.
-                            window.location.href = login.urls.mainApp;
+                            window.location.href = this.urls.mainApp;
                             return;
                         }
                         else {
                             console.log("unhandled or invalid login response:", resType);
-                            login.msg = "An unknown error occured.  Please contact an administator.";
-                            login.msgType = msgTypes.danger;
+                            this.msg = "An unknown error occured. Please contact an administator.";
+                            this.msgType = msgTypes.danger;
+                            this.submitting = false;
                             return;
                         }
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        login.msg = 'An unknown error occured.  Please try again.';
-                        login.msgType = msgTypes.danger;
+                        this.msg = "An unknown error occured. Please try again.";
+                        this.msgType = msgTypes.danger;
+                        this.submitting = false;
                         return;
                     });
 
-                this.submitting = false;
                 return;
             }
         },
+
         mounted() {
             //Set cursor to username input on page load.
-            document.getElementById('username').focus();
+            let usernameElem = document.getElementById('username');
+            if (usernameElem) {
+                usernameElem.focus();
+            }
             return;
         }
-
-    });
+    }).mount("#login");
 }

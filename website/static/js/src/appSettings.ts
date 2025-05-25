@@ -5,11 +5,11 @@
  */
 
 import { createApp } from "vue";
-import { msgTypes, apiBaseURL, defaultTimeout, statementDescriptorMinLength, statementDescriptorMaxLength } from "./common";
+import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 
 if (document.getElementById("manageAppSettings")) {
-    const manageApp_App = createApp({
+    const manageAppSettings = createApp({
         name: 'manageApp',
 
         compilerOptions: {
@@ -68,26 +68,6 @@ if (document.getElementById("manageAppSettings")) {
             update: function () {
                 if (this.submitting) {
                     console.log("already submitting...");
-                    return;
-                }
-
-                //Sanitize.
-                this.appSettings.CustomerIDFormat = this.appSettings.CustomerIDFormat.trim();
-                this.appSettings.CustomerIDRegex = this.appSettings.CustomerIDRegex.trim();
-                this.appSettings.StatementDescriptor = this.appSettings.StatementDescriptor.trim();
-
-                //Validate.
-                let sdLen: number = this.appSettings.StatementDescriptor.length;
-                if (sdLen < statementDescriptorMinLength || sdLen > statementDescriptorMaxLength) {
-                    this.msg = "The StatementDescriptor must be between " + statementDescriptorMinLength + " and " + statementDescriptorMaxLength + " characters long. Yours is " + sdLen + " characters.";
-                    return
-                }
-                if (this.appSettings.MinimumCharge < 1) {
-                    this.msg = "The MinimumChargeCents must be at least 100.";
-                    return
-                }
-                if (this.appSettings.AddCardLinkExpirationHours < 1) {
-                    this.msg = "The AddCardLinkExpirationHours must be at least 1.";
                     return;
                 }
 

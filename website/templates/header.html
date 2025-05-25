@@ -1,5 +1,11 @@
 {{/*USED ON NON-LOGGED IN PAGES (LOGIN PAGE)*/}}
 {{define "header-without-btns"}}
+
+<!-- Extra header so that we know we are in development. -->
+{{if .Development}}
+<p class="text-center text-danger">!! DEV MODE !!</p>
+{{end}}
+
 <header>
 	<div class="container">
 		<div class="row align-items-center">
@@ -13,10 +19,16 @@
 </header>
 {{end}}
 
+
+
 {{/*USED ON LOGGED IN PAGES*/}}
 {{define "header-with-btns"}}
-
 {{$userData := .InjectedData.UserData}}
+
+<!-- Extra header so that we know we are in development. -->
+{{if .Development}}
+<p class="text-center text-danger">!! DEV MODE !!</p>
+{{end}}
 
 <header id="headerWithBtns">
 	<div class="container">
@@ -25,19 +37,17 @@
 				<h4 id="header-title">{{template "html_title_app_name" .}}</h4>
             </div>
             <div class="col">
-				<div class="float-right">
-					<div class="btn-group navbar-btn" id="headerBtns">
-						<!-- go back to main app page-->
-						<a class="btn btn-outline-secondary btn-sm" href="/app/"><i class="fa fa-home"></i></a>
-
-						<!-- open nav menu for user stuff: user profile and log out button. -->
-						<div class="btn-group" >
-							<button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown">{{$userData.Username}}</button>
-							<div class="dropdown-menu dropdown-menu-right">
-								<a class="dropdown-item" href="/app/user-profile/">My Profile</a>
-								<a class="dropdown-item" href="/logout/">Logout</a>
-							</div>
-						</div>
+				<div class="d-flex flex-row-reverse">
+					<div class="dropdown">
+						<button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Menu</button>
+						<ul class="dropdown-menu dropdown-menu-end">
+							<!-- main app stuff -->
+														
+							<!-- user related stuff -->
+							<li><h6 class="dropdown-header">{{$userData.Username}}</h6></li>
+							<li><a class="dropdown-item" href="/app/user-profile/">My Profile</a></li>
+							<li><a class="dropdown-item" href="/app/logout/">Logout</a></li>
+						</ul>
 					</div>
 				</div>
 			</div>

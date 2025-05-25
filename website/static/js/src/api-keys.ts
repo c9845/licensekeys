@@ -10,7 +10,8 @@ import { Modal } from "bootstrap";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 
-var manageAPIKeys: any;
+//Manage the list of API keys.
+var manageAPIKeys: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
 if (document.getElementById("manageAPIKeys")) {
     manageAPIKeys = createApp({
         name: 'manageAPIKeys',
@@ -94,68 +95,6 @@ if (document.getElementById("manageAPIKeys")) {
                         this.msgLoadType = msgTypes.danger;
                         return;
                     });
-
-                return;
-            },
-
-            //setState handles setting the GUI state to the "add" or "lookup/edit" 
-            //state.
-            //
-            //This is called when a user clicks the add or view buttons in the card
-            //header or when a new API key is saved.
-            setState: function () {
-                //User clicked on "lookup/edit" button, user wants to see "lookup" UI.
-                if (this.addingNew) {
-                    this.addingNew = !this.addingNew;
-                    return;
-                }
-
-                //User clicked on "add" button, user wants to see "add" UI. Clear 
-                //any existing API key data so that the inputs are reset to a blank state
-                //for saving of a new API key.
-                this.addingNew = !this.addingNew;
-                this.resetForm();
-
-                this.msgSave = "";
-                this.msgSaveType = "";
-
-                return;
-            },
-
-            //resetForm resets the inputs and toggles when showing the "add API key"
-            //GUI, or after an API key is added and we empty all the inputs.
-            resetForm: function () {
-                this.keyData = {
-                    Description: "",
-                    K: "",
-                } as apiKey;
-
-                this.apiKeySelectedID = 0;
-
-                return;
-            },
-
-            //showAPIKey populates the "lookup" GUI with data about an API key chosen from
-            //the select menu.
-            showAPIKey: function () {
-                //Make sure an API key was selected.
-                if (this.apiKeySelectedID < 1) {
-                    return;
-                }
-
-                //Get API key's data from the list of API keys we retreived.
-                for (let k of (this.keys as apiKey[])) {
-                    if (k.ID !== this.apiKeySelectedID) {
-                        continue;
-                    }
-
-                    //Save the chosen user for displaying in the GUI.
-                    this.keyData = k;
-                    break;
-                }
-
-                //Set the API key ID in other Vue objects.
-                modalRevokeAPIKey.setKeyData(this.apiKeySelectedID);
 
                 return;
             },
@@ -319,9 +258,10 @@ if (document.getElementById("manageAPIKeys")) {
     }).mount("#manageAPIKeys");
 }
 
-var modalRevokeAPIKey: any;
+//Add, edit, and view an existing API key.
+var modalRevokeAPIKey: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
 if (document.getElementById("modal-revokeAPIKey")) {
-    const modalRevokeAPIKey = createApp({
+    modalRevokeAPIKey = createApp({
         name: "modalRevokeAPIKey",
 
         compilerOptions: {

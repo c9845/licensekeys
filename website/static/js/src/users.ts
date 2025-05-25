@@ -39,7 +39,7 @@ if (document.getElementById("manageUsers")) {
                 msgLoad: "",
                 msgLoadType: "",
 
-                //Single user selected.
+                //Single user selected or being added.
                 userSelectedID: 0,
                 userData: {
                     Active: true, //New users are always active, because why would you create a new user if they are inactive?
@@ -225,7 +225,6 @@ if (document.getElementById("manageUsers")) {
                         //Show success message.
                         this.msgSave = "Changes saved!";
                         this.msgSaveType = msgTypes.success;
-
                         setTimeout(() => {
                             this.msgSave = "";
                             this.msgSaveType = "";
@@ -247,12 +246,6 @@ if (document.getElementById("manageUsers")) {
 
             //add saves a new user.
             add: function () {
-                //Make sure data isn't already being submitted.
-                if (this.submitting) {
-                    console.log("already submitting...");
-                    return;
-                }
-
                 //Validation.
                 this.msgSaveType = msgTypes.danger;
                 if (this.userData.PasswordInput1 !== this.userData.PasswordInput2) {
@@ -291,7 +284,6 @@ if (document.getElementById("manageUsers")) {
                         //Show success and reset the form.
                         this.msgSave = "User added!";
                         this.msgSaveType = msgTypes.success;
-
                         setTimeout(() => {
                             this.resetForm();
                             this.msgSave = "";
@@ -323,6 +315,7 @@ if (document.getElementById("manageUsers")) {
 
                 //Validation.
                 this.msgSaveType = msgTypes.danger;
+
                 if (this.userData.Fname === "") {
                     this.msgSave = "You must provide the user's first name.";
                     return;

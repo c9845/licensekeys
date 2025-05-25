@@ -1,44 +1,58 @@
 /**
  * types.ts
- * The code in this file defines the customer types used for this app. These
- * closely match the types defined for the database schema.
  * 
- * The order of these interfaces matches the order of the db-*.go files.
+ * The stuff in this file should generally match the structs defined for each 
+ * database table.
+ * 
+ * Order of interfaces matches order of db-*.go files.
  */
 
+//activityLog handles interacting with the log of user activity, for auditing purposes.
 interface activityLog {
     ID: number,
     DatetimeCreated: string,
     TimestampCreated: number, //unix timestamp in nanoseconds
-    Method: string, //GET, POST
-    URL: string, //the endpoint accessed
+    Method: string,
+    URL: string,
     RemoteIP: string,
     UserAgent: string,
-    TimeDuration: number, //milliseconds it took for server to complete the request
-    PostFormValues: string, //json encoded form values passed in request
-    UserID: number,
-    APIKeyID: number,
+    TimeDuration: number,
+    PostFormValues: string,
+
+    UserID: number, //possibly null
+    APIKeyID: number, //possibly null
 
     //JOINed fields
     Username: string,
     APIKeyDescription: string,
     APIKeyK: string,
+
+    //Calculated fields.
+    DatetimeCreatedInTZ: string,
 }
 
+//apiKey handles interacting with API keys.
 interface apiKey {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
-    CreatedByUserID: number,
     Active: boolean,
+    CreatedByUserID: number,
 
-    Description: string, //so user can identify what the api key is used for
-    K: string, //the actual api key
+    Description: string,
+    K: string,
+
+    CreateCharge: boolean,
+    RefundCharge: boolean,
 
     //JOINed fields
     CreatedByUsername: string,
+
+    //Calculated fields.
+    DatetimeCreatedInTZ: string,
 }
 
+//app is an app you create licenses for.
 interface app {
     ID: number,
     DatetimeCreated: string,
@@ -62,17 +76,22 @@ const fileFormats: string[] = [
     fileFormatJSON,
 ];
 
+//appSettings handles interacting with the settings that change functionality of the
+//app.
 interface appSettings {
     ID: number,
     DatetimeModified: string,
 
-    EnableActivityLogging: boolean, //whether or not the app tracks user activity (page views, endpoints, etc.)
-    AllowAPIAccess: boolean, //whether or not external access to this app is allowed
-    Allow2FactorAuth: boolean, //if 2 factor authentication can be used
-    Force2FactorAuth: boolean, //if all users are required to have 2 factor auth enabled prior to logging in (check if at least one user has 2fa enabled first to prevent lock out!)
-    ForceSingleSession: boolean, //user can only be logged into the app in one browser at a time. used as a security tool.
+    EnableActivityLog: boolean,
+    AllowAPIAccess: boolean,
+
+    Allow2FactorAuth: boolean,
+    Force2FactorAuth: boolean,
+    ForceSingleSession: boolean,
 }
 
+//custom fields are extra data added to a license. This stores the definition of each
+//field.
 interface customFieldDefined {
     ID: number,
     DatetimeCreated: string,
@@ -125,6 +144,7 @@ const customFieldTypes: string[] = [
     customFieldTypeDate,
 ];
 
+//this stores the data for each custom field for each license that has been created.
 interface customFieldResults {
     ID: number,
     DatetimeCreated: string,
@@ -147,6 +167,7 @@ interface customFieldResults {
     DateValue: string,
 }
 
+//key pairs the public-private key pairs used to sign and verifiy a license.
 interface keyPair {
     ID: number,
     DatetimeCreated: string,
@@ -178,6 +199,7 @@ const keyPairAlgoTypes: string[] = [
     keyPairAlgoED25519,
 ];
 
+//license is a license created for an app.
 interface license {
     ID: number,
     DatetimeCreated: string,
@@ -245,6 +267,7 @@ interface user {
     PasswordInput2: string,
 }
 
+//store the download history of each license for diagnostics and auditing.
 interface downloadHistory {
     ID: number,
     DatetimeCreated: string,
@@ -259,6 +282,7 @@ interface downloadHistory {
     CreatedByUsername: string,
 }
 
+//notes store extra data about a license for future reference.
 interface licenseNote {
     ID: number,
     DatetimeCreated: string,
