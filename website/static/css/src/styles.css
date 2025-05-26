@@ -1,22 +1,190 @@
 :root {
-    --version:              "2.1.0";
+    --version: "3.2.0";
 
-    --footer-height:        80px;
-    --footer-margin-top:    20px;
+    --header-margin-bottom: 1.5rem;
+
+    --footer-height: 80px;
+    --footer-margin-top: 1.5rem;
+
+    --background-gray: #F5F5F5;
 }
 
 
-/*HELPER SETTINGS*/
-.hide {
-    display: none;
+
+/*** HEADER AND FOOTER **/
+.page-header,
+.page-footer {
+    background-color: var(--background-gray);
+    border-color: var(--blue);
+    border-style: solid;
+    border-width: 0;
 }
 
-.whitespace-no-wrap {
+.page-header {
+    border-bottom-width: 1px;
+    margin-bottom: 20px;
+}
+
+.page-header .row {
+    height: 53px;
+}
+
+.page-header #app-name {
+    /*better vertical centering in header*/
+    margin-bottom: 0;
+
     white-space: nowrap;
 }
-.whitespace-no-wrap.ellipsis {
-    text-overflow:  ellipsis;
-    overflow:       hidden;
+
+.page-footer {
+    border-top-width: 1px;
+    height: var(--footer-height);
+    margin-top: var(--footer-margin-top);
+    padding-top: 10px;
+    font-size: 12px;
+}
+
+.page-footer p {
+    margin-bottom: 0.5rem;
+}
+
+.page-footer a {
+    color: #777;
+}
+
+.page-footer a:hover {
+    color: #333;
+}
+
+
+
+/*** PAGE FOOTER, STICKY TO BOTTOM OF PAGE ***/
+/*Footer is always at bottom of view, even if there isn't a lot of content on page.*/
+.page-footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: calc(var(--footer-height) + var(--footer-margin-top));
+}
+
+
+
+/*** GENERAL TEXT STUFF ***/
+
+/*.description is used to provide some contextual information that is always visible
+to the user. This is somewhat "help text" and somewhat "alerts".*/
+blockquote.description {
+    border-left: 4px solid;
+    padding-left: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin-bottom: 0px;
+}
+
+blockquote.description.description-secondary {
+    border-left-color: var(--bs-secondary);
+}
+
+blockquote.description.description-danger {
+    border-left-color: var(--bs-danger);
+}
+
+blockquote.description.description-warning {
+    border-left-color: var(--bs-warning);
+}
+
+/*remove bottom margin so that top and bottom margin inside blockquote are the same.*/
+blockquote.description p:last-of-type {
+    margin-bottom: 0;
+}
+
+
+
+/*** CARDS ***/
+/*define a slight shadow on cards to make them stand out more*/
+/*this was adapted from material design components for web, elevation*/
+.card {
+    --mdc-elevation-2dp: 0 3px 1px -2px rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 1px 5px 0 rgba(0, 0, 0, .12);
+    box-shadow: var(--mdc-elevation-2dp);
+    margin-bottom: 30px;
+}
+
+/*make header and footer stand out a bit more, bootstrap 5 color is too light*/
+.card .card-header,
+.card .card-footer {
+    background-color: var(--background-gray);
+}
+
+/*make header and footer have a bit more vertical, y-axis, padding. Button in footers
+look a bit cramped with default padding*/
+.card .card-header,
+.card .card-footer {
+    padding: .75rem var(--bs-card-cap-padding-x);
+}
+
+/*make card headers consistently styled, with text centered vertically, without float 
+hacks*/
+.card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    /*height of a card-header with a .card-header-btn (.btn-sm) in it; so card-header 
+    is always the same height*/
+    height: 56px;
+}
+
+.card div.card-header h5 {
+    margin-bottom: 0;
+    margin-right: auto;
+}
+
+.card div.card-header .card-header-btn {
+    margin-left: auto;
+}
+
+.card hr.divider {
+    margin-left: calc(-1 * var(--bs-card-spacer-x));
+    margin-right: calc(-1 * var(--bs-card-spacer-x));
+}
+
+
+
+/*** FORMS ***/
+/*instead of having to put .mb-3 on each <div> encapsulating a .form-label and .form-
+control. This allows us to change spacing app-wide without changing HTML.*/
+.form-group {
+    /* based on --bs-card-spacer-y*/
+    margin-bottom: 1rem;
+}
+
+/*remove margin so that we don't end up with double-margin at end of .card, too much
+whitespace*/
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+/*align label text and input (yes/no button, input, select) better when displayed
+side-by-side. this especially helps when there is a description blockquote since there
+ends up being less whitespace between title text and description, grouping these two
+pieces together better and providing better separation from a previous .form-group*/
+.form-group .row {
+    align-items: baseline;
+}
+
+
+
+/*** HELPER SETTINGS ***/
+.hide {
+    display: none;
 }
 
 /*hide vue stuff until vue is fully loaded*/
@@ -35,124 +203,42 @@ tr.strikethrough td {
     text-decoration: line-through;
 }
 
-/*for titling sections in cards and providing descriptive text in cards*/
-/*used to separate "lookup" and "edit" sections.*/
-/*descriptions is used in place of alerts since alerts draw too much user attention for always-there text*/
-blockquote.section-description {
-    border-left:    4px solid;
-    padding-left:   10px;
-    padding-top:    5px;
-    padding-bottom: 5px;
-    margin-bottom:  0px;;
-}
-blockquote.section-description.section-description-secondary {
-    border-left-color: #6c757d;
-}
-blockquote.section-description.section-description-danger {
-    border-left-color: #dc3545; /*same as bootstrap --danger*/
-}
-blockquote.section-description p { /*pretend like there is no <p> tag, just text inside <blockquote>; blockquote can specify margin*/
-    margin-bottom: 0;
-}
-
-
-/*notes describing each app setting*/
-.app-setting .form-group.side-by-side {
-    margin-bottom: 0; /*less margin between label/toggle and description blockquote text*/
-}
-.app-setting .form-group.side-by-side > label {
-    font-weight: bold;
-}
-.app-setting {
-    margin-bottom: 1.5rem; /*more margin between descripption blockquote and next appsetting to separate them better*/
-} 
-
-
-/*HEADER AND FOOTER*/
-header,
-footer {
-    background-color: 	  #F5F5F5; 
-	border-color: 	        var(--blue);
-	border-style: 		    solid;
-	border-width: 		    0;
-}
-
-header {
-    border-bottom-width: 	1px;
-    margin-bottom:          20px;
-}
-header .row {
-	height: 				53px;			
-}
-header #header-title {
-    margin-bottom:          0; /*better vertical centering in header*/
-    white-space:            nowrap;
-}
-
-footer {
-    border-top-width: 	    1px;
-    height: 			    80px;
-    margin-top: 		    20px;
-    padding-top: 		    10px;
-    font-size:              12px;
-}
-footer p {
-    margin-bottom:          0.5rem;
-}
-footer a {
-    color:                  #777;
-}
-footer a:hover {
-    color:                  #333;
-}
-
-/*username/log out button*/
-/*make the btn a fixed size so that it doesn't change size when changed from username to "logout" text*/
-#btn-logout {
-    display:        inline-block;
-    width:          125px;
-    overflow:       hidden;
-    white-space:    nowrap;
-    text-overflow:  ellipsis;
-}
-
-
-/*STICKY FOOTER*/
-footer.sticky {
-	position: 			absolute;
-	bottom: 			0;
-	width: 				100%;
-}
-html {
-	position:           relative;
-	min-height:         100%;
-}
-body {
-	margin-bottom: 		calc(var(--footer-height) + var(--footer-margin-top));
-}
-
-/*RANDOM*/
+/*help icons that show tooltip, size smaller to not be so bulky*/
 .help-icon {
-    cursor:     pointer;
-    font-size:  13px;
+    cursor: pointer;
+    font-size: 13px;
 }
+
+/*don't make readonly inputs look greyed out*/
 .form-control[readonly] {
-    background-color: unset; /*don't make readonly inputs look greyed out*/
+    background-color: unset;
 }
-.hover-pointer {
+
+/*turn off up/down arrows on numeric inputs*/
+.disable-spinner::-webkit-inner-spin-button,
+.disalbe-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/*show pointer instead of mouse arrow*/
+.pointer {
     cursor: pointer;
 }
 
-/*remove input up/down, datepicker, time picker arrows/icons*/
-input.remove-spinner::-webkit-inner-spin-button, 
-input.remove-spinner::-webkit-outer-spin-button,
-input.remove-spinner::-webkit-calendar-picker-indicator { /*remove icon to open calendar to pick date from, used when showing date but user can't choose a date, see Certified Until Date on produced lot page*/
-    display: none;
-    -webkit-appearance: none; 
-    margin: 0; 
+/*don't wrap text*/
+.whitespace-no-wrap {
+    white-space: nowrap;
 }
-input.remove-spinner {
-    -moz-appearance:textfield;
+
+.help-icon {
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.form-control[readonly] {
+    background-color: unset;
+    /*don't make readonly inputs look greyed out*/
 }
 
 /*fix font weight on firefox only*/
@@ -165,103 +251,21 @@ input.remove-spinner {
     }
 }
 
-/*used for printing container codes that are bad or when a package is marked as repacked*/
-.line-through {
-    text-decoration: line-through;
-}
 
 
-/*CARDS*/
-/*define a slight shadow on cards to make them stand out more*/
-/*this was adapted from material design components for web, elevation*/
-.card {
-    --mdc-elevation-2dp:    0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);
-    box-shadow:             var(--mdc-elevation-2dp);
-    margin-bottom:          30px;
-}
-
-/*make card headers consistently styled, with text centered vertically, without float hacks*/
-/*adapted bootstrap4 flexbox code but without putting bootstrap classes everywhere*/
-.card .card-header {
-    display:            flex;
-    justify-content:    space-between;
-    align-items:        center;
-    height:             56px; /*height of a card-header with a .card-header-btn (.btn-sm) in it; so card-header is always the same height*/
-}
-.card div.card-header h5 {
-    margin-bottom:      0;
-    margin-right:       auto;
-}
-.card div.card-header .card-header-btn {
-    margin-left:        auto;
-}
-
-/*remove extra spacing since it doesn't look right*/
-.card .alert {
-    margin-bottom:      0;
-}
-
-/*add back bootstrap margin bottom where needed, such as when an alert is before a toggle group*/
-.card .alert.replace-margin-bottom {
-    margin-bottom:      1rem;
-}
-
-.card hr.divider {
-    margin-left:        -20px;
-    margin-right:       -20px;
-    margin-top:         1.25rem; /*same as padding in card-body*/
-    margin-bottom:      1.25rem; /* " " " " */
-}
-
-/*allow for displaying btn-group or other inputs to right side of label text*/
-.card .form-group.side-by-side,
-.modal .form-group.side-by-side {
-    display:            flex;
-    justify-content:    space-between;
-    align-items:        center;
-}
-.card .form-group.side-by-side label,
-.modal .form-group.side-by-side label {
-    margin-bottom:      0;
-}
-.card .form-group.side-by-side .form-control,
-.card .form-group.side-by-side .input-group {
-    float:              right;
-    width:              unset;
-    width:              50%; /*the default width of a date input when displayed side-by-side in a col-sm-6*/ /*used to be 45% but was too small to display "Please choose." in select*/
-}
-
-/*button in card header for adding something*/
-.card div.card-header button.btn .add-icon {
-    font-size:   19px;
-    line-height: .5;
-    font-weight: bold;
-}
-
-
-/*BUTTONS*/
-/*make btn-sm even more condensed by cutting padding in half from default*/
-.btn-sm.btn-sm-condensed,
-.btn-group .btn-sm.btn-sm-condensed {
-    padding-right: .25rem;
-    padding-left:  .25rem
-}
-
-
-/*MODALS*/
+/*** MODALS ***/
 .modal hr.divider {
-    margin-left:        -15px;
-    margin-right:       -15px;
+    margin-left: -15px;
+    margin-right: -15px;
 }
 
-.modal .alert {
-    margin-bottom: 0; /*similar to how we handle .alert in .card*/
-}
-
+/*make modal header and footer stand out a bit more, bootstrap 5 color is too light.*/
+/*same as .card-header and .card-footer*/
 .modal .modal-header,
 .modal .modal-footer {
-    background-color: rgba(0,0,0,.03); /*same as card header/footer*/
+    background-color: var(--cardstore-background-gray);
 }
+
 
 
 /*TABLES*/
@@ -276,17 +280,18 @@ input.remove-spinner {
     border-top: none !important;
 }
 
-/*on smaller tables, make the header text smaller*/
-.table.table-sm thead th {
-    font-size: 0.9rem;
+/*make small tables even a bit tighter*/
+.table.table-sm {
+    font-size: .9rem;
 }
 
-.table.table-sm.table-dense-always {
-    font-size: .8rem;
+/*make tfoot border the same as thead*/
+.table tfoot td {
+    border-width: 2px;
 }
 
 /*to limit vertical size of tables, don't just grow forever*/
 .max-height-500px {
-    max-height:     500px;
-    overflow:   auto;
+    max-height: 500px;
+    overflow: auto;
 }

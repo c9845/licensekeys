@@ -13,3 +13,12 @@ import "./src/duration-by-endpoint.ts"
 import "./src/user-logins.ts"
 
 import "./src/tools.ts"
+
+
+import "./src/apps.ts"
+import "./src/app-settings.ts"
+import "./src/create-license.ts"
+import "./src/custom-fields-defined.ts"
+import "./src/key-pairs.ts"
+import "./src/licenses.ts"
+import "./src/manage-license.ts"

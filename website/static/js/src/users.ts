@@ -964,7 +964,7 @@ if (document.getElementById("userProfile")) {
                     .then((j) => {
                         //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
+                        if (err !== "") {
                             this.msg = err;
                             this.msgType = msgTypes.danger;
                             return;

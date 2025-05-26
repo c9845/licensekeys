@@ -1,120 +1,117 @@
 /**
  * create-license.ts
+ * 
  * This file handles creating a new license. The user picks an app and a keypair,
  * then provides the common fields and custom fields, if needed, and the license
  * is created and signed using the keypair. The user is directed to a page for
  * managing the license and downloading the license file.
  */
 
-/// <reference path="common.ts" />
-/// <reference path="fetch.ts" />
-/// <reference path="types.ts" />
+import { createApp } from "vue";
+import { msgTypes, apiBaseURL, defaultTimeout, todayPlus, getToday, isEmail } from "./common";
+import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 
 if (document.getElementById("createLicense")) {
-    //@ts-ignore cannot find name Vue
-    var createLicense = new Vue({
+    const createLicense = createApp({
         name: 'createLicense',
-        delimiters: ['[[', ']]'],
-        el: '#createLicense',
-        data: {
-            //loading apps from api call
-            apps: [] as app[],
-            appsRetrieved: false, //set to true once api call is complete, whether or not any apps were found. used to show loading message in select.
-            appSelectedID: 0,
 
-            //loading keypairs from api call, based on app chosen.
-            //default keypair is automatically set for license.
-            keyPairs: [] as keyPair[],
-            keyPairsRetrieved: false,
-
-            //loading any custom fields, based on app chosen
-            //This will also store the value chosen for each field. We do this
-            //since it would just be messy to store the field ID and value in
-            //another array of objects. While this doesn't end up being a "defined"
-            //field, a "defined" and "result" field are similar enough to do this.
-            //We translate a defined field to a result when saving the license data.
-            fields: [],
-            fieldsRetrieved: false,
-
-            //need these for v-if in html
-            customFieldTypeInteger: customFieldTypeInteger,
-            customFieldTypeDecimal: customFieldTypeDecimal,
-            customFieldTypeText: customFieldTypeText,
-            customFieldTypeBoolean: customFieldTypeBoolean,
-            customFieldTypeMultiChoice: customFieldTypeMultiChoice,
-            customFieldTypeDate: customFieldTypeDate,
-
-            separator: ";", //separator for multichoice options
-
-            //data for license being created
-            licenseData: {
-                KeyPairID: 0, //from chosen/default keypair for app
-                CompanyName: "ACME Dynamite",
-                ContactName: "Wyle E Coyote",
-                PhoneNumber: "123-555-1212",
-                Email: "wyle@example.com",
-                ExpireDate: "", //by default, this is set to "today" plus the app's DaysToExpiration
-            } as license,
-
-            //errors when loading data or creating license
-            submitting: false,
-            msg: '',
-            msgType: '',
-
-            //endpoints
-            urls: {
-                getApps: "/api/apps/",
-                getKeyPairs: "/api/key-pairs/",
-                getCustomFields: "/api/custom-fields/defined/",
-                add: "/api/licenses/add/",
-                getAPIKeys: "/api/api-keys/",
-            },
-
-            //Used for displaying the API builder. This shows a GUI of the API
-            //request a user would need to build to create a license via the API.
-            showAPIBuilder: false,
-            returnLicenseFile: false,
-            apiKeys: [] as apiKey[],
-            apiKeysRetrieved: false,
-            apiBuilderMsg: "",
-            apiBuilderMsgType: "",
-            apiKeySelected: "", //not the ID, but the actual key
-            apiExample: "", //the example curl request to show in the GUI.
+        compilerOptions: {
+            delimiters: ['[[', ']]'],
         },
-        methods: {
-            //setField saves a chosen radio toggle's value to the Vue object. We
-            //use index here, not name, since we know the index of the fields
-            //for this app when we built the GUI.
-            setField: function (idx: number, value: boolean) {
-                this.fields[idx].BoolValue = value;
-                return;
-            },
 
+        data() {
+            return {
+                //Apps a license can be created for.
+                apps: [] as app[],
+                appsRetrieved: false,
+                appSelectedID: 0,
+
+                //Keypairs for chosen app.
+                keyPairs: [] as keyPair[],
+                keyPairsRetrieved: false,
+
+                //Custom fields for chosen app.
+                //
+                //This will also store the value chosen for each field. We do this
+                //since it would just be messy to store the field ID and value in
+                //another array of objects. While this doesn't end up being a "defined"
+                //field, a "defined" and "result" field are similar enough to do this.
+                //We translate a defined field to a result when saving the license data.
+                fields: [],
+                fieldsRetrieved: false,
+
+                //Need these for v-if in html.
+                customFieldTypeInteger: customFieldTypeInteger,
+                customFieldTypeDecimal: customFieldTypeDecimal,
+                customFieldTypeText: customFieldTypeText,
+                customFieldTypeBoolean: customFieldTypeBoolean,
+                customFieldTypeMultiChoice: customFieldTypeMultiChoice,
+                customFieldTypeDate: customFieldTypeDate,
+
+                //Separator for multichoice options.
+                separator: ";",
+
+                //Data for license being created.
+                licenseData: {
+                    KeyPairID: 0, //From chosen/default keypair for app.
+                    CompanyName: "",
+                    ContactName: "",
+                    PhoneNumber: "",
+                    Email: "",
+                    ExpireDate: "", //By default, this is set to "today" plus the app's DaysToExpiration.
+                } as license,
+
+                //Form submissing stuff.
+                submitting: false,
+                msg: '',
+                msgType: '',
+
+                //Endpoints.
+                urls: {
+                    getApps: apiBaseURL + "apps/",
+                    getKeyPairs: apiBaseURL + "key-pairs/",
+                    getCustomFields: apiBaseURL + "custom-fields/defined/",
+                    add: apiBaseURL + "licenses/add/",
+                    getAPIKeys: apiBaseURL + "api-keys/",
+                },
+
+                //Used for displaying the API builder. This shows a GUI of the API
+                //request a user would need to build to create a license via the API.
+                showAPIBuilder: false,
+                returnLicenseFile: false,
+                apiKeys: [] as apiKey[],
+                apiKeysRetrieved: false,
+                apiBuilderMsg: "",
+                apiBuilderMsgType: "",
+                apiKeySelected: "", //not the ID, but the actual key
+                apiExample: "", //the example curl request to show in the GUI.
+            }
+        },
+
+        methods: {
             //getApps gets the list of apps that have been defined.
             getApps: function () {
                 let data: Object = {};
                 fetch(get(this.urls.getApps, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            createLicense.msg = err;
-                            createLicense.msgType = msgTypes.danger;
+                        if (err !== "") {
+                            this.msg = err;
+                            this.msgType = msgTypes.danger;
                             return;
                         }
 
-                        //save data to display in gui
-                        createLicense.apps = j.Data || [];
-                        createLicense.appsRetrieved = true;
-
+                        this.apps = j.Data || [];
+                        this.appsRetrieved = true;
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        createLicense.msg = 'An unknown error occured. Please try again.';
-                        createLicense.msgType = msgTypes.danger;
+                        this.msg = "An unknown error occured. Please try again.";
+                        this.msgType = msgTypes.danger;
                         return;
                     });
 
@@ -132,34 +129,34 @@ if (document.getElementById("createLicense")) {
                 fetch(get(this.urls.getKeyPairs, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            createLicense.msg = err;
-                            createLicense.msgType = msgTypes.danger;
+                        if (err !== "") {
+                            this.msg = err;
+                            this.msgType = msgTypes.danger;
                             return;
                         }
 
-                        //save data to display in gui
-                        createLicense.keyPairs = j.Data || [];
-                        createLicense.keyPairsRetrieved = true;
+                        //Save data to display in GUI.
+                        this.keyPairs = j.Data || [];
+                        this.keyPairsRetrieved = true;
 
-                        //set the default keypair in the select menu and the
-                        //license data to save
-                        for (let kp of (createLicense.keyPairs as keyPair[])) {
+                        //Set the default keypair in the select menu and the
+                        //license data to save.
+                        for (let kp of (this.keyPairs as keyPair[])) {
                             if (kp.IsDefault) {
-                                createLicense.licenseData.KeyPairID = kp.ID;
+                                this.licenseData.KeyPairID = kp.ID;
                                 break;
                             }
                         }
 
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        createLicense.msg = 'An unknown error occured. Please try again.';
-                        createLicense.msgType = msgTypes.danger;
+                        this.msg = "An unknown error occured. Please try again.";
+                        this.msgType = msgTypes.danger;
                         return;
                     });
 
@@ -176,21 +173,21 @@ if (document.getElementById("createLicense")) {
                 fetch(get(this.urls.getCustomFields, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            createLicense.msgLoad = err;
-                            createLicense.msgLoadType = msgTypes.danger;
+                        if (err !== "") {
+                            this.msgLoad = err;
+                            this.msgLoadType = msgTypes.danger;
                             return;
                         }
 
-                        //save data to display in gui
-                        createLicense.fields = j.Data || [];
-                        createLicense.fieldsRetrieved = true;
+                        //Save data to display in GUI.
+                        this.fields = j.Data || [];
+                        this.fieldsRetrieved = true;
 
-                        //set default values
-                        for (let f of (createLicense.fields as customFieldDefined[])) {
+                        //Set default values.
+                        for (let f of (this.fields as customFieldDefined[])) {
                             switch (f.Type) {
                                 case customFieldTypeInteger:
                                     f.IntegerValue = f.IntegerDefaultValue;
@@ -203,12 +200,6 @@ if (document.getElementById("createLicense")) {
                                     break;
                                 case customFieldTypeBoolean:
                                     f.BoolValue = f.BoolDefaultValue;
-                                    //@ts-ignore cannot find Vue
-                                    Vue.nextTick(function () {
-                                        //add cf_bool_id_ to id value to give it some context and not be just a number.
-                                        let elemID: string = 'cf_bool_id_' + f.ID.toString();
-                                        setToggle(elemID, f.BoolDefaultValue);
-                                    });
                                     break;
                                 case customFieldTypeMultiChoice:
                                     f.MultiChoiceValue = f.MultiChoiceDefaultValue;
@@ -224,10 +215,10 @@ if (document.getElementById("createLicense")) {
 
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        createLicense.msgLoad = 'An unknown error occured.  Please try again.';
-                        createLicense.msgLoadType = msgTypes.danger;
+                        this.msgLoad = 'An unknown error occured.  Please try again.';
+                        this.msgLoadType = msgTypes.danger;
                         return;
                     });
 
@@ -235,8 +226,9 @@ if (document.getElementById("createLicense")) {
             },
 
             //setExpireDate sets the default expiration date for the license to 
-            //today's date plus the app's DaysToExpiration value. This is called when 
-            //an app is chosen from the select menu.
+            //today's date plus the app's DaysToExpiration value. 
+            //
+            //This is called when an app is chosen from the select menu.
             setExpireDate: function () {
                 for (let a of (this.apps as app[])) {
                     if (a.ID === this.appSelectedID) {
@@ -249,26 +241,20 @@ if (document.getElementById("createLicense")) {
             },
 
             //todayPlusOne calculates the minimum date a license can expire on. This 
-            //takes today's date and adds one day to it. This returns a yyyy-mm-dd 
-            //formatted string for use in the min attribute on an input type=date 
+            //takes today's date and adds one day to it. 
+            //
+            //This value is used in the "min" attribute of an input type=date.
             //element.
             todayPlusOne: function () {
                 return todayPlus(1);
             },
 
-            //today returns today's data and is used as the minimum value in date 
-            //inputs. This returns a yyyy-mm-dd formatted string for use in the min 
-            //attribute on an input type=date element. 
+            //today returns today's date. 
+            // 
+            //This value is used in the "min" attribute of any custom fields that are
+            //of the date type.
             today: function () {
-                let now: Date = new Date();
-                let y: number = now.getFullYear();
-                let m: number = now.getMonth() + 1;
-                let d: number = now.getDate();
-                let yy: string = y.toString();
-                let mm: string = (m < 10) ? "0" + m.toString() : m.toString();
-                let dd: string = (d < 10) ? "0" + d.toString() : d.toString();
-
-                return yy + "-" + mm + "-" + dd;
+                return getToday();
             },
 
             //create saves a new license. The data is submitted to the server where a
@@ -276,8 +262,7 @@ if (document.getElementById("createLicense")) {
             //user will be redirected to a new page to view the details of this license
             //and download the license file.
             create: function () {
-                //validate
-                //common fields
+                //Validate.
                 this.msgType = msgTypes.danger;
                 if (this.appSelectedID < 1) {
                     this.msg = "You must choose an app.";
@@ -312,7 +297,7 @@ if (document.getElementById("createLicense")) {
                     return;
                 }
 
-                //custom fields
+                //Custom fields.
                 for (let i = 0; i < this.fields.length; i++) {
                     //We don't use a type here since the field as returned from the
                     //API call to build the GUI was a list of "defined" fields, but
@@ -373,6 +358,7 @@ if (document.getElementById("createLicense")) {
                     } //end switch: validate based on field type.
 
                     //Move ID for field.
+                    //
                     //When we looked up the list of fields to build the GUI, we looked
                     //up the defined fields. However, when we submit data to create
                     //a license, we are submitting results. We need to "move" the ID
@@ -388,8 +374,10 @@ if (document.getElementById("createLicense")) {
                         cf.ID = 0;
                     }
 
-                    //Unset other defined field data. Sending this data to server is
-                    //unnecessary since it is for the defined field, not for a result.
+                    //Unset other defined field data.
+                    // 
+                    //Sending this data to server is unnecessary since it is for the 
+                    //defined field, not for a result.
                     cf.CreatedByUserID = 0;
                     cf.DatetimeCreated = "";
                     cf.DatetimeModified = "";
@@ -398,18 +386,17 @@ if (document.getElementById("createLicense")) {
 
                 } //end for: loop through each field validating each.
 
-                //make sure data isn't already being submitted
+                //Make sure data isn't already being submitted.
                 if (this.submitting) {
                     console.log("already submitting...");
                     return;
                 }
 
-                //validation ok
+                //Make API request.
                 this.msg = "Saving...";
                 this.msgType = msgTypes.primary;
                 this.submitting = true;
 
-                //perform api call
                 let data: Object = {
                     licenseData: JSON.stringify(this.licenseData),
                     customFields: JSON.stringify(this.fields),
@@ -417,37 +404,37 @@ if (document.getElementById("createLicense")) {
                 fetch(post(this.urls.add, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            createLicense.msg = err;
-                            createLicense.msgType = msgTypes.danger;
-                            createLicense.submitting = false;
+                        if (err !== "") {
+                            this.msg = err;
+                            this.msgType = msgTypes.danger;
+                            this.submitting = false;
                             return;
                         }
 
-                        //show success message and redirect user to license's page
+                        //Show success message and redirect user to license's page.
                         let licenseID: number = j.Data;
                         if (licenseID === undefined) {
-                            createLicense.msg = "Could not determine where to redirect you. This is an odd error...";
-                            createLicense.msgType = msgTypes.warning;
+                            this.msg = "Could not determine where to redirect you. This is an odd error...";
+                            this.msgType = msgTypes.warning;
                             return;
                         }
 
-                        createLicense.msg = "License created! Redirecting to license...";
-                        createLicense.msgType = msgTypes.primary;
+                        this.msg = "License created! Redirecting to license...";
+                        this.msgType = msgTypes.primary;
                         setTimeout(function () {
                             window.location.href = "/app/licensing/license/?id=" + licenseID;
                         }, defaultTimeout);
 
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        createLicense.msg = 'An unknown error occured. Please try again.';
-                        createLicense.msgType = msgTypes.danger;
-                        createLicense.submitting = false;
+                        this.msg = "An unknown error occured. Please try again.";
+                        this.msgType = msgTypes.danger;
+                        this.submitting = false;
                         return;
                     });
 
@@ -467,23 +454,23 @@ if (document.getElementById("createLicense")) {
                 fetch(get(this.urls.getAPIKeys, data))
                     .then(handleRequestErrors)
                     .then(getJSON)
-                    .then(function (j) {
-                        //check if response is an error from the server
+                    .then((j) => {
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
-                            createLicense.apiBuilderMsg = err;
-                            createLicense.apiBuilderMsgType = msgTypes.danger;
+                        if (err !== "") {
+                            this.apiBuilderMsg = err;
+                            this.apiBuilderMsgType = msgTypes.danger;
                             return;
                         }
 
-                        createLicense.apiKeys = j.Data || [];
-                        createLicense.apiKeysRetrieved = true;
+                        this.apiKeys = j.Data || [];
+                        this.apiKeysRetrieved = true;
                         return;
                     })
-                    .catch(function (err) {
+                    .catch((err) => {
                         console.log("fetch() error: >>", err, "<<");
-                        createLicense.apiBuilderMsg = 'An unknown error occured.  Please try again.';
-                        createLicense.apiBuilderMsgType = msgTypes.danger;
+                        this.apiBuilderMsg = "An unknown error occured. Please try again.";
+                        this.apiBuilderMsgType = msgTypes.danger;
                         return;
                     });
 
@@ -509,7 +496,7 @@ if (document.getElementById("createLicense")) {
 
                 //Handle custom fields by arranging them as an object of key:value
                 //pairs. 
-                let cf: object = {};
+                let cf: { [key: string]: any } = {};
                 for (let f of this.fields) {
                     switch (f.Type) {
                         case customFieldTypeInteger:
@@ -534,7 +521,7 @@ if (document.getElementById("createLicense")) {
                         //don't do anything here, this should never occur since
                         //we looked up custom fields from the db.
                     }
-                } //end for
+                } //end for: loop through each custom field defined.
 
                 let cfEncoded = encodeURIComponent(JSON.stringify(cf));
 
@@ -564,14 +551,11 @@ if (document.getElementById("createLicense")) {
                 return
             },
         },
+
         mounted() {
             //Load the apps the user can choose from.
             this.getApps();
-
-            //Set some default stuff.
-            setToggle("returnLicenseFile", false);
-
             return;
         }
-    })
+    }).mount("#createLicense");
 }

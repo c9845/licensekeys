@@ -42,8 +42,7 @@ if (document.getElementById("login")) {
 
                 //Endpoints.
                 urls: {
-                    loginAuth: "/app/login/",
-
+                    loginAuth: "/login/",
                     mainApp: "/app/", //redirect to page.
                 }
             }

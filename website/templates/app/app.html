@@ -11,10 +11,6 @@
         {{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
-		{{end}}
-
 		<!-- HEADER -->
 		{{template "header-with-btns" .}}	
 
@@ -41,21 +37,25 @@
                             </div>
 							<div class="card-body">
                                 {{if $userData.Administrator}}
-                                <section class="menu-section">
-                                    <a class="btn btn-block btn-outline-primary" href="/app/licensing/apps/">Apps & License Details</a>
-                                    <hr class="divider">
+                                <section>
+                                    <div class="d-grid gap-2">
+                                        <a class="btn btn-block btn-outline-primary" href="/app/licensing/apps/">Apps & License Details</a>
+                                    </div>
                                 </section>
+                                <hr class="divider">
                                 {{end}}
 
-                                <section class="menu-section">
-                                    {{if $userData.CreateLicenses}}
-                                    <a class="btn btn-block btn-outline-primary" href="/app/licensing/create-license/">Create License</a>
-                                    {{end}}
-                                    
-                                    {{if $userData.ViewLicenses}}
-                                    <a class="btn btn-block btn-outline-primary" href="/app/licensing/licenses/">View Licenses</a>
-                                    {{end}}
-                                </section>    
+                                <section>
+                                    <div class="d-grid gap-2">
+                                        {{if $userData.CreateLicenses}}
+                                        <a class="btn btn-block btn-outline-primary" href="/app/licensing/create-license/">Create License</a>
+                                        {{end}}
+                                        
+                                        {{if $userData.ViewLicenses}}
+                                        <a class="btn btn-block btn-outline-primary" href="/app/licensing/licenses/">View Licenses</a>
+                                        {{end}}
+                                    </div>
+                                </section>
 							</div>
 						</div>
                     </div>
@@ -70,31 +70,37 @@
                             </div>
 							<div class="card-body">
                                 <!-- settings -->
-                                <section class="menu-section">
-                                    <a class="btn btn-block btn-outline-primary" href="/app/administration/users/">Users</a>
-                                    <a class="btn btn-block btn-outline-primary" href="/app/administration/app-settings/">App Settings</a>
-                                    {{if $appSettings.AllowAPIAccess}}
-                                    <a class="btn btn-block btn-outline-primary" href="/app/administration/api-keys/">API Keys</a>
-                                    {{end}}
-                                    
+                                <section>
+                                    <div class="d-grid gap-2">
+                                        <a class="btn btn-block btn-outline-primary" href="/app/administration/users/">Users</a>
+                                        <a class="btn btn-block btn-outline-primary" href="/app/administration/app-settings/">App Settings</a>
+                                        {{if $appSettings.AllowAPIAccess}}
+                                        <a class="btn btn-block btn-outline-primary" href="/app/administration/api-keys/">API Keys</a>
+                                        {{end}}
+                                    </div>
                                 </section>
                                 <hr class="divider">
                                 
                                 <!-- data -->
-                                <section class="menu-section">
-                                    {{if $appSettings.EnableActivityLogging}}
-                                    <a class="btn btn-block btn-outline-primary" href="/app/administration/activity-log/">Activity Log</a>
-                                    {{end}}
-                                    
-                                    <a class="btn btn-block btn-outline-primary" href="/app/administration/user-logins/">User Logins</a>
-                                    
+                                <section>
+                                    <div class="d-grid gap-2">
+                                        {{if $appSettings.EnableActivityLogging}}
+                                        <a class="btn btn-block btn-outline-primary" href="/app/administration/activity-log/">Activity Log</a>
+                                        {{end}}
+                                        
+                                        <a class="btn btn-block btn-outline-primary" href="/app/administration/user-logins/">User Logins</a>
+                                    </div>
                                 </section>
-                                <hr class="divider">
-
+                                
                                 <!-- admin tools -->
-                                <section class="menu-section">
-                                    <a class="btn btn-block btn-outline-primary" href="/app/administration/tools/">Admin Tools</a>
+                                {{if $userData.Administrator}}
+                                <hr class="divider">
+                                <section>
+                                    <div class="d-grid gap-2">
+                                        <a class="btn btn-block btn-outline-primary" href="/app/administration/tools/">Admin Tools</a>
+                                    </div>
                                 </section>
+                                {{end}}
 							</div>
 						</div>
                     </div> 

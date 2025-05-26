@@ -329,7 +329,10 @@ func main() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
+	//
+	//
 	//Handle pages.
+
 	//**login & logout.
 	//  Using HandleFunc here instead of Handle with http.HandlerFunc, as below routes,
 	//  because we don't need any middlewares here that pass back and forth http.Handlers.
@@ -338,18 +341,18 @@ func main() {
 	r.HandleFunc("/logout/", users.Logout).Methods("GET")
 
 	//**main app pages.
-	a := r.PathPrefix("/app").Subrouter()
-	a.Handle("/", auth.ThenFunc(pages.Main)).Methods("GET")
-	a.Handle("/user-profile/", auth.ThenFunc(pages.UserProfile)).Methods("GET")
+	app := r.PathPrefix("/app").Subrouter()
+	app.Handle("/", auth.ThenFunc(pages.Main)).Methods("GET")
+	app.Handle("/user-profile/", auth.ThenFunc(pages.UserProfile)).Methods("GET")
 
-	l := a.PathPrefix("/licensing").Subrouter()
+	l := app.PathPrefix("/licensing").Subrouter()
 	l.Handle("/apps/", admin.ThenFunc(pages.Page)).Methods("GET")
 	l.Handle("/licenses/", viewLics.ThenFunc(pages.Page)).Methods("GET")
 	l.Handle("/create-license/", createLics.ThenFunc(pages.Page)).Methods("GET")
 	l.Handle("/license/", viewLics.ThenFunc(pages.License)).Methods("GET")
 
 	//*admin stuff and settings
-	adm := a.PathPrefix("/administration").Subrouter()
+	adm := app.PathPrefix("/administration").Subrouter()
 	adm.Handle("/users/", admin.ThenFunc(pages.Users)).Methods("GET")
 	adm.Handle("/app-settings/", admin.ThenFunc(pages.Page)).Methods("GET")
 	adm.Handle("/api-keys/", admin.ThenFunc(pages.Page)).Methods("GET")
@@ -418,10 +421,10 @@ func main() {
 	ulg.Handle("/latest/", admin.ThenFunc(users.LatestLogins)).Methods("GET")
 
 	//**apps
-	app := api.PathPrefix("/apps").Subrouter()
-	app.Handle("/", viewLics.ThenFunc(apps.Get)).Methods("GET") //Users need to view app to sort created licenses, and to create a new license.
-	app.Handle("/add/", admin.ThenFunc(apps.Add)).Methods("POST")
-	app.Handle("/update/", admin.ThenFunc(apps.Update)).Methods("POST")
+	appz := api.PathPrefix("/apps").Subrouter()
+	appz.Handle("/", viewLics.ThenFunc(apps.Get)).Methods("GET") //Users need to view app to sort created licenses, and to create a new license.
+	appz.Handle("/add/", admin.ThenFunc(apps.Add)).Methods("POST")
+	appz.Handle("/update/", admin.ThenFunc(apps.Update)).Methods("POST")
 
 	//**keypairs
 	kp := api.PathPrefix("/key-pairs").Subrouter()

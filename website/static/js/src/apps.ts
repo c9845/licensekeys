@@ -8,8 +8,8 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
-import { listKeyPairs } from "./keyPairs";
-import { listCustomFieldsDefined } from "./customFieldsDefined";
+import { listKeyPairs } from "./key-pairs";
+import { listCustomFieldsDefined } from "./custom-fields-defined";
 
 //Manage the list of apps you can create licenses for.
 var manageApps: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -90,7 +90,7 @@ if (document.getElementById("manageApps")) {
                     .then((j) => {
                         //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
-                        if (err !== '') {
+                        if (err !== "") {
                             this.msgLoad = err;
                             this.msgLoadType = msgTypes.danger;
                             return;
@@ -177,7 +177,7 @@ if (document.getElementById("manageApps")) {
                     break;
                 }
 
-                //Set the app in other Gue object.
+                //Set the app in other Vue object.
                 this.setAppIDInOtherVueObjects(this.appSelectedID);
 
                 return;
@@ -373,6 +373,12 @@ if (document.getElementById("manageApps")) {
                 return;
 
             },
-        }
+        },
+
+        mounted() {
+            //Load the apps that exist that a user can choose from.
+            this.getApps();
+            return;
+        },
     }).mount("#manageApps")
 }

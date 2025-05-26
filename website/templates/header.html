@@ -6,7 +6,7 @@
 <p class="text-center text-danger">!! DEV MODE !!</p>
 {{end}}
 
-<header>
+<header class="page-header">
 	<div class="container">
 		<div class="row align-items-center">
 			<div class="col">
@@ -30,24 +30,27 @@
 <p class="text-center text-danger">!! DEV MODE !!</p>
 {{end}}
 
-<header id="headerWithBtns">
+<header class="page-header" id="headerWithBtns">
 	<div class="container">
 		<div class="row align-items-center">
 			<div class="col">
-				<h4 id="header-title">{{template "html_title_app_name" .}}</h4>
+				<h4 id="app-name">{{template "html_title_app_name" .}}</h4>
             </div>
             <div class="col">
 				<div class="d-flex flex-row-reverse">
-					<div class="dropdown">
-						<button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Menu</button>
-						<ul class="dropdown-menu dropdown-menu-end">
-							<!-- main app stuff -->
-														
-							<!-- user related stuff -->
-							<li><h6 class="dropdown-header">{{$userData.Username}}</h6></li>
-							<li><a class="dropdown-item" href="/app/user-profile/">My Profile</a></li>
-							<li><a class="dropdown-item" href="/app/logout/">Logout</a></li>
-						</ul>
+					<div class="btn-group">
+						<!-- Return to main app page. -->
+						<a class="btn btn-outline-secondary btn-sm" href="/app/"><i class="fas fa-home"></i></a>
+
+						<!-- Dropdown for user-related navigation.-->
+						<div class="btn-group">
+							<button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Menu</button>
+							<ul class="dropdown-menu dropdown-menu-end">
+								<li><h6 class="dropdown-header">{{$userData.Username}}</h6></li>
+								<li><a class="dropdown-item" href="/app/user-profile/">My Profile</a></li>
+								<li><a class="dropdown-item" href="/logout/">Logout</a></li>
+							</ul>
+						</div>
 					</div>
 				</div>
 			</div>

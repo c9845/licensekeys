@@ -88,7 +88,7 @@ if (document.getElementById("userLogins")) {
                     .then(handleRequestErrors)
                     .then(getJSON)
                     .then((j) => {
-                        //check if response is an error from the server
+                        //Check if response is an error from the server.
                         let err: string = handleAPIErrors(j);
                         if (err !== "") {
                             this.msg = err;

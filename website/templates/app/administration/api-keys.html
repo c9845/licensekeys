@@ -8,10 +8,6 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !! </p>
-		{{end}}
-
 		<!-- HEADER -->
 		{{template "header-with-btns" .}}
 
@@ -33,7 +29,7 @@
                             <div class="card-body">
                                 <div class="form-group">
                                     <label>Key:</label>
-                                    <select class="form-control" v-model.number="apiKeySelectedID" v-on:change="showAPIKey">
+                                    <select class="form-select" v-model.number="apiKeySelectedID" v-on:change="showAPIKey">
                                         <option v-if="!keysRetrieved">Loading...</option>
                                         <template v-else>
                                             <option value="0" disabled>Please choose.</option>

@@ -10,16 +10,12 @@
 		{{template "html_head" .}}
 	</head>
 	<body>
-		{{if $showDevHeader}}
-			<p class="text-center text-danger">!! DEV MODE !!</p>
-		{{end}}
-
 		<!-- HEADER -->
 		{{template "header-with-btns" .}}
 
 		<main>
 			<div class="container" id="manageLicense">
-                <!-- alert banners -->
+                <!-- Alert banners. -->
                 <div class="row">
                     <div class="col">
                         <!-- alert for expired license, to make it more apparent -->
@@ -54,17 +50,17 @@
                     </div>
                 </div>
 
-                <!-- main page content -->
+                <!-- Main page content. -->
 				<div class="row justify-content-center">
                     <input type="hidden" id="licenseID" value="{{$licenseID}}">
 
-                    <!-- column for license info; common data, custom fields -->
+                    <!-- Column for license info; common data, custom fields. -->
                     <div class="col-12 col-md-6">
                         <div class="card">
                             <div class="card-header">
                                 <h5>License Data</h5>
 
-                                <!-- download button is located here, not on download history card so that is 
+                                <!-- Download button is located here, not on download history card so that is 
                                 is easily accessible on smaller screens when cards are stacked. This is mostly
                                 for when page is just loaded/shown since then download button will be in view
                                 right away without having to scroll down. -->
@@ -83,6 +79,7 @@
                                 </div>
                             </div>
                             <div class="card-body">
+                                <!-- Common info. -->
                                 <section>
                                     <dl class="row mb-0">
                                         <dt class="col-sm-4 text-truncate">ID:</dt>
@@ -107,6 +104,7 @@
                                     </dl>
                                 </section>
 
+                                <!-- Custom fields. -->
                                 <hr class="divider" v-if="customFieldResults.length > 0" v-cloak>
                                 <section>
                                     <dl class="row mb-0">
@@ -123,6 +121,7 @@
                                     </dl>
                                 </section>
 
+                                <!-- Misc. -->
                                 <section v-if="showAdvancedInfo" v-cloak>
                                     <hr class="divider">
                                     <dl class="row mb-0">
@@ -175,8 +174,9 @@
                         </div> <!-- end .card license data -->
                     </div> <!-- end .col for license data -->
 
-                    <!-- column for download history & notes -->
-                    <div class="col-12 col-md-6 col-after-col--up-to-sm">
+                    <!-- Column for download history & notes. -->
+                    <div class="col-12 col-md-6">
+                        <!-- Download history. -->
                         <div class="card">
                             <div class="card-header">
                                 <h5>Download History <small class="text-secondary" v-if="downloadHistory.length > 0" v-cloak>([[downloadHistory.length]])</small></h5>
@@ -214,6 +214,7 @@
                             </div>
                         </div> <!-- end .card for download history -->
 
+                        <!-- Notes. -->
                         <div class="card">
                             <div class="card-header">
                                 <h5>Notes</h5>
@@ -259,16 +260,17 @@
                                 </div>
                             </div>
                         </div> <!-- end .card for license notes -->
-                    </div> <!-- end .col for download history -->
+                    </div> <!-- end .col for download history & notes -->
 
                 </div> <!-- end .row -->
             </div> <!-- end .container -->
         </main>
 
         <!-- 
-            modal for disabling license. 
-            once a license is disabled, it cannot be reenabled.
-            a disabled license can also not be downloaded.
+            Modal for disabling license. 
+
+            Once a license is disabled, it cannot be reenabled. A disabled license 
+            can also not be downloaded.
         -->
         {{if $userData.CreateLicenses}}
         <div class="modal fade" id="modal-disableLicense">
@@ -287,14 +289,16 @@
                         </blockquote>
                         <hr class="divider">
 
-                        <fieldset v-bind:disabled="submitting">
-                            <div class="form-group">
-                                <label>Note:</label>
-                                <textarea class="form-control" v-model.trim="note" rows="4" placeholder="Describe why the license is being disabled."></textarea>
-                            </div>
-                        </fieldset>
+                        <form>
+                            <fieldset v-bind:disabled="submitting">
+                                <div class="form-group">
+                                    <label class="form-label">Note:</label>
+                                    <textarea class="form-control" v-model.trim="note" rows="4" placeholder="Describe why the license is being disabled."></textarea>
+                                </div>
+                            </fieldset>
+                        </form>
 
-                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                        <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                             [[msgSave]]
                         </div>
                     </div>
@@ -315,41 +319,51 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">[[modalTitle]]</h5>
+                        <h5 class="modal-title">Note</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <fieldset v-bind:disabled="submitting">
-                            <div class="form-group">
-                                <label>Note:</label>
-                                <textarea class="form-control" v-model.trim="noteData.Note" rows="4" v-bind:disabled="noteData.ID > 0"></textarea>
-                            </div>
-                        </fieldset>
-                        <fieldset v-if="!addingNew" disabled>
-                            <div class="form-group">
-                                <label>Created By:</label>
-                                <input 
-                                    class="form-control" 
-                                    type="text" 
-                                    v-if="noteData.CreatedByUsername !== null && !addingNew" 
-                                    v-model.trim="noteData.CreatedByUsername"
-                                >
-                                <input 
-                                    class="form-control" 
-                                    type="text" 
-                                    v-else 
-                                    v-bind:value="'API: ' + noteData.CreatedByAPIKeyDescription"
-                                >
-                            </div>
-                            <div class="form-group">
-                                <label>Created When:</label>
-                                <input class="form-control" type="text" v-bind:title="noteData.DatetimeCreated + ' UTC'" v-model.trim="noteData.DatetimeCreatedInTZ">
-                            </div>
-                        </fieldset>
+                        <blockquote class="description description-secondary">
+                            <p>Add a note to a license for future reference.</p>
+                        </blockquote>
+                        <hr class="divider">
 
-                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                        <form>
+                            <!-- When adding a note. -->
+                            <fieldset v-bind:disabled="submitting">
+                                <div class="form-group">
+                                    <label class="form-label">Note:</label>
+                                    <textarea class="form-control" v-model.trim="noteData.Note" rows="4" v-bind:disabled="noteData.ID > 0"></textarea>
+                                </div>
+                            </fieldset>
+
+                            <!-- Extra info when viewing an existing note. -->
+                            <fieldset v-if="!addingNew" disabled>
+                                <div class="form-group">
+                                    <label class="form-label">Created By:</label>
+                                    <input 
+                                        class="form-control" 
+                                        type="text" 
+                                        v-if="noteData.CreatedByUsername !== null && !addingNew" 
+                                        v-model.trim="noteData.CreatedByUsername"
+                                    >
+                                    <input 
+                                        class="form-control" 
+                                        type="text" 
+                                        v-else 
+                                        v-bind:value="'API: ' + noteData.CreatedByAPIKeyDescription"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Created When:</label>
+                                    <input class="form-control" type="text" v-bind:title="noteData.DatetimeCreated + ' UTC'" v-model.trim="noteData.DatetimeCreatedInTZ">
+                                </div>
+                            </fieldset>
+                        </form>
+
+                        <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                             [[msgSave]]
                         </div>
                     </div>
@@ -382,23 +396,25 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <blockquote class="section-description section-description-secondary">
+                        <blockquote class="description description-secondary">
                             <p>Renew a license to a new expiration date.</p>
                         </blockquote>
                         <hr class="divider">
 
-                        <fieldset v-bind:disabled="submitting">
-                            <div class="form-group">
-                                <label>Current Expiration Date:</label>
-                                <input type="date" class="form-control" v-model.trim="currentExpireDate" disabled>
-                            </div>
-                            <div class="form-group">
-                                <label>New Expiration Date:</label>
-                                <input type="date" class="form-control" v-model.trim="newExpireDate" v-bind:min="minDate">
-                            </div>
-                        </fieldset>
+                        <form>
+                            <fieldset v-bind:disabled="submitting">
+                                <div class="form-group">
+                                    <label clas="form-label">Current Expiration Date:</label>
+                                    <input class="form-control" type="date" v-model.trim="currentExpireDate" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label clas="form-label">New Expiration Date:</label>
+                                    <input class="form-control" type="date" v-model.trim="newExpireDate" v-bind:min="minDate">
+                                </div>
+                            </fieldset>
+                        </form>
 
-                        <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                        <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                             [[msgSave]]
                         </div>
                     </div>
