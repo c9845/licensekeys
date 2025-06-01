@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/c9845/licensekeys/v3/config"
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/users/pwds"
+	"github.com/c9845/licensekeys/v4/config"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/users/pwds"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 )

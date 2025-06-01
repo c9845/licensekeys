@@ -18,13 +18,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/apikeys"
-	"github.com/c9845/licensekeys/v3/config"
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/keypairs"
-	"github.com/c9845/licensekeys/v3/licensefile"
-	"github.com/c9845/licensekeys/v3/timestamps"
-	"github.com/c9845/licensekeys/v3/users"
+	"github.com/c9845/licensekeys/v4/apikeys"
+	"github.com/c9845/licensekeys/v4/config"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/keypairs"
+	"github.com/c9845/licensekeys/v4/licensefile"
+	"github.com/c9845/licensekeys/v4/timestamps"
+	"github.com/c9845/licensekeys/v4/users"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 	"gopkg.in/guregu/null.v3"
@@ -238,8 +238,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Get app data. We need this for the file format, signature hash algorithm and the
-	//encoding type.
+	//Get app data.
 	a, err := db.GetAppByID(r.Context(), kp.AppID)
 	if err != nil {
 		output.Error(err, "Could not look up app details this license is for.", w)
@@ -290,6 +289,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//download a valid license any time in the future.
 	l.IssueDate = timestamps.YMD()
 	l.IssueTimestamp = time.Now().Unix()
+	l.AppID = a.ID
 	l.AppName = a.Name
 	l.FileFormat = a.FileFormat
 	l.ShowLicenseID = a.ShowLicenseID
@@ -363,7 +363,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Sign the license file.
-	err = f.Sign(privateKey, kp.AlgorithmType)
+	err = f.Sign(privateKey)
 	if err != nil {
 		output.Error(err, "Could not generate signature.", w)
 		return
@@ -389,7 +389,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//complete license file with signature and then "reads" it like a third-party app
 	//would to verify the signature with a public key. This is done to confirm the
 	//signature is valid.
-	err = writeReadVerify(f, kp.AlgorithmType, []byte(kp.PublicKey))
+	err = writeReadVerify(f, []byte(kp.PublicKey))
 	if err == licensefile.ErrBadSignature {
 		output.Error(licensefile.ErrBadSignature, "License could not be verified and therefore cannot be used. Please contact an administrator and have them investigate this error.", w)
 		return
@@ -411,7 +411,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//isn't needed.
 	if r.FormValue("returnLicenseFile") == "true" {
 		//Set suggested filename.
-		filename := replaceFilenamePlaceholders(a.DownloadFilename, l.ID, a.Name, a.FileFormat)
+		filename := replaceFilenamePlaceholders(a.DownloadFilename, l.ID, a.Name)
 		w.Header().Add("Content-Disposition", "inline; filename=\""+filename+"\"")
 
 		err = f.Write(w)
@@ -617,7 +617,7 @@ func Download(w http.ResponseWriter, r *http.Request) {
 
 	//Replace any placeholders in the download filename. Placeholders are special
 	//words wrapped in {} characters provided for the license's app.
-	filename := replaceFilenamePlaceholders(l.AppDownloadFilename, l.ID, l.AppName, l.AppFileFormat)
+	filename := replaceFilenamePlaceholders(l.AppDownloadFilename, l.ID, l.AppName)
 
 	//Diagnostic info.
 	d, _ := f.ExpiresIn()
@@ -627,7 +627,7 @@ func Download(w http.ResponseWriter, r *http.Request) {
 	//function in the GUI, don't mark the returned data as a file for the browser to
 	//download. But, add the correct content type for the browser.
 	if r.FormValue("display") == "true" {
-		w.Header().Add("Content-Type", "text/"+strings.ToLower(string(l.FileFormat)))
+		w.Header().Add("Content-Type", "text/"+strings.ToLower(licensefile.FileFormat))
 	} else {
 		w.Header().Add("Content-Disposition", "attachment; filename=\""+filename+"\"")
 	}
@@ -647,12 +647,6 @@ func Download(w http.ResponseWriter, r *http.Request) {
 // This is used when a license is created so it can be validated and when downloading
 // a license.
 func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File, err error) {
-	//Make sure required fields for building license file were provided.
-	err = l.FileFormat.Valid()
-	if err != nil {
-		return
-	}
-
 	//Set common data in file.
 	f = licensefile.File{
 		CompanyName:    l.CompanyName,
@@ -663,9 +657,6 @@ func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File,
 		IssueTimestamp: l.IssueTimestamp,
 		ExpireDate:     l.ExpireDate,
 	}
-
-	//these fields are just used for the signing process
-	f.SetFileFormat(l.FileFormat)
 
 	//Set optional fields.
 	if l.ShowLicenseID {
@@ -835,6 +826,20 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Look up the keypair a license was signed with to make sure it is still active.
+	//The keypair could have been deleted after this license was created but before
+	//this renewal. We don't want to use a deleted keypair since it may have been
+	//hacked or something.
+	kp, err := db.GetKeyPairByID(r.Context(), fromLicense.KeyPairID)
+	if err != nil {
+		output.Error(err, "Could not look up keypair for license.", w)
+		return
+	}
+	if !kp.Active {
+		output.Error(errors.New("keypair disabled for renewal"), "The keypair used to sign this license has been disabled, you cannot renew this license. Create a new license and choose a new keypair.", w)
+		return
+	}
+
 	//Get a copy of the "from" license's data to use for the "to" license.
 	toLicense := fromLicense
 
@@ -961,19 +966,6 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//stuff.
 	//
 
-	//Get key pair data. We need this to get the private key info to sign the license
-	//files since we create the signature now, not when a license is downloaded, for
-	//efficiency purposes.
-	kp, err := db.GetKeyPairByID(r.Context(), toLicense.KeyPairID)
-	if err != nil {
-		output.Error(err, "Could not look up signature details.", w)
-		return
-	}
-	if !kp.Active {
-		output.ErrorInputInvalid("This key pair used for the original license is no longer active. This license cannot be renewed.", w)
-		return
-	}
-
 	//Create the renewal license file.
 	f, err := buildLicense(toLicense, ff)
 	if err != nil {
@@ -1001,7 +993,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Sign the license file.
-	err = f.Sign(privateKey, kp.AlgorithmType)
+	err = f.Sign(privateKey)
 	if err != nil {
 		output.Error(err, "Could not generate signature.", w)
 		return
@@ -1027,7 +1019,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//complete license file with signature and then "reads" it like a third-party app
 	//would to verify the signature with a public key. This is done to confirm the
 	//signature is valid.
-	err = writeReadVerify(f, kp.AlgorithmType, []byte(kp.PublicKey))
+	err = writeReadVerify(f, []byte(kp.PublicKey))
 	if err == licensefile.ErrBadSignature {
 		output.Error(licensefile.ErrBadSignature, "Renewed license could not be verified and therefore cannot be used. Please contact an administrator and have them investigate this error.", w)
 		return
@@ -1055,7 +1047,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		filename := replaceFilenamePlaceholders(a.DownloadFilename, toLicense.ID, a.Name, a.FileFormat)
+		filename := replaceFilenamePlaceholders(a.DownloadFilename, toLicense.ID, a.Name)
 		w.Header().Add("Content-Disposition", "inline; filename=\""+filename+"\"")
 
 		err = f.Write(w)
@@ -1118,10 +1110,7 @@ var errUnknownCreatedByID = errors.New("license: unknown creator")
 
 // writeReadVerify is used to verify a just created license data and signature. This
 // performs the same "read and verify" that a third-party app would.
-func writeReadVerify(f licensefile.File, keyPairAlgo licensefile.KeyPairAlgoType, publicKey []byte) (err error) {
-	//Store data that isn't serialized into license file.
-	fileFormat := f.FileFormat()
-
+func writeReadVerify(f licensefile.File, publicKey []byte) (err error) {
 	//Write the license file to a buffer instead of an actual text file or writing
 	//to an http response.
 	b := bytes.Buffer{}
@@ -1131,25 +1120,24 @@ func writeReadVerify(f licensefile.File, keyPairAlgo licensefile.KeyPairAlgoType
 	}
 
 	//"Read" the license file.
-	reread, err := licensefile.Unmarshal(b.Bytes(), fileFormat)
+	var reread licensefile.File
+	err = reread.Unmarshal(b.Bytes())
 	if err != nil {
 		return
 	}
 
 	//Verify the "reread" license.
-	err = reread.VerifySignature(publicKey, keyPairAlgo)
+	err = reread.Verify(publicKey)
 	return
 }
 
 // replaceFilenamePlaceholders replaces placeholders in filename that was defined for
 // an app with the correct associated data. This generates the actual filename a license
 // will be downloaded as.
-func replaceFilenamePlaceholders(filename string, licenseID int64, appName string, format licensefile.FileFormat) string {
+func replaceFilenamePlaceholders(filename string, licenseID int64, appName string) string {
 	filename = strings.ReplaceAll(filename, "{licenseID}", strconv.FormatInt(licenseID, 10))
 
 	filename = strings.ReplaceAll(filename, "{appName}", appName)
-
-	filename = strings.ReplaceAll(filename, "{ext}", string(format))
 
 	return filename
 }

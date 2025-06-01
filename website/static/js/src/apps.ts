@@ -10,7 +10,7 @@ import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 import { listKeyPairs } from "./key-pairs";
 import { listCustomFieldsDefined } from "./custom-fields-defined";
-import { app, fileFormats, fileFormatYAML } from "./types";
+import { app } from "./types";
 import { Tooltip } from "bootstrap";
 
 //Manage the list of apps you can create licenses for.
@@ -48,12 +48,6 @@ if (document.getElementById("manageApps")) {
                     ShowAppName: true,
                     Active: true, //New apps are always active, because why would you create a new app if they are inactive?
                 } as app,
-
-                //Options to choose from when adding/editing.
-                fileFormats: fileFormats,
-
-                //Defaults for options.
-                defaultFileFormat: fileFormatYAML,
 
                 //Form submission stuff.
                 submitting: false,

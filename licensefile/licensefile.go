@@ -1,18 +1,21 @@
 package licensefile
 
 import (
-	"crypto/sha1"
-	"crypto/sha256"
+	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/sha512"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"os"
-	"slices"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Errors when validating a license key file.
@@ -28,12 +31,45 @@ var (
 	ErrMissingExpireDate = errors.New("missing expire date")
 )
 
+// Reference information.
+const (
+	//KeypairAlgo is the algorithm used to generate a public-private key pair that
+	//signs and verifies license files. ED25519 was chosen because it results in the
+	//shortest signatures.
+	KeypairAlgo = "ED25519"
+
+	//FingerprintALgo is the algorithm used to hash the license file data prior to
+	//signing it. SHA512 was chosen because it is modern, does not have proven
+	//weaknesses, and well supported.
+	FingerprintAlgo = "SHA512"
+
+	//EncodingAlgo is the method of encoding the fingerprint and signature into a
+	//human-readbale alphabet that can be used in text files or otherwise. Base64 was
+	//chosen because is results in the shortest signature.
+	EncodingAlgo = "base64"
+
+	//FileFormat is the format of the data in a license file. YAML was chosen for its
+	//simplicity.
+	FileFormat = "yaml"
+)
+
+// Reference functions.
+var (
+	keypairAlgo     = ed25519.GenerateKey
+	fingerpringAlgo = sha512.Sum512
+	encodingAlgo    = base64.StdEncoding.EncodeToString
+	decodingAlgo    = base64.StdEncoding.DecodeString
+	signAlgo        = ed25519.Sign
+	verifyAlgo      = ed25519.Verify
+	marshalFunc     = yaml.Marshal
+	unmarshalFunc   = yaml.Unmarshal
+)
+
 // File defines the format of data stored in a license key file. This is the body of
 // the text file.
 //
 // Struct tags are needed for YAML since otherwise when marshalling the field names
-// will be converted to lowercase. We want to maintain camel case since that matches
-// the format used when marshalling to JSON.
+// will be converted to lowercase.
 //
 // We use a struct with a map, instead of just map, so that we can more easily interact
 // with common fields and store some non-marshalled license data. More simply, having
@@ -42,8 +78,8 @@ type File struct {
 	//Optionally displayed fields per app. These are at the top of the struct
 	//definition so that they will be displayed at the top of the marshalled data just
 	//for ease of human reading of the license key file.
-	LicenseID int64  `json:"LicenseID,omitempty" yaml:"LicenseID,omitempty"`
-	AppName   string `json:"AppName,omitempty" yaml:"AppName,omitempty"`
+	LicenseID int64  `yaml:"LicenseID,omitempty"`
+	AppName   string `yaml:"AppName,omitempty"`
 
 	//This data copied from db-license.go and always included in each license key file.
 	CompanyName    string `yaml:"CompanyName"`
@@ -61,7 +97,7 @@ type File struct {
 	//
 	//Called "custom fields" when interfacing with the database. Previously called
 	//"Extras" when interfacing with a license File. "Extras" just sounded ugly.
-	Metadata map[string]any `json:"Metadata,omitempty" yaml:"Metadata,omitempty"`
+	Metadata map[string]any `yaml:"Metadata,omitempty"`
 
 	//Signature is the result of signing the hash of File (all of the above fields)
 	//using the private key. The result is stored here and File is output to a text
@@ -69,127 +105,155 @@ type File struct {
 	//imported into your app by the end-user to allow the app's use.
 	Signature string `yaml:"Signature"`
 
-	//Stuff used for signing or verifying a license file. These are never included in
-	//the license key file that is distributed.
-	//
-	//During verification, these fields are populated just for debugging.
-	fileFormat   FileFormat      //the format a file was unmarshaled from.
-	readFromPath string          //path a license file was read from.
-	publicKey    []byte          //the public key used to verify a license.
-	keyPairAlgo  KeyPairAlgoType //algorithm type of the public key.
+	//Info used for debugging.
+	readFromPath string //path a license file was read from.
 }
 
-// GenerateKeyPair creates and returns a new private and public key.
-func GenerateKeyPair(k KeyPairAlgoType) (private, public []byte, err error) {
-	//Make sure a valid key pair type was provided.
-	if !slices.Contains(keyPairAlgoTypes, k) {
-		err = fmt.Errorf("invalid key pair type, should be one of '%s', got '%s'", keyPairAlgoTypes, k)
+// GenerateKeypair creates and return a new private and public key pair.
+func GenerateKeypair() (private, public []byte, err error) {
+	//Generate key pair.
+	pubKey, privKey, err := keypairAlgo(rand.Reader)
+	if err != nil {
 		return
 	}
 
-	//Generate the key pair.
-	switch k {
-	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
-		private, public, err = GenerateKeyPairECDSA(k)
-	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
-		private, public, err = GenerateKeyPairRSA(k)
-	case KeyPairAlgoED25519:
-		private, public, err = GenerateKeyPairED25519()
+	//Encode the private key.
+	x509PrivateKey, err := x509.MarshalPKCS8PrivateKey(privKey)
+	if err != nil {
+		return
 	}
+	pemBlockPrivateKey := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: x509PrivateKey,
+	}
+	private = pem.EncodeToMemory(pemBlockPrivateKey)
+
+	//Encode the public key.
+	x509PublicKey, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return
+	}
+	pemBlockPublicKey := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: x509PublicKey,
+	}
+	public = pem.EncodeToMemory(pemBlockPublicKey)
 
 	return
 }
 
-//***********************************************************************************
-//The below funcs are used when generating a license key file.
+// Fingerprint returns the checksum/hash of a license's data in a human readable
+// format. This is typically used when activating a license.
+//
+// The fingerprint is returned as base64 encoded SHA512.
+func (f *File) Fingerprint() (fingerprint string, err error) {
+	//Calculate the fingerprint as a []byte.
+	b, err := f.fingerprint()
+	if err != nil {
+		return
+	}
+
+	//Encode.
+	fingerprint = encodingAlgo(b)
+	return
+}
+
+// Fingerprint returns the checksum/hash of a license's data as a []byte. This is used
+// when signing or verifying a license.
+//
+// The fingerprint is returned as base64 encoded SHA512.
+func (f *File) fingerprint() (fingerprint []byte, err error) {
+	//Make sure the Signature field is blank prior hashing since the Signature is
+	//based upon the fingerprint.
+	f.Signature = ""
+
+	//Encode the struct as bytes.
+	b, err := f.Marshal()
+	if err != nil {
+		err = fmt.Errorf("file format required to marshal data before hashing, %w", err)
+		return
+	}
+
+	//Hash the license.
+	h := fingerpringAlgo(b)
+	fingerprint = []byte(h[:])
+	return
+}
 
 // Sign creates a signature for a license file. The signature is set in the provided
 // File's Signature field. The private key must be decrypted, if needed, prior to
-// being provided. The signature will be encoded per the File's EncodingType.
-func (f *File) Sign(privateKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	err = keyPairAlgo.Valid()
+// being provided. The signature will be encoded in base64.
+func (f *File) Sign(privateKey []byte) (err error) {
+	//Create fingerprint of license. This is what we actually sign.
+	fingerprint, err := f.fingerprint()
 	if err != nil {
 		return
 	}
 
-	switch keyPairAlgo {
-	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
-		err = f.SignECDSA(privateKey, keyPairAlgo)
-	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
-		err = f.SignRSA(privateKey, keyPairAlgo)
-	case KeyPairAlgoED25519:
-		err = f.SignED25519(privateKey)
+	//Decode the private key for use. This is not decrypting the private key!
+	pemBlock, _ := pem.Decode(privateKey)
+	x509Key, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
+	if err != nil {
+		return
 	}
 
+	//Sign the fingerprint.
+	sig := signAlgo(x509Key.(ed25519.PrivateKey), fingerprint[:])
+
+	//Encode the signature in a human readable format.
+	sigTxt := encodingAlgo(sig)
+
+	//Set the signature in the license file.
+	f.Signature = sigTxt
 	return
 }
 
-// hash generates a checksum of the marshalled File's data per the key pair algorithm
-// that will be used to sign the hash. This is used as part of the signing process
-// since we sign a hash, not the underlying File. This is also used when verifying
-// the license key file since we compare the hash against the signature with a public
-// key.
-func (f *File) hash(keyPairAlgo KeyPairAlgoType) (hash []byte, err error) {
-	//Make sure the Signature field is blank prior hashing since if the Signature
-	//field is present, it will add a source of randomness and will be replaced
-	//anyway by the signature generated within this func.
+// Verify checks if a File's signature is valid by checking it against the license's
+// fingerprint using the public key.
+//
+// This DOES NOT check if a File is expired. You should call Expired() on the File
+// after calling this func.
+//
+// Signature verification and expiration date checking were kept separate on purpose
+// so that each step can be handled more deliberately with specific handling of
+// invalid states (i.e.: for more graceful handling).
+//
+// This uses a COPY of the File since need to remove the Signature field prior to
+// hashing and verification but we don't want to modify the original File so it can
+// be used as it was parsed/unmarshalled.
+func (f File) Verify(publicKey []byte) (err error) {
+	//Decode the signature.
+	sig, err := decodingAlgo(f.Signature)
+	if err != nil {
+		return
+	}
+
+	//Remove signature from license so we can hash the license file's data. Signature
+	//is based on all data in license file but itself!
 	f.Signature = ""
 
-	//Encode the struct as bytes per the File's FileFormat. We reuse the FileFormat
-	//here since if a third-party app is validating a license file, it already has
-	//support for the provided FileFormat (to decode the file's data into a File
-	//struct) and reusing the same format for marshalling before hashing just makes
-	//sense.
-	//
-	//We tried marshalling with gob.NewEncoder() and Encode() but this doesn't
-	//ignore non-exported struct fields nor fields we don't want included in the
-	//license file (i.e.: fields with `json:"-"`).
-	b, err := f.Marshal()
-	if err != nil {
-		err = errors.New(err.Error() + " file format required to marshal data before hashing")
-		return
-	}
-
-	//Calculate the hash. The hash algorithm is determined by the key pair algorithm.
-	err = keyPairAlgo.Valid()
+	//Create fingerprint of license. This is what we actually sign.
+	fingerprint, err := f.fingerprint()
 	if err != nil {
 		return
 	}
 
-	//Use the correct hash algorithm per the key pair algorithm.
-	//https://www.rfc-editor.org/rfc/rfc5656#section-6.2.1
-	//Default to SHA1 for RSA.
-	//Default to SHA512 for ED25519.
-	switch keyPairAlgo {
-	case KeyPairAlgoECDSAP256:
-		h := sha256.Sum256(b)
-		hash = []byte(h[:])
-	case KeyPairAlgoECDSAP384:
-		h := sha512.Sum384(b)
-		hash = []byte(h[:])
-	case KeyPairAlgoECDSAP521:
-		h := sha512.Sum512(b)
-		hash = []byte(h[:])
-	case KeyPairAlgoRSA2048:
-		h := sha1.Sum(b)
-		hash = []byte(h[:])
-	case KeyPairAlgoRSA4096:
-		h := sha1.Sum(b)
-		hash = []byte(h[:])
-	case KeyPairAlgoED25519:
-		h := sha512.Sum512(b)
-		hash = []byte(h[:])
+	//Decode the public key.
+	pemBlock, _ := pem.Decode(publicKey)
+	x509Key, err := x509.ParsePKIXPublicKey(pemBlock.Bytes)
+	if err != nil {
+		return
 	}
 
+	//Verify the signature.
+	valid := verifyAlgo(x509Key.(ed25519.PublicKey), fingerprint[:], sig)
+	if !valid {
+		err = ErrBadSignature
+		return
+	}
+
+	//Signature is valid.
 	return
-}
-
-// encodeSignature returns the generated signature encoded as a string. The returned
-// value is the signature that will be set in the File's Signature field.
-//
-// base64 is used because it will generate shorter signatures than base32 or hex.
-func (f *File) encodeSignature(b []byte) {
-	f.Signature = base64.StdEncoding.EncodeToString(b)
 }
 
 // Write writes a File to out. This is used to output the complete license key file.
@@ -220,18 +284,30 @@ func (f *File) Write(out io.Writer) (err error) {
 	return
 }
 
-//***********************************************************************************
-//The below funcs are used when using a license key file in a third-party app.
+// Marshal encodes the File as YAML.
+func (f *File) Marshal() (b []byte, err error) {
+	b, err = marshalFunc(f)
+	return
+}
+
+// Unmarshal decodes YAML into File.
+func (f *File) Unmarshal(b []byte) (err error) {
+	err = unmarshalFunc(b, &f)
+	return
+}
 
 // Read reads a license key file from the given path, unmarshals it, and returns it's
 // data as a File. This checks if the file exists and the data is of the correct
 // format.
 //
+// If you do not need to read a license from a file, unmarshal the license data into
+// a File or create a File in some other manner, then call Verify().
+//
 // This DOES NOT check if the license key file itself (the contents of the file and
 // the signature) is valid nor does this check if the license is expired. You should
-// call VerifySignature() and Expired() on the returned File immediately after calling
-// this func.
-func Read(path string, format FileFormat) (f File, err error) {
+// call Verify() and Expired() on the returned File immediately after calling this
+// func.
+func Read(path string) (f File, err error) {
 	//Check if a file exists at the provided path.
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {
@@ -244,73 +320,16 @@ func Read(path string, format FileFormat) (f File, err error) {
 		return
 	}
 
-	//Unmarshal the file's contents. Upon success, this will set the File's FileFormat
-	//field accordingly.
-	f, err = Unmarshal(contents, format)
-
-	//If unmarshalling was successful, save the path to the license file since we know
-	//the file exists.
-	if err == nil {
-		f.readFromPath = path
-	} else {
-		f.readFromPath = "unknown"
-	}
-
-	return
-}
-
-// decodeSignature returns the File's Signature field as a []byte for use when
-// verifying the license key file with a public key.
-//
-// base64 is used because it will generate shorter signatures than base32 or hex.
-func (f *File) decodeSignature() (b []byte, err error) {
-	b, err = base64.StdEncoding.DecodeString(f.Signature)
-	return
-}
-
-// VerifySignature checks if a File's signature is valid by checking it against the
-// publicKey.
-//
-// This DOES NOT check if a File is expired. You should call Expired() on the File
-// after calling this func.
-//
-// Signature verification and expiration date checking were kept separate on purpose
-// so that each step can be handled more deliberately with specific handling of
-// invalid states (i.e.: for more graceful handling).
-func (f *File) VerifySignature(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	//Make sure a valid algo type was provided.
-	err = keyPairAlgo.Valid()
+	//Unmarshal the file's contents.
+	err = f.Unmarshal(contents)
 	if err != nil {
 		return
 	}
 
-	//Handle verification of signature based on algo type.
-	switch keyPairAlgo {
-	case KeyPairAlgoECDSAP256, KeyPairAlgoECDSAP384, KeyPairAlgoECDSAP521:
-		err = f.VerifySignatureECDSA(publicKey, keyPairAlgo)
-	case KeyPairAlgoRSA2048, KeyPairAlgoRSA4096:
-		err = f.VerifySignatureRSA(publicKey, keyPairAlgo)
-	case KeyPairAlgoED25519:
-		err = f.VerifySignatureED25519(publicKey)
-	}
-
-	//If verification was successful, save the public key info to the license file
-	//since we know the information was correct.
-	if err == nil {
-		f.publicKey = publicKey
-		f.keyPairAlgo = keyPairAlgo
-	}
-
+	//Save the path to the license file since we know the file exists. This is used
+	//for debugging.
+	f.readFromPath = path
 	return
-}
-
-// Verify calls VerifySignature().
-//
-// Deprecated: This func is here just for legacy situations since the old Verify()
-// func was renamed to VerifySignature() for better clarity. Use VerifySignature()
-// instead.
-func (f *File) Verify(publicKey []byte, keyPairAlgo KeyPairAlgoType) (err error) {
-	return f.VerifySignature(publicKey, keyPairAlgo)
 }
 
 // Expired returns if a lincense File's expiration date is in the past.

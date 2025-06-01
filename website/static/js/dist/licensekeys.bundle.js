@@ -39837,42 +39837,6 @@ if (document.getElementById("toolsClearLogins")) {
   }).mount("#toolsClearLogins");
 }
 
-// website/static/js/src/types.ts
-var fileFormatYAML = "yaml";
-var fileFormatJSON = "json";
-var fileFormats = [
-  fileFormatYAML,
-  fileFormatJSON
-];
-var customFieldTypeInteger = "Integer";
-var customFieldTypeDecimal = "Decimal";
-var customFieldTypeText = "Text";
-var customFieldTypeBoolean = "Boolean";
-var customFieldTypeMultiChoice = "Multi-Choice";
-var customFieldTypeDate = "Date";
-var customFieldTypes = [
-  customFieldTypeInteger,
-  customFieldTypeDecimal,
-  customFieldTypeText,
-  customFieldTypeMultiChoice,
-  customFieldTypeBoolean,
-  customFieldTypeDate
-];
-var keyPairAlgoECDSAP256 = "ECDSA (P256)";
-var keyPairAlgoECDSAP384 = "ECDSA (P384)";
-var keyPairAlgoECDSAP521 = "ECDSA (P521)";
-var keyPairAlgoRSA2048 = "RSA (2048-bit)";
-var keyPairAlgoRSA4096 = "RSA (4096-bit)";
-var keyPairAlgoED25519 = "ED25519";
-var keyPairAlgoTypes = [
-  keyPairAlgoECDSAP256,
-  keyPairAlgoECDSAP384,
-  keyPairAlgoECDSAP521,
-  keyPairAlgoRSA2048,
-  keyPairAlgoRSA4096,
-  keyPairAlgoED25519
-];
-
 // website/static/js/src/key-pairs.ts
 var listKeyPairs;
 if (document.getElementById("listKeyPairs")) {
@@ -39976,10 +39940,6 @@ if (document.getElementById("modal-manageKeyPair")) {
         //
         //This is set in setKeypairInModal();
         keyPairData: {},
-        //Options to choose from when adding.
-        algorithmTypes: keyPairAlgoTypes,
-        //Defaults for options.
-        defaultAlgorithmType: keyPairAlgoED25519,
         //Show public key for copying. true upon button click to show public 
         //key in textarea for copying.
         showPublicKey: false,
@@ -39996,16 +39956,6 @@ if (document.getElementById("modal-manageKeyPair")) {
       };
     },
     computed: {
-      //adding is set to true when the user is adding/generating a key pair.
-      // 
-      //This is used to modify what the GUI displays (modal title and body text) 
-      //to show correct helpful information based on adding or viewing a keypair.
-      adding: function() {
-        if (this.keyPairData.ID === void 0 || this.keyPairData.ID < 1) {
-          return true;
-        }
-        return false;
-      },
       //publicKeyNumLines returns the number of lines in the public key and is
       //used to set the "rows" attribute on the textarea so that the entire
       //public key is visible for ease of copying.
@@ -40044,7 +39994,6 @@ if (document.getElementById("modal-manageKeyPair")) {
           Active: true,
           AppID: this.appSelectedID,
           Name: "",
-          AlgorithmType: this.defaultAlgorithmType,
           PublicKey: "",
           IsDefault: false
         };
@@ -40063,10 +40012,6 @@ if (document.getElementById("modal-manageKeyPair")) {
         this.msgSaveType = msgTypes.danger;
         if (this.keyPairData.Name.trim() === "") {
           this.msgSave = "You must provide a name for this key pair.";
-          return;
-        }
-        if (!this.algorithmTypes.includes(this.keyPairData.AlgorithmType)) {
-          this.msgSave = "Please choose an algorithm from the provided options";
           return;
         }
         this.msgSave = "Generating key pair...";
@@ -40189,6 +40134,28 @@ if (document.getElementById("modal-manageKeyPair")) {
     }
   }).mount("#modal-manageKeyPair");
 }
+
+// website/static/js/src/types.ts
+var fileFormatYAML = "yaml";
+var fileFormatJSON = "json";
+var fileFormats = [
+  fileFormatYAML,
+  fileFormatJSON
+];
+var customFieldTypeInteger = "Integer";
+var customFieldTypeDecimal = "Decimal";
+var customFieldTypeText = "Text";
+var customFieldTypeBoolean = "Boolean";
+var customFieldTypeMultiChoice = "Multi-Choice";
+var customFieldTypeDate = "Date";
+var customFieldTypes = [
+  customFieldTypeInteger,
+  customFieldTypeDecimal,
+  customFieldTypeText,
+  customFieldTypeMultiChoice,
+  customFieldTypeBoolean,
+  customFieldTypeDate
+];
 
 // website/static/js/src/custom-fields-defined.ts
 var listCustomFieldsDefined;

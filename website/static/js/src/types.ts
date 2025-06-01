@@ -68,14 +68,6 @@ export interface app {
     DownloadFilename: string,
 }
 
-//This must match the formats defined in keyfile-fileFormats.go.
-export const fileFormatYAML: string = "yaml";
-export const fileFormatJSON: string = "json";
-export const fileFormats: string[] = [
-    fileFormatYAML,
-    fileFormatJSON,
-];
-
 //appSettings handles interacting with the settings that change functionality of the
 //app.
 export interface appSettings {
@@ -183,21 +175,6 @@ export interface keyPair {
     PrivateKeyEncrypted: boolean, //whether the private key is stored in plaintext or encrypted
     IsDefault: boolean, //if this is the default keypair for the app
 }
-
-export const keyPairAlgoECDSAP256: string = "ECDSA (P256)";
-export const keyPairAlgoECDSAP384: string = "ECDSA (P384)";
-export const keyPairAlgoECDSAP521: string = "ECDSA (P521)";
-export const keyPairAlgoRSA2048: string = "RSA (2048-bit)";
-export const keyPairAlgoRSA4096: string = "RSA (4096-bit)";
-export const keyPairAlgoED25519: string = "ED25519";
-export const keyPairAlgoTypes: string[] = [
-    keyPairAlgoECDSAP256,
-    keyPairAlgoECDSAP384,
-    keyPairAlgoECDSAP521,
-    keyPairAlgoRSA2048,
-    keyPairAlgoRSA4096,
-    keyPairAlgoED25519,
-];
 
 //license is a license created for an app.
 export interface license {

@@ -17,10 +17,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/c9845/licensekeys/v3/config"
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/licensefile"
-	"github.com/c9845/licensekeys/v3/users"
+	"github.com/c9845/licensekeys/v4/config"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/licensefile"
+	"github.com/c9845/licensekeys/v4/users"
 	"github.com/c9845/output"
 )
 
@@ -66,17 +66,20 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	k.CreatedByUserID = loggedInUserID
 
 	//Generate the key pair public and private key.
-	privateKey, publicKey, err := licensefile.GenerateKeyPair(k.AlgorithmType)
+	privateKey, publicKey, err := licensefile.GenerateKeypair()
 	if err != nil {
 		output.Error(err, "Could not generate key pair.", w)
 		return
 	}
 
 	//Set data for saving to db. We save the private & public keys as strings in the
-	//database just for ease of use. We could store as BLOB (sqlite) instead but string
-	//works fine. Plus, we can inspecte the private and public keys in the database
+	//database just for ease of use. We could store as BLOB (sqlite) but string
+	//works fine. Plus, we can inspect the private and public keys in the database
 	//more easily when they are stored as strings (as long as private key isn't
 	//encrypted).
+	k.KeypairAlgo = licensefile.KeypairAlgo
+	k.FingerprintAlgo = licensefile.FingerprintAlgo
+	k.EncodingAlgo = licensefile.EncodingAlgo
 	k.PrivateKey = string(privateKey)
 	k.PublicKey = string(publicKey)
 
@@ -100,7 +103,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		k.PrivateKeyEncrypted = true
 	}
 
-	//Check if this will be the only active license for this app, and if it is, mark
+	//Check if this will be the only active keypair for this app, and if it is, mark
 	//it as the default.
 	kps, err := db.GetKeyPairs(r.Context(), k.AppID, true)
 	if err != nil {
@@ -158,7 +161,7 @@ func encryptPrivateKey(encryptionKey string, unencryptedPrivateKey []byte) (encr
 		return
 	}
 
-	//the nonce will be included at the beginning of the encrypted private key
+	//The nonce will be included at the beginning of the encrypted private key
 	encryptedPrivateKey = aesgcm.Seal(nonce, nonce, unencryptedPrivateKey, nil)
 	return
 }
@@ -193,15 +196,16 @@ func DecryptPrivateKey(encryptionKey string, encryptedPrivateKey []byte) (unecry
 		return
 	}
 
-	//get the nonce from the beginning of the encrypted private key
-	//reset the encrypted private key to not include the nonce
+	//Get the nonce from the beginning of the encrypted private key. Reset the
+	//encrypted private key to not include the nonce
 	l := aesgcm.NonceSize()
 	nonce, encryptedPrivateKey := encryptedPrivateKey[:l], encryptedPrivateKey[l:]
 	unecryptedPrivKey, err = aesgcm.Open(nil, nonce, encryptedPrivateKey, nil)
 	return
 }
 
-// Get returns the list of keypairs. You can optionally filter by active only.
+// Get returns the list of keypairs for an app. You can optionally filter by active
+// only.
 func Get(w http.ResponseWriter, r *http.Request) {
 	appID, _ := strconv.ParseInt(r.FormValue("appID"), 10, 64)
 	activeOnly, _ := strconv.ParseBool(r.FormValue("activeOnly"))
@@ -221,8 +225,7 @@ func Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete marks a keypair as inactive. The keypair will no longer be available for use
-// to sign a license. Old licenses will still use their assigned keypair even when
-// keypair is deleted.
+// to sign a license.
 func Delete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 

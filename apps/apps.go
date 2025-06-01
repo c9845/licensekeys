@@ -11,8 +11,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/users"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/licensefile"
+	"github.com/c9845/licensekeys/v4/users"
 	"github.com/c9845/output"
 )
 
@@ -35,7 +36,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Validate..
+	//Validate.
 	errMsg, err := a.Validate(r.Context())
 	if err != nil && errMsg != "" {
 		output.Error(err, errMsg, w)
@@ -57,6 +58,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	a.CreatedByUserID = loggedInUserID
 
 	//Save.
+	a.FileFormat = licensefile.FileFormat
 	err = a.Insert(r.Context())
 	if err != nil {
 		output.Error(err, "Could not save app.", w)

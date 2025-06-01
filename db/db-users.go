@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/config"
-	"github.com/c9845/licensekeys/v3/timestamps"
-	"github.com/c9845/licensekeys/v3/users/pwds"
+	"github.com/c9845/licensekeys/v4/config"
+	"github.com/c9845/licensekeys/v4/timestamps"
+	"github.com/c9845/licensekeys/v4/users/pwds"
 	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 )

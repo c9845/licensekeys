@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/c9845/licensekeys/v3/config"
+	"github.com/c9845/licensekeys/v4/config"
 )
 
 //This file specifically handles user related pages. This functionality was broken

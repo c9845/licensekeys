@@ -1,3 +1,36 @@
+Improved end-user/client verification functionality.
+    - Clearer library for reading and verifying license file.
+    - Functionality for getting fingerprint, for diagnostics or activation.
+
+Store fingerprint for each license file.
+    - Used for activation.
+    - Also for diagnostics.
+
+Help doc on how to verify license without our library.
+    - Decode license file, file format.
+    - How to get fingerprint of license file.
+        - Strip signature.
+        - What hash algo to use (SHA512)
+        - What encoding to use (base 64).
+        - What signature algo (ed25519).
+    - Display info on license page under advanced info?
+
+Activation.
+    - Separate server that just listens for requests with fingerprint.
+    - Proxies requests to main server to check fingerprint.
+    - Kept separate so it can run on public WAN while license server is on private WAN for security.
+    - Separate also means it doesn't need access to SQLite db.
+    - Need to send back some sort of "activation id".
+    - Track activations per license in db.
+    - Activation tooling in library.
+
+UUID for app, license.
+    - So license file doesn't have just an integer.
+    - Also, future planning for app being multitenant.
+    - Private (db ID) versus public (UUID).
+
+
+
 Handle ROUND in SQL queries.
     **is this actually an issue??? ROUND() seems work on mattn.
     
@@ -13,16 +46,3 @@ Handle ROUND in SQL queries.
       method or the other.
         - If using SQLite ROUND, then we need to note build tag for when using mattn library.
         
-
-***
-
-License Activation?
-    - longgggg term thing.
-    - api endpoint for checking if a license is valid, active, etc.
-    - however, this does mean this license key server has to be on the WAN/public internet which is not a great idea.
-        - due to storing private keys in db (even though they might be encrypted).
-        - separate, related, server for this that is on WAN but interacts with licensekey serve on LAN (activation server acts as middleman).
-        - would need activation tooling in licensekey server anyway in some form.
-    - enabled via app setting? enabled per app?
-    - sends back activation ID to third-party app.
-    - lots of research to do on this.

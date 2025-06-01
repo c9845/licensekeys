@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/apikeys"
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/users"
+	"github.com/c9845/licensekeys/v4/apikeys"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/users"
 	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"
 )

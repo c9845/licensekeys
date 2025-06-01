@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/licensefile"
 	"github.com/c9845/sqldb/v3"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v3"
@@ -36,11 +35,12 @@ type License struct {
 	DatetimeModified string
 	Active           bool
 
-	//a license can be created by a user or via an api call.
+	//A license can be created by a user or via an API call.
 	CreatedByUserID   null.Int
 	CreatedByAPIKeyID null.Int
 
-	//details chosen/provided in gui by user
+	//Details chosen/provided in GUI by user, or API call.
+	AppID          int64  //the app this license if for. can also get this through keypair.
 	KeyPairID      int64  //the keypair used to sign the license
 	CompanyName    string //company this license is for
 	ContactName    string //who requested this license
@@ -64,10 +64,9 @@ type License struct {
 	//be verified as authentic with the respective public key.
 	Verified bool
 
-	//These fields are copied from the app's details when the license
-	//is created.
+	//Fields copied from app when license is created.
 	AppName       string
-	FileFormat    licensefile.FileFormat
+	FileFormat    string
 	ShowLicenseID bool
 	ShowAppName   bool
 
@@ -78,11 +77,11 @@ type License struct {
 	Timezone            string //extra data for above fields for displaying in GUI.
 
 	//JOINed fields
-	KeyPairAlgoType            licensefile.KeyPairAlgoType
+	KeypairAlgo                string
+	FingerprintAlgo            string
+	EncodingAlgo               string
 	CreatedByUsername          null.String
 	CreatedByAPIKeyDescription null.String
-	AppID                      int64
-	AppFileFormat              licensefile.FileFormat
 	AppDownloadFilename        string
 	RenewedFromLicenseID       null.Int
 	RenewedToLicenseID         null.Int
@@ -99,6 +98,7 @@ const (
 			CreatedByUserID INTEGER DEFAULT NULL,
 			CreatedByAPIKeyID INTEGER DEFAULT NULL,
 
+			AppID INTEGER NOT NULL,
 			KeyPairID INTEGER NOT NULL,
 			CompanyName TEXT NOT NULL,
 			ContactName TEXT NOT NULL,
@@ -263,6 +263,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		"DatetimeCreated",
 		"Active",
 
+		"AppID",
 		"KeyPairID",
 		"CompanyName",
 		"ContactName",
@@ -284,6 +285,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		l.DatetimeCreated,
 		true, //Active
 
+		l.AppID,
 		l.KeyPairID,
 		l.CompanyName,
 		l.ContactName,
@@ -337,7 +339,8 @@ func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
 		SET Signature = ?
-		WHERE ID = ?
+		WHERE 
+			(ID = ?)
 	`
 
 	stmt, err := tx.PrepareContext(ctx, q)
@@ -361,7 +364,8 @@ func (l *License) MarkVerified(ctx context.Context) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
 		SET Verified = ?
-		WHERE ID = ?
+		WHERE 
+			(ID = ?)
 	`
 
 	c := sqldb.Connection()

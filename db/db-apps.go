@@ -5,8 +5,7 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/c9845/licensekeys/v3/licensefile"
-	"github.com/c9845/licensekeys/v3/timestamps"
+	"github.com/c9845/licensekeys/v4/timestamps"
 	"github.com/c9845/sqldb/v3"
 )
 
@@ -30,16 +29,19 @@ type App struct {
 	CreatedByUserID  int64
 	Active           bool
 
-	Name             string
-	DaysToExpiration int                    //the number of days to add on to "today" to calculate a default expiration date of a license
-	FileFormat       licensefile.FileFormat //yaml, json, etc. the format of the data stored in the text file.
-	ShowLicenseID    bool                   //if the ID field of a created license file will be populated/non-zero.
-	ShowAppName      bool                   //if the Application field of a created license file will be populated/non-blank.
+	Name             string //name of app
+	DaysToExpiration int    //the number of days to add on to "today" to calculate a default expiration date of a license
 
-	//DownloadFilename is the name of the license file when downloaded. This defaults to
-	//"appname-license.txt" but can be customized using {{}} placeholders.
+	//Optionally shown info in license file.
+	ShowLicenseID bool //if the ID field of a created license file will be populated/non-zero.
+	ShowAppName   bool //if the Application field of a created license file will be populated/non-blank.
+
+	//Diagnostic info.
+	FileFormat string //the format of text in a license file. Ex.: yaml.
+
+	//DownloadFilename is the name of the license file when downloaded. This defaults
+	//to "appname-license.txt" but can be customized using {} placeholders.
 	//Placeholders:
-	// - {ext} is replaced with the file format's extension prepended by a period (ex: .json);
 	// - {appName} is replaced with the app's name, in lowercase and with spaces replaced by underscores.
 	// - {licenseID} is replaced with the license's ID.
 	DownloadFilename string
@@ -56,9 +58,12 @@ const (
 
 			Name TEXT NOT NULL,
 			DaysToExpiration INTEGER NOT NULL DEFAULT 0,
-			FileFormat TEXT NOT NULL,
+
 			ShowLicenseID INTEGER NOT NULL DEFAULT 1,
 			ShowAppName INTEGER NOT NULL DEFAULT 1,
+
+			FileFormat TEXT NOT NULL,
+
 			DownloadFilename TEXT NOT NULL,
 
 			FOREIGN KEY (CreatedByUserID) REFERENCES ` + TableUsers + `(ID)
@@ -83,13 +88,6 @@ func (a *App) Validate(ctx context.Context) (errMsg string, err error) {
 		errMsg = "The default license period cannot be less than 0 days."
 		return
 	}
-
-	err = a.FileFormat.Valid()
-	if err != nil {
-		errMsg = "Please choose a file format from the provided options."
-		return
-	}
-
 	if a.DownloadFilename == "" {
 		errMsg = "You must provide the name of the license file as it will be downloaded."
 		return
@@ -120,7 +118,8 @@ func GetAppByName(ctx context.Context, name string) (a App, err error) {
 	q := `
 		SELECT ` + TableApps + `.*
 		FROM ` + TableApps + `
-		WHERE Name = ?
+		WHERE 
+			(Name = ?)
 	`
 
 	c := sqldb.Connection()
@@ -133,7 +132,8 @@ func GetAppByID(ctx context.Context, id int64) (a App, err error) {
 	q := `
 		SELECT ` + TableApps + `.*
 		FROM ` + TableApps + `
-		WHERE ID = ?
+		WHERE 
+			(ID = ?)
 	`
 
 	c := sqldb.Connection()
@@ -148,9 +148,9 @@ func (a *App) Insert(ctx context.Context) (err error) {
 		"Active",
 		"Name",
 		"DaysToExpiration",
-		"FileFormat",
 		"ShowLicenseID",
 		"ShowAppName",
+		"FileFormat",
 		"DownloadFilename",
 	}
 	b := sqldb.Bindvars{
@@ -158,9 +158,9 @@ func (a *App) Insert(ctx context.Context) (err error) {
 		a.Active,
 		a.Name,
 		a.DaysToExpiration,
-		a.FileFormat,
 		a.ShowLicenseID,
 		a.ShowAppName,
+		a.FileFormat,
 		a.DownloadFilename,
 	}
 	colString, valString, err := cols.ForInsert()
@@ -188,12 +188,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 
 // GetApps returns the list of apps optionally filtered by active apps only.
 func GetApps(ctx context.Context, activeOnly bool) (aa []App, err error) {
-	//base query
-	q := `
-		SELECT ` + TableApps + `.* 
-		FROM ` + TableApps
-
-	//filters
+	//Build WHERE clauses
 	wheres := []string{}
 	b := sqldb.Bindvars{}
 	if activeOnly {
@@ -202,15 +197,15 @@ func GetApps(ctx context.Context, activeOnly bool) (aa []App, err error) {
 		b = append(b, activeOnly)
 	}
 
-	if len(wheres) > 0 {
-		where := " WHERE " + strings.Join(wheres, " AND ")
-		q += where
-	}
+	//Build query.
+	q := `
+		SELECT ` + TableApps + `.* 
+		FROM ` + TableApps + ` 
+		WHERE ` + strings.Join(wheres, " AND ") + `
+		ORDER BY ` + TableApps + `.Active DESC, ` + TableApps + `.Name ASC
+	`
 
-	//complete query
-	q += ` ORDER BY ` + TableApps + `.Active DESC, ` + TableApps + `.Name ASC`
-
-	//run query
+	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &aa, q, b...)
 	return
@@ -223,7 +218,6 @@ func (a *App) Update(ctx context.Context) (err error) {
 		"Active",
 		"Name",
 		"DaysToExpiration",
-		"FileFormat",
 		"ShowLicenseID",
 		"ShowAppName",
 		"DownloadFilename",

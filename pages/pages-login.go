@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/users"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/users"
 )
 
 //This file specifically handles the login page. This functionality was broken out

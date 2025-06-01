@@ -8,7 +8,7 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
-import { keyPair, keyPairAlgoTypes, keyPairAlgoED25519 } from "./types";
+import { keyPair } from "./types";
 
 //Manage the list of key pairs.
 export var listKeyPairs: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -141,12 +141,6 @@ if (document.getElementById("modal-manageKeyPair")) {
                 //This is set in setKeypairInModal();
                 keyPairData: {} as keyPair,
 
-                //Options to choose from when adding.
-                algorithmTypes: keyPairAlgoTypes,
-
-                //Defaults for options.
-                defaultAlgorithmType: keyPairAlgoED25519,
-
                 //Show public key for copying. true upon button click to show public 
                 //key in textarea for copying.
                 showPublicKey: false,
@@ -166,18 +160,6 @@ if (document.getElementById("modal-manageKeyPair")) {
         },
 
         computed: {
-            //adding is set to true when the user is adding/generating a key pair.
-            // 
-            //This is used to modify what the GUI displays (modal title and body text) 
-            //to show correct helpful information based on adding or viewing a keypair.
-            adding: function () {
-                if (this.keyPairData.ID === undefined || this.keyPairData.ID < 1) {
-                    return true;
-                }
-
-                return false;
-            },
-
             //publicKeyNumLines returns the number of lines in the public key and is
             //used to set the "rows" attribute on the textarea so that the entire
             //public key is visible for ease of copying.
@@ -226,7 +208,6 @@ if (document.getElementById("modal-manageKeyPair")) {
                     Active: true,
                     AppID: this.appSelectedID,
                     Name: "",
-                    AlgorithmType: this.defaultAlgorithmType,
                     PublicKey: "",
                     IsDefault: false,
                 } as keyPair;
@@ -251,10 +232,6 @@ if (document.getElementById("modal-manageKeyPair")) {
                 this.msgSaveType = msgTypes.danger;
                 if (this.keyPairData.Name.trim() === "") {
                     this.msgSave = "You must provide a name for this key pair.";
-                    return;
-                }
-                if (!this.algorithmTypes.includes(this.keyPairData.AlgorithmType)) {
-                    this.msgSave = "Please choose an algorithm from the provided options";
                     return;
                 }
 

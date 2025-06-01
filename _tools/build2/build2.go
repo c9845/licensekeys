@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // config holds configuration for this building. This is used to allow reuse of this

@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/c9845/licensekeys/v3/db"
+	"github.com/c9845/licensekeys/v4/db"
 )
 
 //This file defines handling for general error pages throughout the app. This page

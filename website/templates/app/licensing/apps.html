@@ -15,7 +15,7 @@
 			<div class="container" >
 				<div class="row justify-content-center">
                     
-                    <!-- column for choosing app and editing app (name, file format, etc.) -->
+                    <!-- column for choosing app and editing app -->
                     <div class="col-12 col-md-5" id="manageApps">
                         <!-- card for choosing the app you want to lookup/edit, not shown when adding a new app -->
                         <div class="card" v-if="addingNew === false">
@@ -86,28 +86,12 @@
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">
-                                                File Format:
-                                                <span 
-                                                    class="help-icon text-secondary" 
-                                                    data-bs-toggle="tooltip" 
-                                                    data-bs-title="How the data will be stored inside the license file."
-                                                >
-                                                    <i class="fa-solid fa-question-circle"></i>
-                                                </span>
-                                            </label>
-                                            <select class="form-select" v-model.trim="appData.FileFormat" v-on:change="setDefaultDownloadFilename">
-                                                <option value="" disabled>Please choose.</option>
-                                                <option v-for="ff in fileFormats" v-bind:value="ff">[[ff.toUpperCase()]]</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-label">
                                                 License Filename: 
-                                                <!-- TODO: link to page explaining magic replacement code ({ext} is replaced with .json, .yaml)-->
+                                                <!-- TODO: link to page explaining magic replacement codes {}.)-->
                                                 <span 
                                                     class="help-icon text-secondary" 
                                                     data-bs-toggle="tooltip"
-                                                    data-bs-title="The name of the file a license will be downloaded as. You can use {licenseID}, {appName}, and {ext} as placeholders."
+                                                    data-bs-title="The name of the file a license will be downloaded as. You can use {licenseID} and {appName} as placeholders."
                                                 >
                                                     <i class="fa-solid fa-question-circle"></i>
                                                 </span>
@@ -222,7 +206,7 @@
                                         <thead class="no-border-top">
                                             <tr>
                                                 <th class="column-name">Name</th>
-                                                <th class="column-keypair-algo">Type</th> <!-- ecdsa, rsa -->
+                                                <th class="column-datetime-created">Type</th> <!-- ecdsa, rsa -->
                                                 <th class="column-tasks one-task"></th> <!-- view details in modal button -->
                                             </tr>
                                         </thead>
@@ -258,7 +242,7 @@
                                                             <i class="fa-solid fa-unlock"></i>
                                                         </span>
                                                     </td>
-                                                    <td class="column-keypair-algo">[[x.AlgorithmType]]</td>
+                                                    <td class="column-datetime-created">[[x.DatetimeCreated]]</td>
                                                     <td class="column-tasks one-task">
                                                         <button 
                                                             class="btn btn-sm btn-link text-primary" 
@@ -386,8 +370,8 @@
                     <div class="modal-header">
                         <div>
                             <h5 class="modal-title">
-                                <span v-if="adding">Add Key Pair</span>
-                                <span v-else       >View Key Pair</span>
+                                <span v-if="keyPairData.ID === 0">Add Key Pair</span>
+                                <span v-else                     >View Key Pair</span>
                             </h5>
                         </div>
                         <div>
@@ -396,7 +380,7 @@
                                 class="btn btn-sm btn-outline-danger" 
                                 data-bs-dismiss="modal" 
                                 v-on:click="remove"
-                                v-if="!adding"
+                                v-if="keyPairData.ID > 0"
                             >
                                 <i class="fa-solid fa-trash-alt"></i>
                             </button>
@@ -404,7 +388,7 @@
                     </div>
                     <div class="modal-body">
                         <blockquote class="description description-secondary">
-                            <p v-if="adding">Define the key pair for signing licenses.</p>
+                            <p v-if="keyPairData.ID === 0">Define the key pair for signing licenses.</p>
                             <p v-else>The public key for this key pair can be viewed/copied for use in your app's code.</p>
                         </blockquote>
                         <hr class="divider">
@@ -425,7 +409,7 @@
                             </fieldset>
 
                             <!-- Fields to set when adding a new keypair. -->
-                            <fieldset v-bind:disabled="submitting || !adding">
+                            <fieldset v-bind:disabled="submitting">
                                 <div class="form-group">
                                     <label class="form-label">Name:</label>
                                     <input 
@@ -434,25 +418,10 @@
                                         v-model.trim="keyPairData.Name"
                                     >
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Type: 
-                                        <span 
-                                            class="help-icon text-secondary" 
-                                            data-bs-toggle="tooltip"
-                                            data-bs-title="Key generation algorithm and length."
-                                        >
-                                            <i class="fa-solid fa-question-circle"></i></span>
-                                        </label>
-                                    <select class="form-select" v-model="keyPairData.AlgorithmType">
-                                        <option value="" disabled selected>Please choose.</option>
-                                        <option v-for="at in algorithmTypes" v-bind:value="at">[[at]]</option>
-                                    </select>
-                                </div>
                             </fieldset>
 
                             <!-- Fields when viewing an existing keypair. -->
-                            <fieldset v-if="!adding" v-cloak>
+                            <fieldset v-if="keyPairData.ID > 0" v-cloak>
                                 <hr class="divider">
 
                                 <div class="form-group">
@@ -483,7 +452,7 @@
                     </div>
                     <div class="modal-footer justify-content-start">
                         <div class="btn-group">
-                            <button class="btn btn-primary" v-if="adding"                      v-on:click="add"        v-bind:disabled="submitting">Save</button>
+                            <button class="btn btn-primary" v-if="keyPairData.ID === 0"        v-on:click="add"        v-bind:disabled="submitting">Save</button>
                             <button class="btn btn-primary" v-else-if="!keyPairData.IsDefault" v-on:click="setDefault" v-bind:disabled="submitting">Set as Default</button>
 
                             <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

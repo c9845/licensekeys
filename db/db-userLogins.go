@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/config"
-	"github.com/c9845/licensekeys/v3/timestamps"
+	"github.com/c9845/licensekeys/v4/config"
+	"github.com/c9845/licensekeys/v4/timestamps"
 	"github.com/c9845/sqldb/v3"
 )
 

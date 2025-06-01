@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/config"
-	"github.com/c9845/licensekeys/v3/db"
-	"github.com/c9845/licensekeys/v3/users/cookieutils"
+	"github.com/c9845/licensekeys/v4/config"
+	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/users/cookieutils"
 	"github.com/c9845/output"
 	"github.com/c9845/sqldb/v3"
 	"github.com/pquerna/otp"

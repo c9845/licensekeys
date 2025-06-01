@@ -38,8 +38,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c9845/licensekeys/v3/version"
-	"gopkg.in/yaml.v2"
+	"github.com/c9845/licensekeys/v4/version"
+	"gopkg.in/yaml.v3"
 
 	//Needed to support timezone being set in config and system running this app not
 	//having a list of IANA timezones. For example, if running in a docker scratch

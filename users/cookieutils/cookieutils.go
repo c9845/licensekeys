@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/c9845/licensekeys/v3/config"
+	"github.com/c9845/licensekeys/v4/config"
 )
 
 var (

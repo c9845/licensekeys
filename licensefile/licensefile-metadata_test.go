@@ -8,7 +8,6 @@ func TestMetadataAsInt(t *testing.T) {
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		fileFormat:  FileFormatJSON,
 		Metadata: map[string]any{
 			"exists":   1,
 			"notanint": "testing",
@@ -55,7 +54,6 @@ func TestMetadataAsFloat(t *testing.T) {
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		fileFormat:  FileFormatJSON,
 		Metadata: map[string]any{
 			"exists":    1.234,
 			"notafloat": "testing",
@@ -102,7 +100,6 @@ func TestMetadataAsString(t *testing.T) {
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		fileFormat:  FileFormatJSON,
 		Metadata: map[string]any{
 			"exists":     "hello-world",
 			"notastring": 1,
@@ -149,7 +146,6 @@ func TestMetadataAsBool(t *testing.T) {
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		fileFormat:  FileFormatJSON,
 		Metadata: map[string]any{
 			"exists":   true,
 			"notabool": 1,
