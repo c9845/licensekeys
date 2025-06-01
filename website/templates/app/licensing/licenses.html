@@ -105,16 +105,11 @@
                                                     <td class="whitespace-no-wrap">
                                                         [[x.ExpireDate]]
                                                         <!-- renewal status -->
-                                                        <!-- <i 
-                                                            v-if="x.RenewedFromLicenseID !== null"
-                                                            class="text-secondary fas fa-sign-in-alt"
-                                                            v-tooltip="'License was renewed from another license.'"
-                                                        >
-                                                        </i> -->
                                                         <i 
                                                             v-if="x.RenewedToLicenseID !== null"
                                                             class="text-secondary fas fa-redo"
-                                                            v-tooltip="'License was renewed.'"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="License was renewed."
                                                             data-boundary="window"
                                                         >
                                                         </i>
@@ -124,28 +119,32 @@
                                                         <i 
                                                             v-if="!x.Verified" 
                                                             class="text-danger fas fa-exclamation-triangle" 
-                                                            v-tooltip="'License could not be verified.'"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="License could not be verified."
                                                             data-boundary="window"
                                                         >
                                                         </i>
                                                         <i 
                                                             v-else-if="!x.Active" 
                                                             class="text-danger fas fa-times" 
-                                                            v-tooltip="'License is disabled.'"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="License is disabled."
                                                             data-boundary="window"
                                                         >
                                                         </i>
                                                         <i 
                                                             v-else-if="x.Expired" 
                                                             class="text-danger fas fa-calendar-times"
-                                                            v-tooltip="'License is expired.'"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="License is expired."
                                                             data-boundary="window"
                                                         >
                                                         </i>
                                                         <i 
                                                             v-else 
                                                             class="text-success fas fa-check" 
-                                                            v-tooltip="'License is active.'"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="License is active."
                                                             data-boundary="window"
                                                         >
                                                         </i>
@@ -165,6 +164,5 @@
 
 		{{template "footer"}}
 		{{template "html_scripts" .}}
-        {{template "data-toggle-tooltip"}}
 	</body>
 </html>

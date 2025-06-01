@@ -1,11 +1,13 @@
 /**
  * bs-tooltip.ts
- * This file holds the code to get Bootstrap tooltips to work with Vue populated data in the GUI.
- * The standard bootstrap method of setting the title attribute and calling the function to register
- * tooltips doesn't work since Vue loads the data after the GUI is built.
+ * 
+ * This file holds the code to get Bootstrap tooltips to work with Vue populated data 
+ * in the GUI. The standard bootstrap method of setting the title attribute and 
+ * calling the function to register tooltips doesn't work since Vue loads the data 
+ * after the GUI is built.
  */
 
-const bsTooltip = (el, binding) => {
+const bsTooltip = (el: HTMLElement, binding: any) => {
     const t = []
 
     if (binding.modifiers.focus) t.push('focus')
@@ -41,7 +43,7 @@ const bsTooltip = (el, binding) => {
 Vue.directive('tooltip', {
     bind: bsTooltip,
     update: bsTooltip,
-    unbind(el) {
+    unbind(el: HTMLElement) {
         //@ts-ignore tooltip doesn't exist
         $(el).tooltip('dispose')
     }

@@ -5,8 +5,10 @@
  */
 
 import { createApp } from "vue";
-import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
-import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { msgTypes, apiBaseURL } from "./common";
+import { get, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { app, license } from "./types";
+import { Tooltip } from "bootstrap";
 
 if (document.getElementById("licenses")) {
     const licenses = createApp({
@@ -119,6 +121,10 @@ if (document.getElementById("licenses")) {
 
             //Look up the list of licenses on page load.
             this.getLicenses();
+
+            new Tooltip(document.body, {
+                selector: "[data-bs-toggle='tooltip']",
+            });
 
             return;
         }

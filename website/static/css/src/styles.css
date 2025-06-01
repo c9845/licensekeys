@@ -140,15 +140,15 @@ hacks*/
     /*height of a card-header with a .card-header-btn (.btn-sm) in it; so card-header 
     is always the same height*/
     height: 56px;
+
+    /*remove margin set by bootstrap to better center text vertically in card header.*/
+    & .card-title {
+        margin-bottom: 0;
+    }
 }
 
 .card div.card-header h5 {
     margin-bottom: 0;
-    margin-right: auto;
-}
-
-.card div.card-header .card-header-btn {
-    margin-left: auto;
 }
 
 .card hr.divider {
@@ -231,11 +231,6 @@ tr.strikethrough td {
     white-space: nowrap;
 }
 
-.help-icon {
-    cursor: pointer;
-    font-size: 13px;
-}
-
 .form-control[readonly] {
     background-color: unset;
     /*don't make readonly inputs look greyed out*/
@@ -254,16 +249,25 @@ tr.strikethrough td {
 
 
 /*** MODALS ***/
+/*Display modals consistently, and accomadate button in modal header. Similar to how
+.card is handled.*/
+.modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/*Dividers in modal go full width, to borders of modal.*/
 .modal hr.divider {
     margin-left: -15px;
     margin-right: -15px;
 }
 
-/*make modal header and footer stand out a bit more, bootstrap 5 color is too light.*/
+/*Make modal header and footer stand out a bit more, bootstrap 5 color is too light.*/
 /*same as .card-header and .card-footer*/
 .modal .modal-header,
 .modal .modal-footer {
-    background-color: var(--cardstore-background-gray);
+    background-color: var(--background-gray);
 }
 
 
@@ -294,4 +298,32 @@ tr.strikethrough td {
 .max-height-500px {
     max-height: 500px;
     overflow: auto;
+}
+
+
+
+/*** TABLE WIDTH FIXES ***/
+.column-tasks {
+    /*Need enough room to show task buttons, plus some whitespace. Value determined by measuring in dev-tools.*/
+    /*Make sure width is big enough for "tasks" dropdown launch button! on smaller screens/*/
+    width: 77px;
+
+    /*Task buttons are always displayed on end of table row.*/
+    text-align: right;
+
+    /*Make sure multiple task buttons always stay on same line, especially since we set column width for this.*/
+    white-space: nowrap;
+}
+
+.column-tasks.one-task {
+    /*Since there is only one task, make the column smaller to waste less space.*/
+    width: 37px;
+}
+
+/*Make btn-sm even more condensed by cutting padding in half from default. This is
+used for the tasks buttons since otherwise the buttons make the table rows have too
+much extra vertical whitespace and the text in other rows isn't inline vertically
+with the task btns.*/
+.column-tasks .btn {
+    padding: 0 .4rem;
 }

@@ -4048,7 +4048,7 @@ var require_bootstrap_bundle = __commonJS({
         title: "(string|element|function)",
         trigger: "string"
       };
-      class Tooltip4 extends BaseComponent {
+      class Tooltip7 extends BaseComponent {
         constructor(element, config) {
           if (typeof Popper === "undefined") {
             throw new TypeError("Bootstrap's tooltips require Popper (https://popper.js.org/docs/v2/)");
@@ -4428,7 +4428,7 @@ var require_bootstrap_bundle = __commonJS({
         // Static
         static jQueryInterface(config) {
           return this.each(function() {
-            const data = Tooltip4.getOrCreateInstance(this, config);
+            const data = Tooltip7.getOrCreateInstance(this, config);
             if (typeof config !== "string") {
               return;
             }
@@ -4439,12 +4439,12 @@ var require_bootstrap_bundle = __commonJS({
           });
         }
       }
-      defineJQueryPlugin(Tooltip4);
+      defineJQueryPlugin(Tooltip7);
       const NAME$3 = "popover";
       const SELECTOR_TITLE = ".popover-header";
       const SELECTOR_CONTENT = ".popover-body";
       const Default$2 = {
-        ...Tooltip4.Default,
+        ...Tooltip7.Default,
         content: "",
         offset: [0, 8],
         placement: "right",
@@ -4452,10 +4452,10 @@ var require_bootstrap_bundle = __commonJS({
         trigger: "click"
       };
       const DefaultType$2 = {
-        ...Tooltip4.DefaultType,
+        ...Tooltip7.DefaultType,
         content: "(null|string|element|function)"
       };
-      class Popover extends Tooltip4 {
+      class Popover extends Tooltip7 {
         // Getters
         static get Default() {
           return Default$2;
@@ -5085,7 +5085,7 @@ var require_bootstrap_bundle = __commonJS({
         ScrollSpy,
         Tab,
         Toast,
-        Tooltip: Tooltip4
+        Tooltip: Tooltip7
       };
       return index_umd;
     });
@@ -7819,16 +7819,16 @@ function setDevtoolsHook$1(hook, target) {
     buffer = [];
   }
 }
-function devtoolsInitApp(app, version4) {
-  emit$1("app:init", app, version4, {
+function devtoolsInitApp(app3, version4) {
+  emit$1("app:init", app3, version4, {
     Fragment,
     Text,
     Comment,
     Static
   });
 }
-function devtoolsUnmountApp(app) {
-  emit$1("app:unmount", app);
+function devtoolsUnmountApp(app3) {
+  emit$1("app:unmount", app3);
 }
 var devtoolsComponentAdded = /* @__PURE__ */ createDevtoolsComponentHook(
   "component:added"
@@ -11058,7 +11058,7 @@ function createAppAPI(render2, hydrate2) {
     const installedPlugins = /* @__PURE__ */ new WeakSet();
     const pluginCleanupFns = [];
     let isMounted = false;
-    const app = context.app = {
+    const app3 = context.app = {
       _uid: uid$1++,
       _component: rootComponent,
       _props: rootProps,
@@ -11081,16 +11081,16 @@ function createAppAPI(render2, hydrate2) {
           warn$1(`Plugin has already been applied to target app.`);
         } else if (plugin && isFunction(plugin.install)) {
           installedPlugins.add(plugin);
-          plugin.install(app, ...options);
+          plugin.install(app3, ...options);
         } else if (isFunction(plugin)) {
           installedPlugins.add(plugin);
-          plugin(app, ...options);
+          plugin(app3, ...options);
         } else {
           warn$1(
             `A plugin must either be a function or an object with an "install" function.`
           );
         }
-        return app;
+        return app3;
       },
       mixin(mixin) {
         {
@@ -11102,7 +11102,7 @@ function createAppAPI(render2, hydrate2) {
             );
           }
         }
-        return app;
+        return app3;
       },
       component(name, component) {
         {
@@ -11115,7 +11115,7 @@ function createAppAPI(render2, hydrate2) {
           warn$1(`Component "${name}" has already been registered in target app.`);
         }
         context.components[name] = component;
-        return app;
+        return app3;
       },
       directive(name, directive) {
         {
@@ -11128,7 +11128,7 @@ function createAppAPI(render2, hydrate2) {
           warn$1(`Directive "${name}" has already been registered in target app.`);
         }
         context.directives[name] = directive;
-        return app;
+        return app3;
       },
       mount(rootContainer, isHydrate, namespace) {
         if (!isMounted) {
@@ -11138,7 +11138,7 @@ function createAppAPI(render2, hydrate2) {
  If you want to mount another app on the same host container, you need to unmount the previous app by calling \`app.unmount()\` first.`
             );
           }
-          const vnode = app._ceVNode || createVNode(rootComponent, rootProps);
+          const vnode = app3._ceVNode || createVNode(rootComponent, rootProps);
           vnode.appContext = context;
           if (namespace === true) {
             namespace = "svg";
@@ -11158,11 +11158,11 @@ function createAppAPI(render2, hydrate2) {
             render2(vnode, rootContainer, namespace);
           }
           isMounted = true;
-          app._container = rootContainer;
-          rootContainer.__vue_app__ = app;
+          app3._container = rootContainer;
+          rootContainer.__vue_app__ = app3;
           {
-            app._instance = vnode.component;
-            devtoolsInitApp(app, version);
+            app3._instance = vnode.component;
+            devtoolsInitApp(app3, version);
           }
           return getComponentPublicInstance(vnode.component);
         } else {
@@ -11184,15 +11184,15 @@ If you want to remount the same app, move your app creation logic into a factory
         if (isMounted) {
           callWithAsyncErrorHandling(
             pluginCleanupFns,
-            app._instance,
+            app3._instance,
             16
           );
-          render2(null, app._container);
+          render2(null, app3._container);
           {
-            app._instance = null;
-            devtoolsUnmountApp(app);
+            app3._instance = null;
+            devtoolsUnmountApp(app3);
           }
-          delete app._container.__vue_app__;
+          delete app3._container.__vue_app__;
         } else {
           warn$1(`Cannot unmount an app that is not mounted.`);
         }
@@ -11204,11 +11204,11 @@ If you want to remount the same app, move your app creation logic into a factory
           );
         }
         context.provides[key] = value;
-        return app;
+        return app3;
       },
       runWithContext(fn) {
         const lastApp = currentApp;
-        currentApp = app;
+        currentApp = app3;
         try {
           return fn();
         } finally {
@@ -11216,7 +11216,7 @@ If you want to remount the same app, move your app creation logic into a factory
         }
       }
     };
-    return app;
+    return app3;
   };
 }
 var currentApp = null;
@@ -17318,16 +17318,16 @@ var hydrate = (...args) => {
   ensureHydrationRenderer().hydrate(...args);
 };
 var createApp = (...args) => {
-  const app = ensureRenderer().createApp(...args);
+  const app3 = ensureRenderer().createApp(...args);
   {
-    injectNativeTagCheck(app);
-    injectCompilerOptionsCheck(app);
+    injectNativeTagCheck(app3);
+    injectCompilerOptionsCheck(app3);
   }
-  const { mount } = app;
-  app.mount = (containerOrSelector) => {
+  const { mount } = app3;
+  app3.mount = (containerOrSelector) => {
     const container = normalizeContainer(containerOrSelector);
     if (!container) return;
-    const component = app._component;
+    const component = app3._component;
     if (!isFunction(component) && !component.render && !component.template) {
       component.template = container.innerHTML;
     }
@@ -17341,22 +17341,22 @@ var createApp = (...args) => {
     }
     return proxy;
   };
-  return app;
+  return app3;
 };
 var createSSRApp = (...args) => {
-  const app = ensureHydrationRenderer().createApp(...args);
+  const app3 = ensureHydrationRenderer().createApp(...args);
   {
-    injectNativeTagCheck(app);
-    injectCompilerOptionsCheck(app);
+    injectNativeTagCheck(app3);
+    injectCompilerOptionsCheck(app3);
   }
-  const { mount } = app;
-  app.mount = (containerOrSelector) => {
+  const { mount } = app3;
+  app3.mount = (containerOrSelector) => {
     const container = normalizeContainer(containerOrSelector);
     if (container) {
       return mount(container, true, resolveRootNamespace(container));
     }
   };
-  return app;
+  return app3;
 };
 function resolveRootNamespace(container) {
   if (container instanceof SVGElement) {
@@ -17366,16 +17366,16 @@ function resolveRootNamespace(container) {
     return "mathml";
   }
 }
-function injectNativeTagCheck(app) {
-  Object.defineProperty(app.config, "isNativeTag", {
+function injectNativeTagCheck(app3) {
+  Object.defineProperty(app3.config, "isNativeTag", {
     value: (tag) => isHTMLTag(tag) || isSVGTag(tag) || isMathMLTag(tag),
     writable: false
   });
 }
-function injectCompilerOptionsCheck(app) {
+function injectCompilerOptionsCheck(app3) {
   if (isRuntimeOnly()) {
-    const isCustomElement = app.config.isCustomElement;
-    Object.defineProperty(app.config, "isCustomElement", {
+    const isCustomElement = app3.config.isCustomElement;
+    Object.defineProperty(app3.config, "isCustomElement", {
       get() {
         return isCustomElement;
       },
@@ -17385,12 +17385,12 @@ function injectCompilerOptionsCheck(app) {
         );
       }
     });
-    const compilerOptions = app.config.compilerOptions;
+    const compilerOptions = app3.config.compilerOptions;
     const msg = `The \`compilerOptions\` config option is only respected when using a build of Vue.js that includes the runtime compiler (aka "full build"). Since you are using the runtime-only build, \`compilerOptions\` must be passed to \`@vue/compiler-dom\` in the build setup instead.
 - For vue-loader: pass it via vue-loader's \`compilerOptions\` loader option.
 - For vue-cli: see https://cli.vuejs.org/guide/webpack.html#modifying-options-of-a-loader
 - For vite: pass it via @vitejs/plugin-vue options. See https://github.com/vitejs/vite-plugin-vue/tree/main/packages/plugin-vue#example-for-passing-options-to-vuecompiler-sfc`;
-    Object.defineProperty(app.config, "compilerOptions", {
+    Object.defineProperty(app3.config, "compilerOptions", {
       get() {
         warn(msg);
         return compilerOptions;
@@ -39837,6 +39837,42 @@ if (document.getElementById("toolsClearLogins")) {
   }).mount("#toolsClearLogins");
 }
 
+// website/static/js/src/types.ts
+var fileFormatYAML = "yaml";
+var fileFormatJSON = "json";
+var fileFormats = [
+  fileFormatYAML,
+  fileFormatJSON
+];
+var customFieldTypeInteger = "Integer";
+var customFieldTypeDecimal = "Decimal";
+var customFieldTypeText = "Text";
+var customFieldTypeBoolean = "Boolean";
+var customFieldTypeMultiChoice = "Multi-Choice";
+var customFieldTypeDate = "Date";
+var customFieldTypes = [
+  customFieldTypeInteger,
+  customFieldTypeDecimal,
+  customFieldTypeText,
+  customFieldTypeMultiChoice,
+  customFieldTypeBoolean,
+  customFieldTypeDate
+];
+var keyPairAlgoECDSAP256 = "ECDSA (P256)";
+var keyPairAlgoECDSAP384 = "ECDSA (P384)";
+var keyPairAlgoECDSAP521 = "ECDSA (P521)";
+var keyPairAlgoRSA2048 = "RSA (2048-bit)";
+var keyPairAlgoRSA4096 = "RSA (4096-bit)";
+var keyPairAlgoED25519 = "ED25519";
+var keyPairAlgoTypes = [
+  keyPairAlgoECDSAP256,
+  keyPairAlgoECDSAP384,
+  keyPairAlgoECDSAP521,
+  keyPairAlgoRSA2048,
+  keyPairAlgoRSA4096,
+  keyPairAlgoED25519
+];
+
 // website/static/js/src/key-pairs.ts
 var listKeyPairs;
 if (document.getElementById("listKeyPairs")) {
@@ -39987,8 +40023,8 @@ if (document.getElementById("modal-manageKeyPair")) {
       //This is called from listKeyPairs.passToManageKeyPairModal() upon a user
       //clicking the "edit" or "add" buttons.
       setKeypairInModal: function(appID, kp) {
-        this.resetForm();
         this.appSelectedID = appID;
+        this.resetForm();
         if (kp === void 0) {
           return;
         }
@@ -40240,7 +40276,7 @@ if (document.getElementById("listCustomFieldsDefined")) {
       //
       //Note that this does not open the modal, that is handled through bootstrap
       //data-toggle and data-target attributes.
-      passToManageKeypairModal: function(cfd) {
+      passToManageCustomFieldModal: function(cfd) {
         modalManageCustomFieldDefined.setCustomFieldInModal(this.appSelectedID, cfd);
         return;
       }
@@ -40248,7 +40284,7 @@ if (document.getElementById("listCustomFieldsDefined")) {
   }).mount("#listCustomFieldsDefined");
 }
 var modalManageCustomFieldDefined;
-if (document.getElementById("modal-customFieldDefined")) {
+if (document.getElementById("modal-manageCustomFieldDefined")) {
   modalManageCustomFieldDefined = createApp({
     name: "modalManageCustomFieldDefined",
     compilerOptions: {
@@ -40336,8 +40372,8 @@ if (document.getElementById("modal-customFieldDefined")) {
       //This is called from listKeyPairs.passToManageKeypairModal() upon a user
       //clicking the "edit" or "add" buttons.
       setCustomFieldInModal: function(appID, cfd) {
-        this.resetForm();
         this.appSelectedID = appID;
+        this.resetForm();
         if (cfd === void 0) {
           return;
         }
@@ -40486,7 +40522,7 @@ if (document.getElementById("modal-customFieldDefined")) {
             this.msgSave = "Please choose an field type from the provided options.";
             return;
         }
-        if (this.fieldData.ID !== void 0) {
+        if (this.fieldData.ID !== void 0 && this.fieldData.ID > 0) {
           this.update();
         } else {
           this.add();
@@ -40513,7 +40549,7 @@ if (document.getElementById("modal-customFieldDefined")) {
           this.msgSave = "Field added!";
           this.msgSaveType = msgTypes.success;
           setTimeout(() => {
-            this.resetModal();
+            this.resetForm();
             this.msgSave = "";
             this.msgSaveType = "";
             this.submitting = false;
@@ -40609,6 +40645,7 @@ if (document.getElementById("modal-customFieldDefined")) {
 }
 
 // website/static/js/src/apps.ts
+var import_bootstrap5 = __toESM(require_bootstrap_bundle());
 var manageApps;
 if (document.getElementById("manageApps")) {
   manageApps = createApp({
@@ -40877,12 +40914,16 @@ if (document.getElementById("manageApps")) {
     },
     mounted() {
       this.getApps();
+      new import_bootstrap5.Tooltip(document.body, {
+        selector: "[data-bs-toggle='tooltip']"
+      });
       return;
     }
   }).mount("#manageApps");
 }
 
 // website/static/js/src/create-license.ts
+var import_bootstrap6 = __toESM(require_bootstrap_bundle());
 if (document.getElementById("createLicense")) {
   const createLicense = createApp({
     name: "createLicense",
@@ -41299,12 +41340,16 @@ if (document.getElementById("createLicense")) {
     },
     mounted() {
       this.getApps();
+      new import_bootstrap6.Tooltip(document.body, {
+        selector: "[data-bs-toggle='tooltip']"
+      });
       return;
     }
   }).mount("#createLicense");
 }
 
 // website/static/js/src/licenses.ts
+var import_bootstrap7 = __toESM(require_bootstrap_bundle());
 if (document.getElementById("licenses")) {
   const licenses = createApp({
     name: "licenses",
@@ -41391,6 +41436,9 @@ if (document.getElementById("licenses")) {
     mounted() {
       this.getApps();
       this.getLicenses();
+      new import_bootstrap7.Tooltip(document.body, {
+        selector: "[data-bs-toggle='tooltip']"
+      });
       return;
     }
   }).mount("#licenses");
@@ -41462,7 +41510,7 @@ if (document.getElementById("manageLicense")) {
           }
           this.licenseData = j.Data;
           this.licenseDataRetrieved = true;
-          this.setLicenseIDInOtherVueObjects(this.licenseID);
+          this.setLicenseDataInOtherVueObjects(j.Data);
           return;
         }).catch((err) => {
           console.log("fetch() error: >>", err, "<<");
@@ -41573,20 +41621,20 @@ if (document.getElementById("manageLicense")) {
         modalNote.setNoteInModal(n);
         return;
       },
-      //setLicenseIDInOtherVueObjects sets the chosen license in Vue objects
+      //setLicenseDataInOtherVueObjects sets the chosen license in Vue objects
       //that handle other parts of the GUI.
       //
       //This is called from getLicense().
-      setLicenseIDInOtherVueObjects: function(licenseID) {
-        modalDisableLicense.setLicenseID(licenseID);
-        modalNote.setLicenseID(licenseID);
-        modalRenewLicense.setLicenseData(licenseID, this.license.ExpireDate);
+      setLicenseDataInOtherVueObjects: function(lic) {
+        modalDisableLicense.setLicenseID(lic.ID);
+        modalNote.setLicenseID(lic.ID);
+        modalRenewLicense.setLicenseData(lic.ID, lic.ExpireDate);
         return;
       }
     },
     mounted() {
       let sp = new URLSearchParams(document.location.search);
-      this.licenseID = sp.get("licenseID");
+      this.licenseID = parseInt(sp.get("id"));
       this.getLicense();
       this.getCustomFieldResults();
       this.getDownloadHistory();
@@ -41621,7 +41669,7 @@ if (document.getElementById("modal-disableLicense")) {
     methods: {
       //setLicenseID sets the provided license ID in this Vue object.
       //
-      //This is called from manageLicense.setLicenseIDInOtherVueObjects() upon
+      //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
       //looking up data for the license.
       setLicenseID: function(licenseID) {
         this.licenseID = licenseID;
@@ -41691,6 +41739,7 @@ if (document.getElementById("modal-note")) {
         licenseID: 0,
         //The note's data.
         noteData: {
+          ID: 0,
           LicenseID: 0,
           //Set when data is submitted to server.
           Note: ""
@@ -41709,7 +41758,7 @@ if (document.getElementById("modal-note")) {
     methods: {
       //setLicenseID sets the provided license ID in this Vue object.
       //
-      //This is called from manageLicense.setLicenseIDInOtherVueObjects() upon
+      //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
       //looking up data for the license.
       setLicenseID: function(licenseID) {
         this.licenseID = licenseID;
@@ -41778,7 +41827,7 @@ if (document.getElementById("modal-note")) {
             this.msgSave = "";
             this.msgSaveType = "";
             this.submitting = false;
-            this.resetModal();
+            this.resetForm();
           }, defaultTimeout);
           return;
         }).catch((err) => {
@@ -41841,12 +41890,15 @@ if (document.getElementById("modal-renewLicense")) {
       }
     },
     methods: {
-      //setLicenseID sets the provided license ID in this Vue object.
+      //setLicenseData sets the provided license ID in this Vue object. This 
+      //also saves the license's current expiration date for displaying and
+      //comparing against a new expiration date.
       //
-      //This is called from manageLicense.setLicenseIDInOtherVueObjects() upon
+      //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
       //looking up data for the license.
-      setLicenseID: function(licenseID) {
+      setLicenseData: function(licenseID, currentExpireDate) {
         this.licenseID = licenseID;
+        this.currentExpireDate = currentExpireDate;
         return;
       },
       //renew handles renewing a license. This license's data is copied to

@@ -9,6 +9,7 @@ import { createApp } from "vue";
 import { Modal } from "bootstrap";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { apiKey } from "./types";
 
 //Manage the list of API keys.
 var manageAPIKeys: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.

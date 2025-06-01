@@ -58,7 +58,9 @@
                     <div class="col-12 col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>License Data</h5>
+                                <div class="card-title">
+                                    <h5>License Data</h5>
+                                </div>
 
                                 <!-- Download button is located here, not on download history card so that is 
                                 is easily accessible on smaller screens when cards are stacked. This is mostly
@@ -70,7 +72,8 @@
                                         href="/api/licenses/download/?id={{$licenseID}}"
                                         download
                                         v-if="licenseData.Active"
-                                        v-tooltip="'Download license.'"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-title="Download license."
                                         v-on:click="refreshDownloadHistory"
                                         v-cloak
                                     >
@@ -133,44 +136,52 @@
                                 </section>
                             </div>
                             <div class="card-footer" v-if="licenseData.Active && licenseData.Verified && !licenseData.Expired">
-                                <div class="btn-group">
-                                    <button class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
-                                    <div class="dropdown-menu">
-                                        <button class="dropdown-item" v-on:click="showAdvancedInfo = !showAdvancedInfo">
-                                            <span v-if="!showAdvancedInfo">Show Additional Info</span>
-                                            <span v-else                  >Hide Additional Info</span>
-                                        </button>
-                                        <div class="dropdown-divider"></div>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">Actions</button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <button class="dropdown-item" v-on:click="showAdvancedInfo = !showAdvancedInfo">
+                                                <span v-if="!showAdvancedInfo">Show Additional Info</span>
+                                                <span v-else                  >Hide Additional Info</span>
+                                            </button>
+                                        </li>
+                                        <li><div class="dropdown-divider"></div></li>
                                         
-                                        <a 
-                                            class="dropdown-item" 
-                                            href="/api/licenses/download/?id={{$licenseID}}&display=true" 
-                                            target="_blank"
-                                            v-on:click="refreshDownloadHistory"
-                                        >View License File</a>
-                                        
-                                        {{if $userData.CreateLicenses}}
-                                        <div class="dropdown-divider"></div>
-                                        <button 
-                                            class="dropdown-item" 
-                                            data-toggle="modal" 
-                                            data-target="#modal-disableLicense"
-                                        >
-                                            Disable
-                                        </button>
+                                        <li>
+                                            <a 
+                                                class="dropdown-item" 
+                                                href="/api/licenses/download/?id={{$licenseID}}&display=true" 
+                                                target="_blank"
+                                                v-on:click="refreshDownloadHistory"
+                                            >View License File</a>
+                                        </li>
 
-                                        <button 
-                                            class="dropdown-item" 
-                                            data-toggle="modal" 
-                                            data-target="#modal-renewLicense"
-                                            v-if="licenseData.RenewedToLicenseID === null"
-                                        >
-                                            Renew
-                                        </button>
+                                        {{if $userData.CreateLicenses}}
+                                        <li><div class="dropdown-divider"></div></li>
+                                        <li>
+                                            <button 
+                                                class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modal-disableLicense"
+                                            >
+                                                Disable
+                                            </button>
+                                        </li>
+
+                                        <li>
+                                            <button 
+                                                class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modal-renewLicense"
+                                                v-if="licenseData.RenewedToLicenseID === null"
+                                            >
+                                                Renew
+                                            </button>
+                                        </li>
                                         {{end}}
-                                    </div>
-                                </div>
-                            </div>
+                                    </ul>
+                                </div> <!-- end .dropdown -->
+                            </div> <!-- end .card-footer -->
                         </div> <!-- end .card license data -->
                     </div> <!-- end .col for license data -->
 
@@ -221,7 +232,7 @@
 
                                 {{if $userData.CreateLicenses}}
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#modal-note" v-on:click="setNoteModal(undefined)">
+                                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-note" v-on:click="passToNoteModal(undefined)">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
@@ -242,10 +253,10 @@
                                             <template v-else>
                                                 <tr v-for="n in notes" v-bind:id="n.ID">
                                                     <td>[[n.Note]] <a
-                                                        class="btn btn-sm text-primary btn-sm-condensed btn-link"
-                                                        data-toggle="modal" 
-                                                        data-target="#modal-note" 
-                                                        v-on:click="setNoteModal(n)"
+                                                        class="btn btn-sm btn-link text-primary"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modal-note" 
+                                                        v-on:click="passToNoteModal(n)"
                                                     >
                                                         <i class="fas fa-search"></i>
                                                     </a>
@@ -277,10 +288,9 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header bg-danger">
-                        <h5 class="modal-title text-white">Disable License</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <div class="modal-title text-white">
+                            <h5>Disable License</h5>
+                        </div>
                     </div>
                     <div class="modal-body">
                         <blockquote class="section-description section-description-danger">
@@ -305,7 +315,7 @@
                     <div class="modal-footer justify-content-start">
                         <div class="btn-group">
                             <button class="btn btn-danger" v-on:click="disableLicense" v-bind:disabled="submitting">Disable</button>
-                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -319,10 +329,9 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Note</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <div class="modal-title">
+                            <h5>Note</h5>
+                        </div>
                     </div>
                     <div class="modal-body">
                         <blockquote class="description description-secondary">
@@ -332,7 +341,7 @@
 
                         <form>
                             <!-- When adding a note. -->
-                            <fieldset v-bind:disabled="submitting">
+                            <fieldset v-bind:disabled="submitting" class="mb-3">
                                 <div class="form-group">
                                     <label class="form-label">Note:</label>
                                     <textarea class="form-control" v-model.trim="noteData.Note" rows="4" v-bind:disabled="noteData.ID > 0"></textarea>
@@ -340,13 +349,13 @@
                             </fieldset>
 
                             <!-- Extra info when viewing an existing note. -->
-                            <fieldset v-if="!addingNew" disabled>
+                            <fieldset v-if="noteData.ID > 0" disabled>
                                 <div class="form-group">
                                     <label class="form-label">Created By:</label>
                                     <input 
                                         class="form-control" 
                                         type="text" 
-                                        v-if="noteData.CreatedByUsername !== null && !addingNew" 
+                                        v-if="noteData.CreatedByUsername !== null" 
                                         v-model.trim="noteData.CreatedByUsername"
                                     >
                                     <input 
@@ -369,8 +378,8 @@
                     </div>
                     <div class="modal-footer justify-content-start">
                         <div class="btn-group">
-                            <button class="btn btn-primary" v-if="addingNew" v-on:click="add" v-bind:disabled="submitting">Add</button>
-                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button class="btn btn-primary" v-if="noteData.ID === 0" v-on:click="add" v-bind:disabled="submitting">Add</button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>
@@ -390,10 +399,9 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Renew License</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <div class="modal-title">
+                            <h5>Renew License</h5>
+                        </div>
                     </div>
                     <div class="modal-body">
                         <blockquote class="description description-secondary">
@@ -421,7 +429,7 @@
                     <div class="modal-footer justify-content-start">
                         <div class="btn-group">
                             <button class="btn btn-primary" v-on:click="renew" v-bind:disabled="submitting">Renew</button>
-                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>

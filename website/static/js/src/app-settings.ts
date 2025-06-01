@@ -7,6 +7,7 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { appSettings } from "./types";
 
 if (document.getElementById("manageAppSettings")) {
     const manageAppSettings = createApp({

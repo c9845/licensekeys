@@ -235,7 +235,12 @@ func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 	if err != nil {
 		return
 	}
-	if !expDate.After(time.Now()) {
+
+	now := time.Now().UTC() //Need UTC since time.Parse() is using UTC.
+	if !expDate.After(now) {
+		log.Println("license.Validate()", "expireDate", expDate)
+		log.Println("license.Validate()", "now       ", now)
+
 		errMsg = "The expiration date must be in the future."
 		return
 	}

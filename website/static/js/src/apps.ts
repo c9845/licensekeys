@@ -10,6 +10,8 @@ import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 import { listKeyPairs } from "./key-pairs";
 import { listCustomFieldsDefined } from "./custom-fields-defined";
+import { app, fileFormats, fileFormatYAML } from "./types";
+import { Tooltip } from "bootstrap";
 
 //Manage the list of apps you can create licenses for.
 var manageApps: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -378,6 +380,11 @@ if (document.getElementById("manageApps")) {
         mounted() {
             //Load the apps that exist that a user can choose from.
             this.getApps();
+
+            new Tooltip(document.body, {
+                selector: "[data-bs-toggle='tooltip']",
+            });
+
             return;
         },
     }).mount("#manageApps")

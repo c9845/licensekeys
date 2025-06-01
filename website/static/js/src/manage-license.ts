@@ -8,6 +8,7 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout, todayPlus, getToday, isEmail } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { license, customFieldResults, downloadHistory, licenseNote, customFieldTypeInteger, customFieldTypeDecimal, customFieldTypeText, customFieldTypeBoolean, customFieldTypeMultiChoice, customFieldTypeDate } from "./types";
 
 //This handles the main data and functionality for a license.
 var manageLicense: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -87,7 +88,7 @@ if (document.getElementById("manageLicense")) {
                         this.licenseDataRetrieved = true;
 
                         //pass license data to other Vue objects.
-                        this.setLicenseIDInOtherVueObjects(this.licenseID);
+                        this.setLicenseDataInOtherVueObjects(j.Data);
 
                         return;
                     })
@@ -228,16 +229,16 @@ if (document.getElementById("manageLicense")) {
                 return;
             },
 
-            //setLicenseIDInOtherVueObjects sets the chosen license in Vue objects
+            //setLicenseDataInOtherVueObjects sets the chosen license in Vue objects
             //that handle other parts of the GUI.
             //
             //This is called from getLicense().
-            setLicenseIDInOtherVueObjects: function (licenseID: number) {
-                modalDisableLicense.setLicenseID(licenseID);
+            setLicenseDataInOtherVueObjects: function (lic: license) {
+                modalDisableLicense.setLicenseID(lic.ID);
 
-                modalNote.setLicenseID(licenseID);
+                modalNote.setLicenseID(lic.ID);
 
-                modalRenewLicense.setLicenseData(licenseID, this.license.ExpireDate);
+                modalRenewLicense.setLicenseData(lic.ID, lic.ExpireDate);
 
                 return;
             },
@@ -246,7 +247,7 @@ if (document.getElementById("manageLicense")) {
         mounted() {
             //Get license ID from URL.
             let sp: URLSearchParams = new URLSearchParams(document.location.search);
-            this.licenseID = sp.get("licenseID")
+            this.licenseID = parseInt(sp.get("id") as string);
 
             //Look up license data.
             this.getLicense();
@@ -293,7 +294,7 @@ if (document.getElementById("modal-disableLicense")) {
         methods: {
             //setLicenseID sets the provided license ID in this Vue object.
             //
-            //This is called from manageLicense.setLicenseIDInOtherVueObjects() upon
+            //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
             //looking up data for the license.
             setLicenseID: function (licenseID: number) {
                 this.licenseID = licenseID;
@@ -388,6 +389,7 @@ if (document.getElementById("modal-note")) {
 
                 //The note's data.
                 noteData: {
+                    ID: 0,
                     LicenseID: 0,  //Set when data is submitted to server.
                     Note: "",      //Populated by user when adding or by initialize when viewing an existing note.
                 } as licenseNote,
@@ -407,7 +409,7 @@ if (document.getElementById("modal-note")) {
         methods: {
             //setLicenseID sets the provided license ID in this Vue object.
             //
-            //This is called from manageLicense.setLicenseIDInOtherVueObjects() upon
+            //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
             //looking up data for the license.
             setLicenseID: function (licenseID: number) {
                 this.licenseID = licenseID;
@@ -501,7 +503,7 @@ if (document.getElementById("modal-note")) {
                             this.msgSave = "";
                             this.msgSaveType = "";
                             this.submitting = false;
-                            this.resetModal();
+                            this.resetForm();
                         }, defaultTimeout)
 
                         return;
@@ -582,12 +584,15 @@ if (document.getElementById("modal-renewLicense")) {
         },
 
         methods: {
-            //setLicenseID sets the provided license ID in this Vue object.
+            //setLicenseData sets the provided license ID in this Vue object. This 
+            //also saves the license's current expiration date for displaying and
+            //comparing against a new expiration date.
             //
-            //This is called from manageLicense.setLicenseIDInOtherVueObjects() upon
+            //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
             //looking up data for the license.
-            setLicenseID: function (licenseID: number) {
+            setLicenseData: function (licenseID: number, currentExpireDate: string) {
                 this.licenseID = licenseID;
+                this.currentExpireDate = currentExpireDate;
                 return
             },
 

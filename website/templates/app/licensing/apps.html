@@ -20,10 +20,12 @@
                         <!-- card for choosing the app you want to lookup/edit, not shown when adding a new app -->
                         <div class="card" v-if="addingNew === false">
                             <div class="card-header">
-                                <h5>Apps</h5>
+                                <div class="card-title">
+                                    <h5>Apps</h5>
+                                </div>
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setUIState">
-                                        <i class="fas fa-plus"></i>
+                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setState">
+                                        <i class="fa-solid fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
@@ -54,8 +56,8 @@
                             <div class="card-header">
                                 <h5>[[addEditCardTitle]]</h5>
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setUIState">
-                                        <i class="fas fa-search" v-cloak></i>
+                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setState">
+                                        <i class="fa-solid fa-search" v-cloak></i>
                                     </button>
                                 </div>
                             </div>
@@ -79,15 +81,19 @@
                                             <label class="form-label">Default License Period:</label>
                                             <div class="input-group">
                                                 <input class="form-control" type="number" min="0" step="1" v-model.number="appData.DaysToExpiration">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">Days</span>
-                                                </div>
+                                                <span class="input-group-text">Days</span>
                                             </div>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">
                                                 File Format:
-                                                <span class="help-icon text-secondary" v-tooltip="'How the data will be stored inside the license file.'"><i class="fas fa-question-circle"></i></span>
+                                                <span 
+                                                    class="help-icon text-secondary" 
+                                                    data-bs-toggle="tooltip" 
+                                                    data-bs-title="How the data will be stored inside the license file."
+                                                >
+                                                    <i class="fa-solid fa-question-circle"></i>
+                                                </span>
                                             </label>
                                             <select class="form-select" v-model.trim="appData.FileFormat" v-on:change="setDefaultDownloadFilename">
                                                 <option value="" disabled>Please choose.</option>
@@ -98,7 +104,13 @@
                                             <label class="form-label">
                                                 License Filename: 
                                                 <!-- TODO: link to page explaining magic replacement code ({ext} is replaced with .json, .yaml)-->
-                                                <span class="help-icon text-secondary" v-tooltip="'The name of the file the license will be downloaded as. Note that you can use {licenseID}, {appName}, and {ext} as placeholders.'"><i class="fas fa-question-circle"></i></span>
+                                                <span 
+                                                    class="help-icon text-secondary" 
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-title="The name of the file a license will be downloaded as. You can use {licenseID}, {appName}, and {ext} as placeholders."
+                                                >
+                                                    <i class="fa-solid fa-question-circle"></i>
+                                                </span>
                                             </label>
                                             <input class="form-control" type="text" placeholder="my-app-name.yaml" v-model.trim="appData.DownloadFilename">
                                         </div>
@@ -164,19 +176,34 @@
                         <!-- card for key pairs -->
                         <div class="card" id="listKeyPairs">
                             <div class="card-header">
-                                <h5>
-                                    <span class="collapse-clickable-area hover-pointer" v-on:click="collapseUI = !collapseUI">
-                                        <span v-if="appSelectedID > 0" class="collapse-icon text-secondary" v-tooltip="'Click to collapse/expand.'" v-cloak>
-                                            <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
-                                            <i v-else            class="fas fa-angle-double-up"></i>
+                                <div class="card-title">
+                                    <h5>
+                                        <span class="collapse-clickable-area pointer" v-on:click="collapseUI = !collapseUI">
+                                            <span 
+                                                v-if="appSelectedID > 0" 
+                                                class="collapse-icon pe-1 text-secondary" 
+                                                data-bs-toggle="tooltip"
+                                                data-bs-title="Click to collapse/expand." 
+                                                v-cloak
+                                            >
+                                                <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
+                                                <i v-else            class="fas fa-angle-double-up"></i>
+                                            </span>
+                                            <span class="title">Key Pairs</span>
                                         </span>
-                                        <span class="title">Key Pairs</span>
-                                    </span>
-                                </h5>
+                                    </h5>
+                                </div>
                                 
-                                <div v-if="appSelectedID > 0" class="card-header-btn" v-cloak>
+                                <div class="card-header-btn" v-if="appSelectedID > 0" v-cloak>
                                     <div class="card-header-btn">
-                                        <button class="btn btn-outline-primary btn-sm add-btn" data-toggle="modal" data-target="#modal-manageKeyPair" v-on:click="passToModal(undefined)"><i class="fas fa-plus"></i></button>
+                                        <button 
+                                            class="btn btn-outline-primary btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modal-manageKeyPair" 
+                                            v-on:click="passToManageKeypairModal(undefined)"
+                                        >
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -214,11 +241,34 @@
                                                 <tr v-for="x in keyPairs" :key="x.ID" v-bind:data-id="x.ID">
                                                     <td class="column-name">
                                                         <span class="app-name">[[x.Name]]</span>
-                                                        <span class="default fas fa-star text-primary" v-if="x.IsDefault" v-tooltip="'Default key pair.'"></span>
-                                                        <span class="private-key-encrypted fas fa-unlock text-warning" v-if="!x.PrivateKeyEncrypted" v-tooltip="'Private key is not encrypted.'"></span>
+                                                        <span 
+                                                            class="default text-primary"
+                                                            v-if="x.IsDefault" 
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="Default key pair."
+                                                        >
+                                                            <i class="fa-solid fa-star"></i>
+                                                        </span>
+                                                        <span 
+                                                            class="private-key-encrypted text-warning" 
+                                                            v-if="!x.PrivateKeyEncrypted" 
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-title="Private key is not encrypted."
+                                                        >
+                                                            <i class="fa-solid fa-unlock"></i>
+                                                        </span>
                                                     </td>
                                                     <td class="column-keypair-algo">[[x.AlgorithmType]]</td>
-                                                    <td class="column-tasks one-task"><button class="btn btn-link btn-sm btn-sm-condensed" data-toggle="modal" data-target="#modal-manageKeyPair" v-on:click="passToModal(x)"><i class="fas fa-cog"></i></button></td>
+                                                    <td class="column-tasks one-task">
+                                                        <button 
+                                                            class="btn btn-sm btn-link text-primary" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modal-manageKeyPair" 
+                                                            v-on:click="passToManageKeypairModal(x)"
+                                                        >
+                                                            <i class="fa-solid fa-cog"></i>
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             </template>
                                         </tbody>
@@ -233,19 +283,33 @@
                         <!-- card for custom field/metadata types -->
                         <div class="card" id="listCustomFieldsDefined">
                             <div class="card-header">
-                                <h5>
-                                    <span class="collapse-clickable-area hover-pointer" v-on:click="collapseUI = !collapseUI">
-                                        <span v-if="appSelectedID > 0" class="collapse-icon text-secondary" v-tooltip="'Click to collapse/expand.'" v-cloak>
-                                            <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
-                                            <i v-else            class="fas fa-angle-double-up"></i>
+                                <div class="card-title">
+                                    <h5>
+                                        <span class="collapse-clickable-area pointer" v-on:click="collapseUI = !collapseUI">
+                                            <span 
+                                                v-if="appSelectedID > 0" 
+                                                class="collapse-icon pe-1 text-secondary" 
+                                                data-bs-toggle="tooltip"
+                                                data-bs-title="Click to collapse/expand." 
+                                                v-cloak
+                                            >
+                                                <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
+                                                <i v-else            class="fas fa-angle-double-up"></i>
+                                            </span>
+                                            <span class="title">Metadata Fields</span>
                                         </span>
-                                        <span class="title">Metadata Fields</span>
-                                    </span>
-                                </h5>
-                                
-                                <div v-if="appSelectedID > 0" class="card-header-btn" v-cloak>
+                                    </h5>
+                                </div>
+                                <div class="card-header-btn" v-if="appSelectedID > 0" v-cloak>
                                     <div class="card-header-btn">
-                                        <button class="btn btn-outline-primary btn-sm add-btn" data-toggle="modal" data-target="#modal-customFieldDefined" v-on:click="passToModal(undefined)"><i class="fas fa-plus"></i></button>
+                                        <button 
+                                            class="btn btn-outline-primary btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modal-manageCustomFieldDefined" 
+                                            v-on:click="passToManageCustomFieldModal(undefined)"
+                                        >
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -292,7 +356,16 @@
                                                         <span v-else-if="x.Type === customFieldTypeMultiChoice">[[x.MultiChoiceDefaultValue]]</span>
                                                         <span v-else-if="x.Type === customFieldTypeDate">+[[x.DateDefaultIncrement]] days</span>
                                                     </td>
-                                                    <td class="column-tasks one-task"><button class="btn btn-link btn-sm btn-sm-condensed" data-toggle="modal" data-target="#modal-customFieldDefined" v-on:click="passToModal(x)"><i class="fas fa-cog"></i></button></td>
+                                                    <td class="column-tasks one-task">
+                                                        <button 
+                                                            class="btn btn-sm btn-link text-primary" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modal-manageCustomFieldDefined" 
+                                                            v-on:click="passToManageCustomFieldModal(x)"
+                                                        >
+                                                            <i class="fa-solid fa-cog"></i>
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             </template>
                                         </tbody>
@@ -311,19 +384,23 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">
-                            <span v-if="adding">Add Key Pair</span>
-                            <span v-else       >View Key Pair</span>
-                        </h5>
-                        <button 
-                            type="button" 
-                            class="btn btn-sm btn-outline-danger" 
-                            data-dismiss="modal" 
-                            v-on:click="remove"
-                            v-if="!adding"
-                        >
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                        <div>
+                            <h5 class="modal-title">
+                                <span v-if="adding">Add Key Pair</span>
+                                <span v-else       >View Key Pair</span>
+                            </h5>
+                        </div>
+                        <div>
+                            <button 
+                                type="button" 
+                                class="btn btn-sm btn-outline-danger" 
+                                data-bs-dismiss="modal" 
+                                v-on:click="remove"
+                                v-if="!adding"
+                            >
+                                <i class="fa-solid fa-trash-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="modal-body">
                         <blockquote class="description description-secondary">
@@ -358,7 +435,15 @@
                                     >
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Type: <span class="help-icon text-secondary" v-tooltip="'Key generation algorithm and length.'"><i class="fas fa-question-circle"></i></span></label>
+                                    <label class="form-label">
+                                        Type: 
+                                        <span 
+                                            class="help-icon text-secondary" 
+                                            data-bs-toggle="tooltip"
+                                            data-bs-title="Key generation algorithm and length."
+                                        >
+                                            <i class="fa-solid fa-question-circle"></i></span>
+                                        </label>
                                     <select class="form-select" v-model="keyPairData.AlgorithmType">
                                         <option value="" disabled selected>Please choose.</option>
                                         <option v-for="at in algorithmTypes" v-bind:value="at">[[at]]</option>
@@ -368,12 +453,15 @@
 
                             <!-- Fields when viewing an existing keypair. -->
                             <fieldset v-if="!adding" v-cloak>
+                                <hr class="divider">
+
                                 <div class="form-group">
-                                    <!-- <a class="btn btn-block btn-outline-primary" v-bind:href="'/keypairs/show-public-key/?id=' + keyPairData.ID" target="_blank">Show Public Key</a> -->
-                                    <button class="btn btn-block btn-outline-primary" v-on:click="showPublicKey = !showPublicKey">Show Public Key</a>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary" type="button" v-on:click="showPublicKey = !showPublicKey">Show Public Key</a>
+                                    </div>
                                 </div>
         
-                                <div class="form-group" v-show="showPublicKey" v-cloak>
+                                <div class="form-group" v-if="showPublicKey" v-cloak>
                                     <textarea 
                                         class="form-control text-monospace" 
                                         v-bind:value="keyPairData.PublicKey"
@@ -398,7 +486,7 @@
                             <button class="btn btn-primary" v-if="adding"                      v-on:click="add"        v-bind:disabled="submitting">Save</button>
                             <button class="btn btn-primary" v-else-if="!keyPairData.IsDefault" v-on:click="setDefault" v-bind:disabled="submitting">Set as Default</button>
 
-                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>
@@ -414,15 +502,17 @@
                             <span v-if="adding">Add Metadata Field</span>
                             <span v-else       >Edit Metadata Field</span>
                         </h5>
-                        <button 
-                            type="button" 
-                            class="btn btn-sm btn-outline-danger" 
-                            data-dismiss="modal" 
-                            v-on:click="remove"
-                            v-if="!adding"
-                        >
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                        <div>
+                            <button 
+                                type="button" 
+                                class="btn btn-sm btn-outline-danger" 
+                                data-bs-dismiss="modal" 
+                                v-on:click="remove"
+                                v-if="!adding"
+                            >
+                                <i class="fa-solid fa-trash-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="modal-body">
                         <blockquote class="description description-secondary">
@@ -440,7 +530,13 @@
                                 <div class="form-group">
                                     <label class="form-label">
                                         Instructions:
-                                        <span class="help-icon text-secondary" v-tooltip="'Hint about what value should be provided when creating a license.'"><i class="fas fa-question-circle"></i></span>
+                                        <span 
+                                            class="help-icon text-secondary" 
+                                            data-bs-toggle="tooltip"
+                                            data-bs-title="Hint about what value should be provided when creating a license."
+                                        >
+                                            <i class="fa-solid fa-question-circle"></i>
+                                        </span>
                                     </label>
                                     <textarea class="form-control" rows="3" v-model.trim="fieldData.Instructions"></textarea>
                                 </div>
@@ -551,7 +647,7 @@
                     <div class="modal-footer justify-content-start">
                         <div class="btn-group">
                             <button class="btn btn-primary" v-on:click="addOrUpdate" v-bind:disabled="submitting">Save</button>
-                            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>

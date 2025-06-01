@@ -8,6 +8,7 @@ import { createApp } from "vue";
 import { Tooltip } from "bootstrap";
 import { msgTypes, apiBaseURL, isValidDate } from "./common";
 import { get, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { user } from "./types";
 
 if (document.getElementById("userLogins")) {
     const userLogins = createApp({

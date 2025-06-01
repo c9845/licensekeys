@@ -10,6 +10,8 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout, todayPlus, getToday, isEmail } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { app, keyPair, license, apiKey, customFieldDefined, customFieldTypeInteger, customFieldTypeDecimal, customFieldTypeText, customFieldTypeBoolean, customFieldTypeMultiChoice, customFieldTypeDate } from "./types.ts";
+import { Tooltip } from "bootstrap";
 
 if (document.getElementById("createLicense")) {
     const createLicense = createApp({
@@ -555,7 +557,12 @@ if (document.getElementById("createLicense")) {
         mounted() {
             //Load the apps the user can choose from.
             this.getApps();
+
+            new Tooltip(document.body, {
+                selector: "[data-bs-toggle='tooltip']",
+            });
+
             return;
-        }
+        },
     }).mount("#createLicense");
 }

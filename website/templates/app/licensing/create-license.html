@@ -18,7 +18,7 @@
 				<div class="row justify-content-center">
                     
                     <!-- inputs for creating license -->
-                    <div class="col col-md-8 col-lg-5">
+                    <div class="col-12 col-md-6 col-lg-5">
                         <div class="card">
                             <div class="card-header">
                                 <h5>Create License</h5>
@@ -27,7 +27,8 @@
                                     <button 
                                         class="btn btn-outline-primary btn-sm" 
                                         v-on:click="(showAPIBuilder = !showAPIBuilder); getAPIKeys()"
-                                        v-tooltip="'Show API example.'"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-title="Show API example."
                                     >
                                         <i class="fas fa-wrench"></i>
                                     </button>
@@ -107,14 +108,17 @@
                                         <template v-for="(f, idx) in fields">
                                             <!-- integer -->
                                             <div v-if="f.Type === customFieldTypeInteger" v-bind:data-customfielddefinedID="f.ID">
-                                                <div class="form-group">
+                                                <div class="form-group mb-3">
                                                     <label class="form-label">
-                                                        <span class="field-name">[[f.Name]]:</span>
+                                                        <span class="field-name">[[f.Name]]: </span>
                                                         <span 
-                                                            class="field-instructions text-secondary help-icon fas fa-question-circle" 
-                                                            v-tooltip="f.Instructions"
+                                                            class="field-instructions text-secondary help-icon" 
+                                                            data-bs-toggle="tooltip" 
+                                                            data-bs-title="f.Instructions"
                                                             v-if="f.Instructions.length > 0"
-                                                            v-cloak>
+                                                            v-cloak
+                                                        >
+                                                            <i class="fa-solid fa-question-circle"></i>
                                                         </span>
                                                     </label>
                                                     <input 
@@ -123,7 +127,7 @@
                                                         step="1" 
                                                         v-bind:min="f.NumberMinValue" 
                                                         v-bind:max="f.NumberMaxValue" 
-                                                        v-model.number="fields[idx].IntegerValue" 
+                                                        v-model.number="f.IntegerValue" 
                                                         v-bind:data-default="f.IntegerDefaultValue"
                                                     >
                                                 </div>
@@ -131,14 +135,17 @@
     
                                             <!-- decimal -->
                                             <div v-else-if="f.Type === customFieldTypeDecimal" v-bind:data-customfielddefinedID="f.ID">
-                                                <div class="form-group">
+                                                <div class="form-group mb-3">
                                                     <label class="form-label">
-                                                        <span class="field-name">[[f.Name]]:</span>
+                                                        <span class="field-name">[[f.Name]]: </span>
                                                         <span 
-                                                            class="field-instructions text-secondary help-icon fas fa-question-circle" 
-                                                            v-tooltip="f.Instructions"
+                                                            class="field-instructions text-secondary help-icon" 
+                                                            data-bs-toggle="tooltip" 
+                                                            data-bs-title="f.Instructions"
                                                             v-if="f.Instructions.length > 0"
-                                                            v-cloak>
+                                                            v-cloak
+                                                        >
+                                                            <i class="fa-solid fa-question-circle"></i>
                                                         </span>
                                                     </label>
                                                     <input 
@@ -147,7 +154,7 @@
                                                         step="0.01" 
                                                         v-bind:min="f.NumberMinValue" 
                                                         v-bind:max="f.NumberMaxValue" 
-                                                        v-model.number="fields[idx].DecimalValue" 
+                                                        v-model.number="f.DecimalValue" 
                                                         v-bind:data-default="f.DecimalDefaultValue"
                                                     >
                                                 </div>
@@ -155,20 +162,23 @@
                                             
                                             <!-- text -->
                                             <div v-else-if="f.Type === customFieldTypeText" v-bind:data-customfielddefinedID="f.ID">
-                                                <div class="form-group">
+                                                <div class="form-group mb-3">
                                                     <label class="form-label">
-                                                        <span class="field-name">[[f.Name]]:</span>
+                                                        <span class="field-name">[[f.Name]]: </span>
                                                         <span 
-                                                            class="field-instructions text-secondary help-icon fas fa-question-circle" 
-                                                            v-tooltip="f.Instructions"
+                                                            class="field-instructions text-secondary help-icon" 
+                                                            data-bs-toggle="tooltip" 
+                                                            data-bs-title="f.Instructions"
                                                             v-if="f.Instructions.length > 0"
-                                                            v-cloak>
+                                                            v-cloak
+                                                        >
+                                                            <i class="fa-solid fa-question-circle"></i>
                                                         </span>
                                                     </label>
                                                     <input 
                                                         class="form-control" 
                                                         type="text" 
-                                                        v-model.trim="fields[idx].TextValue" 
+                                                        v-model.trim="f.TextValue" 
                                                         v-bind:data-default="f.TextDefaultValue"
                                                     >
                                                 </div>
@@ -176,16 +186,27 @@
                                             
                                             <!-- boolean -->
                                             <div v-else-if="f.Type === customFieldTypeBoolean" v-bind:data-customfielddefinedID="f.ID">
-                                                <div class="form-group">
-                                                    <div clas="row">
-                                                        <label class="form-label col-sm-6">[[f.Name]]</label>
-                                                        <div class="col-sm-6 d-flex flex-flow-reverse">
+                                                <div class="form-group mb-3">
+                                                    <div class="row">
+                                                        <label class="form-label col-sm-6">
+                                                            <span class="field-name">[[f.Name]]: </span>
+                                                            <span 
+                                                                class="field-instructions text-secondary help-icon" 
+                                                                data-bs-toggle="tooltip" 
+                                                                data-bs-title="f.Instructions"
+                                                                v-if="f.Instructions.length > 0"
+                                                                v-cloak
+                                                            >
+                                                                <i class="fa-solid fa-question-circle"></i>
+                                                            </span>
+                                                        </label>
+                                                        <div class="col-sm-6 d-flex flex-row-reverse">
                                                             <div class="btn-group" role="group">
-                                                                <input class="btn-check" type="radio" v-bind:name="f.Name" v-bind:id="f.Name + '-true'" autocomplete="off" v-model="f.BoolDefaultValue" v-bind:value="true">
-                                                                <label class="btn btn-secondary" for="Active-true">Yes</label>
-                                                            
-                                                                <input class="btn-check" type="radio" v-bind:name="f.Name" v-bind:id="f.Name + '-false'" autocomplete="off" v-model="f.BoolDefaultValue" v-bind:value="false">
-                                                                <label class="btn btn-secondary" for="Active-false">No</label>
+                                                                <input class="btn-check" type="radio" v-bind:name="f.Name" v-bind:id="f.Name + '-true'" autocomplete="off" v-model="f.BoolValue" v-bind:value="true">
+                                                                <label class="btn btn-secondary" v-bind:for="f.Name + '-true'">Yes</label>
+                                                                
+                                                                <input class="btn-check" type="radio" v-bind:name="f.Name" v-bind:id="f.Name + '-false'" autocomplete="off" v-model="f.BoolValue" v-bind:value="false">
+                                                                <label class="btn btn-secondary" v-bind:for="f.Name + '-false'">No</label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -194,19 +215,22 @@
     
                                             <!-- multi choice -->
                                             <div v-else-if="f.Type === customFieldTypeMultiChoice" v-bind:data-customfielddefinedID="f.ID">
-                                                <div class="form-group">
+                                                <div class="form-group mb-3">
                                                     <label class="form-label">
-                                                        <span class="field-name">[[f.Name]]:</span>
+                                                        <span class="field-name">[[f.Name]]: </span>
                                                         <span 
-                                                            class="field-instructions text-secondary help-icon fas fa-question-circle" 
-                                                            v-tooltip="f.Instructions"
+                                                            class="field-instructions text-secondary help-icon" 
+                                                            data-bs-toggle="tooltip" 
+                                                            data-bs-title="f.Instructions"
                                                             v-if="f.Instructions.length > 0"
-                                                            v-cloak>
+                                                            v-cloak
+                                                        >
+                                                            <i class="fa-solid fa-question-circle"></i>
                                                         </span>
                                                     </label>
                                                     <select 
                                                         class="form-select" 
-                                                        v-model.trim="fields[idx].MultiChoiceValue" 
+                                                        v-model.trim="f.MultiChoiceValue" 
                                                         v-bind:data-default="f.MultiChoiceDefaultValue"
                                                     >
                                                         <option value="" disabled selected>Please choose.</option>
@@ -217,20 +241,23 @@
     
                                             <!-- date -->
                                             <div v-else-if="f.Type === customFieldTypeDate" v-bind:data-customfielddefinedID="f.ID">
-                                                <div class="form-group">
+                                                <div class="form-group mb-3">
                                                     <label class="form-label">
-                                                        <span class="field-name">[[f.Name]]:</span>
+                                                        <span class="field-name">[[f.Name]]: </span>
                                                         <span 
-                                                            class="field-instructions text-secondary help-icon fas fa-question-circle" 
-                                                            v-tooltip="f.Instructions"
+                                                            class="field-instructions text-secondary help-icon" 
+                                                            data-bs-toggle="tooltip" 
+                                                            data-bs-title="f.Instructions"
                                                             v-if="f.Instructions.length > 0"
-                                                            v-cloak>
+                                                            v-cloak
+                                                        >
+                                                            <i class="fa-solid fa-question-circle"></i>
                                                         </span>
                                                     </label>
                                                     <input 
                                                         class="form-control" 
                                                         type="date" 
-                                                        v-model.trim="fields[idx].DateValue" 
+                                                        v-model.trim="f.DateValue" 
                                                         v-bind:min="today()" 
                                                         v-bind:data-default="f.DateDefaultIncrement"
                                                     >
@@ -252,7 +279,7 @@
 
                     <!-- api request builder. show how to make an api request -->
                     {{if $appSettings.AllowAPIAccess}}
-                    <div class="col col-md-8 col-lg-7" v-show="showAPIBuilder" v-cloak>
+                    <div class="col-12 col-md-6 col-lg-7" v-show="showAPIBuilder" v-cloak>
                         <div class="card">
                             <div class="card-header">
                                 <h5>API Example</h5>
@@ -284,10 +311,10 @@
                                         <div class="col-sm-6 d-flex flex-row-reverse">
                                             <div class="btn-group" role="group">
                                                 <input class="btn-check" type="radio" name="returnLicenseFile" id="returnLicenseFile-true" autocomplete="off" v-model="returnLicenseFile" v-bind:value="true">
-                                                <label class="btn btn-secondary" for="Return License File-true">Yes</label>
+                                                <label class="btn btn-secondary" for="returnLicenseFile-true">Yes</label>
                                                 
                                                 <input class="btn-check" type="radio" name="returnLicenseFile" id="returnLicenseFile-false" autocomplete="off" v-model="returnLicenseFile" v-bind:value="false">
-                                                <label class="btn btn-secondary" for="Return License File-false">No</label>
+                                                <label class="btn btn-secondary" for="returnLicenseFile-false">No</label>
                                             </div>
                                         </div>
                                     </div>
@@ -295,7 +322,9 @@
 
                                 <!-- Button to build the API example from the provided data and chosen API key. -->
                                 <div class="form-group">
-                                    <button class="form-control btn btn-outline-primary btn-block" v-on:click="buildAPIExample">Build cURL Request</button>
+                                    <div class="d-grid gap-2">
+                                        <button class="form-control btn btn-outline-primary" v-on:click="buildAPIExample">Build cURL Request</button>
+                                    </div>
                                 </div>
 
                                 <!-- Display built API request -->
@@ -307,7 +336,7 @@
 
                                 <!-- Help information. -->
                                 <section>
-                                    <div class="alert alert-info">
+                                    <div class="alert alert-info mt-3 mb-0">
                                         <b>Notes:</b>
                                         <ul>
                                             <li>

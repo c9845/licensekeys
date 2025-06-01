@@ -8,6 +8,7 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { keyPair, keyPairAlgoTypes, keyPairAlgoED25519 } from "./types";
 
 //Manage the list of key pairs.
 export var listKeyPairs: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -199,11 +200,11 @@ if (document.getElementById("modal-manageKeyPair")) {
             //This is called from listKeyPairs.passToManageKeyPairModal() upon a user
             //clicking the "edit" or "add" buttons.
             setKeypairInModal: function (appID: number, kp: keyPair | undefined) {
-                //Always reset.
-                this.resetForm();
-
                 //Always save the app ID.
                 this.appSelectedID = appID;
+
+                //Always reset.
+                this.resetForm();
 
                 //User wants to add a new keypair.
                 if (kp === undefined) {
@@ -288,6 +289,8 @@ if (document.getElementById("modal-manageKeyPair")) {
                         listKeyPairs.getKeyPairs();
 
                         //Show success message.
+                        //
+                        //DON'T reset modal so user can copy public key.
                         this.msgSave = "Keypair added!";
                         this.msgSaveType = msgTypes.success;
                         setTimeout(() => {

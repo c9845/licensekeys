@@ -14,6 +14,7 @@ import { createApp } from "vue";
 import { Modal } from "bootstrap";
 import { isEmail, msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { user } from "./types";
 
 //Manage the list of users. Update or add users.
 var manageUsers: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.

@@ -10,6 +10,7 @@
 import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { customFieldDefined, customFieldTypes, customFieldTypeInteger, customFieldTypeDecimal, customFieldTypeText, customFieldTypeBoolean, customFieldTypeMultiChoice, customFieldTypeDate } from "./types.ts";
 
 //Manage the list of custom fields defined.
 export var listCustomFieldsDefined: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -119,7 +120,7 @@ if (document.getElementById("listCustomFieldsDefined")) {
             //
             //Note that this does not open the modal, that is handled through bootstrap
             //data-toggle and data-target attributes.
-            passToManageKeypairModal: function (cfd: customFieldDefined | undefined) {
+            passToManageCustomFieldModal: function (cfd: customFieldDefined | undefined) {
                 modalManageCustomFieldDefined.setCustomFieldInModal(this.appSelectedID, cfd);
                 return
             },
@@ -130,7 +131,7 @@ if (document.getElementById("listCustomFieldsDefined")) {
 //Handle displaying the full details of a custom field defined, and allow management
 //of it, or add a new custom field.
 var modalManageCustomFieldDefined: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
-if (document.getElementById("modal-customFieldDefined")) {
+if (document.getElementById("modal-manageCustomFieldDefined")) {
     modalManageCustomFieldDefined = createApp({
         name: 'modalManageCustomFieldDefined',
 
@@ -243,11 +244,11 @@ if (document.getElementById("modal-customFieldDefined")) {
             //This is called from listKeyPairs.passToManageKeypairModal() upon a user
             //clicking the "edit" or "add" buttons.
             setCustomFieldInModal: function (appID: number, cfd: customFieldDefined | undefined) {
-                //Always reset.
-                this.resetForm();
-
                 //Always save the app ID.
                 this.appSelectedID = appID;
+
+                //Always reset.
+                this.resetForm();
 
                 //User wants to add a new custom field.
                 if (cfd === undefined) {
@@ -433,7 +434,7 @@ if (document.getElementById("modal-customFieldDefined")) {
                 }
 
                 //Perform correct task.
-                if (this.fieldData.ID !== undefined) {
+                if (this.fieldData.ID !== undefined && this.fieldData.ID > 0) {
                     this.update();
                 }
                 else {
@@ -475,7 +476,7 @@ if (document.getElementById("modal-customFieldDefined")) {
                         this.msgSave = "Field added!";
                         this.msgSaveType = msgTypes.success;
                         setTimeout(() => {
-                            this.resetModal();
+                            this.resetForm();
                             this.msgSave = "";
                             this.msgSaveType = "";
                             this.submitting = false;

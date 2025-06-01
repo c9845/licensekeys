@@ -9,6 +9,7 @@ import { createApp } from "vue";
 import { Tooltip } from "bootstrap";
 import { msgTypes, apiBaseURL, isValidDate } from "./common";
 import { get, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
+import { activityLog, user, apiKey } from "./types";
 
 if (document.getElementById("activityLog")) {
     const activityLog = createApp({

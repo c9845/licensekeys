@@ -4,11 +4,11 @@
  * The stuff in this file should generally match the structs defined for each 
  * database table.
  * 
- * Order of interfaces matches order of db-*.go files.
+ * Order of export interfaces matches order of db-*.go files.
  */
 
 //activityLog handles interacting with the log of user activity, for auditing purposes.
-interface activityLog {
+export interface activityLog {
     ID: number,
     DatetimeCreated: string,
     TimestampCreated: number, //unix timestamp in nanoseconds
@@ -32,7 +32,7 @@ interface activityLog {
 }
 
 //apiKey handles interacting with API keys.
-interface apiKey {
+export interface apiKey {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
@@ -53,7 +53,7 @@ interface apiKey {
 }
 
 //app is an app you create licenses for.
-interface app {
+export interface app {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
@@ -69,16 +69,16 @@ interface app {
 }
 
 //This must match the formats defined in keyfile-fileFormats.go.
-const fileFormatYAML: string = "yaml";
-const fileFormatJSON: string = "json";
-const fileFormats: string[] = [
+export const fileFormatYAML: string = "yaml";
+export const fileFormatJSON: string = "json";
+export const fileFormats: string[] = [
     fileFormatYAML,
     fileFormatJSON,
 ];
 
 //appSettings handles interacting with the settings that change functionality of the
 //app.
-interface appSettings {
+export interface appSettings {
     ID: number,
     DatetimeModified: string,
 
@@ -92,7 +92,7 @@ interface appSettings {
 
 //custom fields are extra data added to a license. This stores the definition of each
 //field.
-interface customFieldDefined {
+export interface customFieldDefined {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
@@ -129,13 +129,13 @@ interface customFieldDefined {
     DateValue: string,
 }
 
-const customFieldTypeInteger: string = "Integer";
-const customFieldTypeDecimal: string = "Decimal";
-const customFieldTypeText: string = "Text";
-const customFieldTypeBoolean: string = "Boolean";
-const customFieldTypeMultiChoice: string = "Multi-Choice";
-const customFieldTypeDate: string = "Date";
-const customFieldTypes: string[] = [
+export const customFieldTypeInteger: string = "Integer";
+export const customFieldTypeDecimal: string = "Decimal";
+export const customFieldTypeText: string = "Text";
+export const customFieldTypeBoolean: string = "Boolean";
+export const customFieldTypeMultiChoice: string = "Multi-Choice";
+export const customFieldTypeDate: string = "Date";
+export const customFieldTypes: string[] = [
     customFieldTypeInteger,
     customFieldTypeDecimal,
     customFieldTypeText,
@@ -145,7 +145,7 @@ const customFieldTypes: string[] = [
 ];
 
 //this stores the data for each custom field for each license that has been created.
-interface customFieldResults {
+export interface customFieldResults {
     ID: number,
     DatetimeCreated: string,
     Active: boolean,
@@ -168,7 +168,7 @@ interface customFieldResults {
 }
 
 //key pairs the public-private key pairs used to sign and verifiy a license.
-interface keyPair {
+export interface keyPair {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
@@ -184,13 +184,13 @@ interface keyPair {
     IsDefault: boolean, //if this is the default keypair for the app
 }
 
-const keyPairAlgoECDSAP256: string = "ECDSA (P256)";
-const keyPairAlgoECDSAP384: string = "ECDSA (P384)";
-const keyPairAlgoECDSAP521: string = "ECDSA (P521)";
-const keyPairAlgoRSA2048: string = "RSA (2048-bit)";
-const keyPairAlgoRSA4096: string = "RSA (4096-bit)";
-const keyPairAlgoED25519: string = "ED25519";
-const keyPairAlgoTypes: string[] = [
+export const keyPairAlgoECDSAP256: string = "ECDSA (P256)";
+export const keyPairAlgoECDSAP384: string = "ECDSA (P384)";
+export const keyPairAlgoECDSAP521: string = "ECDSA (P521)";
+export const keyPairAlgoRSA2048: string = "RSA (2048-bit)";
+export const keyPairAlgoRSA4096: string = "RSA (4096-bit)";
+export const keyPairAlgoED25519: string = "ED25519";
+export const keyPairAlgoTypes: string[] = [
     keyPairAlgoECDSAP256,
     keyPairAlgoECDSAP384,
     keyPairAlgoECDSAP521,
@@ -200,7 +200,7 @@ const keyPairAlgoTypes: string[] = [
 ];
 
 //license is a license created for an app.
-interface license {
+export interface license {
     ID: number,
     DatetimeCreated: string,
     Active: boolean,
@@ -241,7 +241,7 @@ interface license {
 }
 
 //user handles interacting with authenticated users of the app.
-interface user {
+export interface user {
     ID: number,
     DatetimeCreated: string,
     DatetimeModified: string,
@@ -268,7 +268,7 @@ interface user {
 }
 
 //store the download history of each license for diagnostics and auditing.
-interface downloadHistory {
+export interface downloadHistory {
     ID: number,
     DatetimeCreated: string,
     TimestampCreated: number,
@@ -283,7 +283,7 @@ interface downloadHistory {
 }
 
 //notes store extra data about a license for future reference.
-interface licenseNote {
+export interface licenseNote {
     ID: number,
     DatetimeCreated: string,
     TimestampCreated: number,

@@ -1,3 +1,5 @@
+// import "./src/bs-tooltip.ts"
+
 import "./src/login.ts"
 
 import "./src/users.ts"
