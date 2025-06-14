@@ -2,10 +2,6 @@ tmp/
 node_modules/
 _builds/
 
-website/static/js/script.js
-**.script.min.js
-**.styles.min.css
-
 *.db
 *.db-shm
 *.db-wal
@@ -15,6 +11,10 @@ licensekeys
 *.exe
 
 debug.log
-/package-lock.json
+package-lock.json
 
-/fresher.conf
+fresher.conf
+
+*.js
+*.min.js
+*.js.map
