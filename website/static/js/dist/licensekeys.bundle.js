@@ -40803,12 +40803,15 @@ if (document.getElementById("manageApps")) {
       //
       //This is used to provide a default value so users don't have to come up 
       //with a filename themselves.
+      //
+      //Filename ends in ".lic" to make it stand out against other files. Ending
+      //in .json is too common.
       setDefaultDownloadFilename: function() {
         if (this.appData.Name.trim() === "") {
           return;
         }
         let withoutSpaces = this.appData.Name.trim().replace(/ /g, "_");
-        this.appData.DownloadFilename = withoutSpaces.toLowerCase() + "." + this.appData.FileFormat;
+        this.appData.DownloadFilename = withoutSpaces.toLowerCase() + ".lic";
         return;
       },
       //addOrUpdate performs the correct action after performing common 

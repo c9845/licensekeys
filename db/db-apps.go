@@ -243,7 +243,6 @@ func (a *App) Update(ctx context.Context) (err error) {
 		a.Active,
 		a.Name,
 		a.DaysToExpiration,
-		a.FileFormat,
 		a.ShowLicenseID,
 		a.ShowAppName,
 		a.DownloadFilename,

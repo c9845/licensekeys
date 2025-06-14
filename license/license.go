@@ -505,7 +505,6 @@ func One(w http.ResponseWriter, r *http.Request) {
 		db.TableLicenses + ".*",
 		db.TableUsers + ".Username AS CreatedByUsername",
 		db.TableAPIKeys + ".Description AS CreatedByAPIKeyDescription",
-		db.TableKeyPairs + ".AlgorithmType AS KeyPairAlgoType",
 
 		"julianday(" + db.TableLicenses + ".ExpireDate) < julianday('now') AS Expired",
 
@@ -553,7 +552,6 @@ func Download(w http.ResponseWriter, r *http.Request) {
 		"julianday(" + db.TableLicenses + ".ExpireDate) < julianday('now') AS Expired",
 		db.TableApps + ".Name AS AppName",
 		db.TableApps + ".DownloadFilename AS AppDownloadFilename",
-		db.TableApps + ".FileFormat AS AppFileFormat",
 	}
 	l, err := db.GetLicense(r.Context(), licenseID, cols)
 	if err == sql.ErrNoRows {
@@ -617,7 +615,9 @@ func Download(w http.ResponseWriter, r *http.Request) {
 
 	//Replace any placeholders in the download filename. Placeholders are special
 	//words wrapped in {} characters provided for the license's app.
+	log.Println("license.Download", "Handling Filename Replacement, Before:", l.AppDownloadFilename)
 	filename := replaceFilenamePlaceholders(l.AppDownloadFilename, l.ID, l.AppName)
+	log.Println("license.Download", "Handling Filename Replacement, After: ", filename)
 
 	//Diagnostic info.
 	d, _ := f.ExpiresIn()
