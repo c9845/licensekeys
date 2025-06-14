@@ -28,7 +28,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">User:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <select class="form-select" v-model.number="userID" v-bind:disabled="apiKeyID > 0">
                                                                 <option value="0">All users.</option>
                                                                 <template v-if="usersRetrieved">
@@ -41,7 +41,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">API Key:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <select class="form-select" v-model.number="apiKeyID" v-bind:disabled="userID > 0">
                                                                 <option value="0">All API Keys.</option>
                                                                 <template v-if="apiKeysRetrieved">
@@ -54,7 +54,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">URL:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <select class="form-select" v-model.number="endpoint">
                                                                 <option value="">All URLs.</option>
                                                                 <template v-if="endpointsRetrieved">
@@ -84,7 +84,7 @@
                                                                 data-bs-title="Search for content in request data.">
                                                             </span>
                                                         </label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <input class="form-control" type="text" v-model.text="searchFor">
                                                         </div>
                                                     </div>
@@ -96,7 +96,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">Start Date:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <input class="form-control" type="date" v-model.text="startDate">
                                                         </div>
                                                     </div>
@@ -104,7 +104,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">End Date:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <input class="form-control" type="date" v-model.text="endDate">
                                                         </div>
                                                     </div>
@@ -118,7 +118,7 @@
                                                                 data-bs-title="Ignored when a date range is provided.">
                                                             </span>
                                                         </label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <input class="form-control" type="number" min="1" step="1" v-model.number="rows">
                                                         </div>
                                                     </div>
@@ -126,7 +126,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">Pretty Print:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <div class="btn-group" role="group">
                                                                 <input class="btn-check" type="radio" name="prettyPrintJSON" id="prettyPrintJSON-true" autocomplete="off" v-model="prettyPrintJSON" v-bind:value="true">
                                                                 <label class="btn btn-secondary" for="prettyPrintJSON-true">Yes</label>
@@ -140,7 +140,7 @@
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <label class="form-label col-sm-6">Show Referror:</label>
-                                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                             <div class="btn-group" role="group">
                                                                 <input class="btn-check" type="radio" name="showReferrer" id="showReferrer-true" autocomplete="off" v-model="showReferrer" v-bind:value="true">
                                                                 <label class="btn btn-secondary" for="showReferrer-true">Yes</label>

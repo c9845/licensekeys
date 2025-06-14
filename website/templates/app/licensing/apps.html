@@ -91,7 +91,7 @@
                                                 <span 
                                                     class="help-icon text-secondary" 
                                                     data-bs-toggle="tooltip"
-                                                    data-bs-title="The name of the file a license will be downloaded as. You can use {licenseID} and {appName} as placeholders."
+                                                    data-bs-title="The name of the file a license will be downloaded as. You can use {license-id} and {app-name} as placeholders."
                                                 >
                                                     <i class="fa-solid fa-question-circle"></i>
                                                 </span>
@@ -102,7 +102,7 @@
                                         <div class="form-group">
                                             <div class="row">
                                                 <label class="form-label col-sm-6">Show License ID In License:</label>
-                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                     <div class="btn-group" role="group">
                                                         <input class="btn-check" type="radio" name="ShowLicenseID" id="ShowLicenseID-true" autocomplete="off" v-model="appData.ShowLicenseID" v-bind:value="true">
                                                         <label class="btn btn-secondary" for="ShowLicenseID-true">Yes</label>
@@ -116,7 +116,7 @@
                                         <div class="form-group">
                                             <div class="row">
                                                 <label class="form-label col-sm-6">Show App Name in License:</label>
-                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                     <div class="btn-group" role="group">
                                                         <input class="btn-check" type="radio" name="ShowAppName" id="ShowAppName-true" autocomplete="off" v-model="appData.ShowAppName" v-bind:value="true">
                                                         <label class="btn btn-secondary" for="ShowAppName-true">Yes</label>
@@ -130,7 +130,7 @@
                                         <div class="form-group">
                                             <div class="row">
                                                 <label class="form-label col-sm-6">Active:</label>
-                                                <div class="col-sm-6 d-flex flex-row-reverse">
+                                                <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                     <div class="btn-group" role="group">
                                                         <input class="btn-check" type="radio" name="Active" id="Active-true" autocomplete="off" v-model="appData.Active" v-bind:value="true">
                                                         <label class="btn btn-secondary" for="Active-true">Yes</label>
@@ -144,7 +144,7 @@
                                     </fieldset>
                                 </form>
 
-                                <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                                <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                                     [[msgSave]]
                                 </div>
                             </div> <!-- end .card-body-->
@@ -406,6 +406,17 @@
                                         disabled
                                     >
                                 </div>
+                                <div class="form-group">
+                                    <label class="form-label">Type:</label>
+                                    <input 
+                                        class="form-control" 
+                                        type="text" 
+                                        v-model.trim="keyPairData.KeypairAlgo"
+                                        disabled
+                                    >
+                                </div>
+
+                                <hr class="divider">
                             </fieldset>
 
                             <!-- Fields to set when adding a new keypair. -->
@@ -575,7 +586,7 @@
                                         <div class="row">
                                             <label class="form-label col-sm-6">Default:</label>
                                             <!-- Not using "yes"/"no" here as button text since we are going to encode the data as true/false in license anyway. -->
-                                            <div class="col-sm-6 d-flex flex-row-reverse">
+                                            <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                 <div class="btn-group" role="group">
                                                     <input class="btn-check" type="radio" name="BoolDefaultValue" id="BoolDefaultValue-true" autocomplete="off" v-model="fieldData.BoolDefaultValue" v-bind:value="true">
                                                     <label class="btn btn-secondary" for="BoolDefaultValue-true">Yes</label>

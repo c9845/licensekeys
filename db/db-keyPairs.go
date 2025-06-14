@@ -71,9 +71,11 @@ const (
 			PrivateKey TEXT NOT NULL,
 			PublicKey TEXT NOT NULL,
 			PrivateKeyEncrypted INTEGER NOT NULL,
-			AlgorithmType TEXT NOT NULL,
+			
+			KeypairAlgo TEXT NOT NULL,
 			FingerprintAlgo TEXT NOT NULL,
 			EncodingAlgo TEXT NOT NULL,
+			
 			IsDefault INTEGER NOT NULL DEFAULT 0,
 
 			FOREIGN KEY (CreatedByUserID) REFERENCES ` + TableUsers + `(ID),

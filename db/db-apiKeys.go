@@ -25,6 +25,11 @@ type APIKey struct {
 	Description string //so user can identify what the api key is used for
 	K           string //the actual api key
 
+	//Key permissions, what a key can access.
+	CreateLicense   bool
+	RevokeLicense   bool
+	DownloadLicense bool
+
 	//JOINed fields
 	CreatedByUsername string
 
@@ -43,6 +48,10 @@ const (
 
 			Description TEXT NOT NULL,
 			K TEXT NOT NULL,
+
+			CreateLicense INTEGER NOT NULL DEFAULT 0,
+			RevokeLicense INTEGER NOT NULL DEFAULT 0,
+			DownloadLicense INTEGER NOT NULL DEFAULT 0,
 
 			FOREIGN KEY(CreatedByUserID) REFERENCES ` + TableUsers + `(ID)
 		)
@@ -130,6 +139,9 @@ func (a *APIKey) Insert(ctx context.Context) (err error) {
 		"CreatedByUserID",
 		"Description",
 		"K",
+		"CreateLicense",
+		"RevokeLicense",
+		"DownloadLicense",
 	}
 	colString, valString, err := cols.ForInsert()
 	if err != nil {
@@ -151,6 +163,9 @@ func (a *APIKey) Insert(ctx context.Context) (err error) {
 		a.CreatedByUserID,
 		a.Description,
 		a.K,
+		a.CreateLicense,
+		a.RevokeLicense,
+		a.DownloadLicense,
 	)
 	if err != nil {
 		return

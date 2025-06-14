@@ -7819,16 +7819,16 @@ function setDevtoolsHook$1(hook, target) {
     buffer = [];
   }
 }
-function devtoolsInitApp(app3, version4) {
-  emit$1("app:init", app3, version4, {
+function devtoolsInitApp(app2, version4) {
+  emit$1("app:init", app2, version4, {
     Fragment,
     Text,
     Comment,
     Static
   });
 }
-function devtoolsUnmountApp(app3) {
-  emit$1("app:unmount", app3);
+function devtoolsUnmountApp(app2) {
+  emit$1("app:unmount", app2);
 }
 var devtoolsComponentAdded = /* @__PURE__ */ createDevtoolsComponentHook(
   "component:added"
@@ -11058,7 +11058,7 @@ function createAppAPI(render2, hydrate2) {
     const installedPlugins = /* @__PURE__ */ new WeakSet();
     const pluginCleanupFns = [];
     let isMounted = false;
-    const app3 = context.app = {
+    const app2 = context.app = {
       _uid: uid$1++,
       _component: rootComponent,
       _props: rootProps,
@@ -11081,16 +11081,16 @@ function createAppAPI(render2, hydrate2) {
           warn$1(`Plugin has already been applied to target app.`);
         } else if (plugin && isFunction(plugin.install)) {
           installedPlugins.add(plugin);
-          plugin.install(app3, ...options);
+          plugin.install(app2, ...options);
         } else if (isFunction(plugin)) {
           installedPlugins.add(plugin);
-          plugin(app3, ...options);
+          plugin(app2, ...options);
         } else {
           warn$1(
             `A plugin must either be a function or an object with an "install" function.`
           );
         }
-        return app3;
+        return app2;
       },
       mixin(mixin) {
         {
@@ -11102,7 +11102,7 @@ function createAppAPI(render2, hydrate2) {
             );
           }
         }
-        return app3;
+        return app2;
       },
       component(name, component) {
         {
@@ -11115,7 +11115,7 @@ function createAppAPI(render2, hydrate2) {
           warn$1(`Component "${name}" has already been registered in target app.`);
         }
         context.components[name] = component;
-        return app3;
+        return app2;
       },
       directive(name, directive) {
         {
@@ -11128,7 +11128,7 @@ function createAppAPI(render2, hydrate2) {
           warn$1(`Directive "${name}" has already been registered in target app.`);
         }
         context.directives[name] = directive;
-        return app3;
+        return app2;
       },
       mount(rootContainer, isHydrate, namespace) {
         if (!isMounted) {
@@ -11138,7 +11138,7 @@ function createAppAPI(render2, hydrate2) {
  If you want to mount another app on the same host container, you need to unmount the previous app by calling \`app.unmount()\` first.`
             );
           }
-          const vnode = app3._ceVNode || createVNode(rootComponent, rootProps);
+          const vnode = app2._ceVNode || createVNode(rootComponent, rootProps);
           vnode.appContext = context;
           if (namespace === true) {
             namespace = "svg";
@@ -11158,11 +11158,11 @@ function createAppAPI(render2, hydrate2) {
             render2(vnode, rootContainer, namespace);
           }
           isMounted = true;
-          app3._container = rootContainer;
-          rootContainer.__vue_app__ = app3;
+          app2._container = rootContainer;
+          rootContainer.__vue_app__ = app2;
           {
-            app3._instance = vnode.component;
-            devtoolsInitApp(app3, version);
+            app2._instance = vnode.component;
+            devtoolsInitApp(app2, version);
           }
           return getComponentPublicInstance(vnode.component);
         } else {
@@ -11184,15 +11184,15 @@ If you want to remount the same app, move your app creation logic into a factory
         if (isMounted) {
           callWithAsyncErrorHandling(
             pluginCleanupFns,
-            app3._instance,
+            app2._instance,
             16
           );
-          render2(null, app3._container);
+          render2(null, app2._container);
           {
-            app3._instance = null;
-            devtoolsUnmountApp(app3);
+            app2._instance = null;
+            devtoolsUnmountApp(app2);
           }
-          delete app3._container.__vue_app__;
+          delete app2._container.__vue_app__;
         } else {
           warn$1(`Cannot unmount an app that is not mounted.`);
         }
@@ -11204,11 +11204,11 @@ If you want to remount the same app, move your app creation logic into a factory
           );
         }
         context.provides[key] = value;
-        return app3;
+        return app2;
       },
       runWithContext(fn) {
         const lastApp = currentApp;
-        currentApp = app3;
+        currentApp = app2;
         try {
           return fn();
         } finally {
@@ -11216,7 +11216,7 @@ If you want to remount the same app, move your app creation logic into a factory
         }
       }
     };
-    return app3;
+    return app2;
   };
 }
 var currentApp = null;
@@ -17318,16 +17318,16 @@ var hydrate = (...args) => {
   ensureHydrationRenderer().hydrate(...args);
 };
 var createApp = (...args) => {
-  const app3 = ensureRenderer().createApp(...args);
+  const app2 = ensureRenderer().createApp(...args);
   {
-    injectNativeTagCheck(app3);
-    injectCompilerOptionsCheck(app3);
+    injectNativeTagCheck(app2);
+    injectCompilerOptionsCheck(app2);
   }
-  const { mount } = app3;
-  app3.mount = (containerOrSelector) => {
+  const { mount } = app2;
+  app2.mount = (containerOrSelector) => {
     const container = normalizeContainer(containerOrSelector);
     if (!container) return;
-    const component = app3._component;
+    const component = app2._component;
     if (!isFunction(component) && !component.render && !component.template) {
       component.template = container.innerHTML;
     }
@@ -17341,22 +17341,22 @@ var createApp = (...args) => {
     }
     return proxy;
   };
-  return app3;
+  return app2;
 };
 var createSSRApp = (...args) => {
-  const app3 = ensureHydrationRenderer().createApp(...args);
+  const app2 = ensureHydrationRenderer().createApp(...args);
   {
-    injectNativeTagCheck(app3);
-    injectCompilerOptionsCheck(app3);
+    injectNativeTagCheck(app2);
+    injectCompilerOptionsCheck(app2);
   }
-  const { mount } = app3;
-  app3.mount = (containerOrSelector) => {
+  const { mount } = app2;
+  app2.mount = (containerOrSelector) => {
     const container = normalizeContainer(containerOrSelector);
     if (container) {
       return mount(container, true, resolveRootNamespace(container));
     }
   };
-  return app3;
+  return app2;
 };
 function resolveRootNamespace(container) {
   if (container instanceof SVGElement) {
@@ -17366,16 +17366,16 @@ function resolveRootNamespace(container) {
     return "mathml";
   }
 }
-function injectNativeTagCheck(app3) {
-  Object.defineProperty(app3.config, "isNativeTag", {
+function injectNativeTagCheck(app2) {
+  Object.defineProperty(app2.config, "isNativeTag", {
     value: (tag) => isHTMLTag(tag) || isSVGTag(tag) || isMathMLTag(tag),
     writable: false
   });
 }
-function injectCompilerOptionsCheck(app3) {
+function injectCompilerOptionsCheck(app2) {
   if (isRuntimeOnly()) {
-    const isCustomElement = app3.config.isCustomElement;
-    Object.defineProperty(app3.config, "isCustomElement", {
+    const isCustomElement = app2.config.isCustomElement;
+    Object.defineProperty(app2.config, "isCustomElement", {
       get() {
         return isCustomElement;
       },
@@ -17385,12 +17385,12 @@ function injectCompilerOptionsCheck(app3) {
         );
       }
     });
-    const compilerOptions = app3.config.compilerOptions;
+    const compilerOptions = app2.config.compilerOptions;
     const msg = `The \`compilerOptions\` config option is only respected when using a build of Vue.js that includes the runtime compiler (aka "full build"). Since you are using the runtime-only build, \`compilerOptions\` must be passed to \`@vue/compiler-dom\` in the build setup instead.
 - For vue-loader: pass it via vue-loader's \`compilerOptions\` loader option.
 - For vue-cli: see https://cli.vuejs.org/guide/webpack.html#modifying-options-of-a-loader
 - For vite: pass it via @vitejs/plugin-vue options. See https://github.com/vitejs/vite-plugin-vue/tree/main/packages/plugin-vue#example-for-passing-options-to-vuecompiler-sfc`;
-    Object.defineProperty(app3.config, "compilerOptions", {
+    Object.defineProperty(app2.config, "compilerOptions", {
       get() {
         warn(msg);
         return compilerOptions;
@@ -23229,7 +23229,8 @@ ${codeFrame}` : message);
 registerRuntimeCompiler(compileToFunction);
 
 // website/static/js/src/common.ts
-var version2 = "3.2.0";
+var version2 = "4.0.0";
+console.log("JS Version:", version2);
 if (document.getElementById("js-version")) {
   document.getElementById("js-version").innerHTML = version2;
 }
@@ -24367,7 +24368,10 @@ if (document.getElementById("manageAPIKeys")) {
         apiKeySelectedID: 0,
         keyData: {
           Description: "",
-          K: ""
+          K: "",
+          CreateLicense: false,
+          RevokeLicense: false,
+          DownloadLicense: false
         },
         //Form submission stuff.
         submitting: false,
@@ -24416,6 +24420,51 @@ if (document.getElementById("manageAPIKeys")) {
         });
         return;
       },
+      //setState handles setting the GUI state to the "add" or "lookup/edit" 
+      //state.
+      //
+      //This is called when a user clicks the add or view buttons in the card
+      //header or when a new user is saved.
+      setState: function() {
+        if (this.addingNew) {
+          this.addingNew = !this.addingNew;
+          return;
+        }
+        this.addingNew = !this.addingNew;
+        this.resetForm();
+        this.msgSave = "";
+        this.msgSaveType = "";
+        return;
+      },
+      //resetForm resets the inputs and toggles when showing the "add user"
+      //GUI, or after a user is added and we empty all the inputs.
+      resetForm: function() {
+        this.keyData = {
+          Description: "",
+          K: "",
+          CreateLicense: false,
+          RevokeLicense: false,
+          DownloadLicense: false
+        };
+        this.userSelectedID = 0;
+        return;
+      },
+      //showAPIKey populates the "lookup" GUI with data about an API key chosen
+      //from the select menu.
+      showAPIKey: function() {
+        if (this.apiKeySelectedID < 1) {
+          return;
+        }
+        for (let k of this.keys) {
+          if (k.ID !== this.apiKeySelectedID) {
+            continue;
+          }
+          this.keyData = k;
+          break;
+        }
+        modalRevokeAPIKey.setKeyData(this.apiKeySelectedID);
+        return;
+      },
       //createKey adds/generates a new API key.
       createKey: function() {
         this.msgSaveType = msgTypes.danger;
@@ -24445,7 +24494,7 @@ if (document.getElementById("manageAPIKeys")) {
             this.msgSave = "";
             this.msgSaveType = "";
             this.submitting = false;
-            this.apiKeySelectedID = j.Data.ID;
+            this.apiKeySelectedID = j.Data;
             this.addingNew = false;
             this.showAPIKey();
           }, defaultTimeout);
@@ -40136,12 +40185,6 @@ if (document.getElementById("modal-manageKeyPair")) {
 }
 
 // website/static/js/src/types.ts
-var fileFormatYAML = "yaml";
-var fileFormatJSON = "json";
-var fileFormats = [
-  fileFormatYAML,
-  fileFormatJSON
-];
 var customFieldTypeInteger = "Integer";
 var customFieldTypeDecimal = "Decimal";
 var customFieldTypeText = "Text";
@@ -40638,17 +40681,13 @@ if (document.getElementById("manageApps")) {
         appData: {
           Name: "",
           DaysToExpiration: 365,
-          FileFormat: this.defaultFileFormat,
+          FileFormat: "json",
           DownloadFilename: "",
           ShowLicenseID: true,
           ShowAppName: true,
           Active: true
           //New apps are always active, because why would you create a new app if they are inactive?
         },
-        //Options to choose from when adding/editing.
-        fileFormats,
-        //Defaults for options.
-        defaultFileFormat: fileFormatYAML,
         //Form submission stuff.
         submitting: false,
         msgSave: "",
@@ -40713,12 +40752,12 @@ if (document.getElementById("manageApps")) {
         return;
       },
       //resetForm sets the add form back to a clean state.
-      //This is called in setUIState.
+      //This is called in setState.
       resetForm: function() {
         this.appData = {
           Name: "",
           DaysToExpiration: 365,
-          FileFormat: this.defaultFileFormat,
+          FileFormat: "json",
           DownloadFilename: "",
           ShowLicenseID: true,
           ShowAppName: true,
@@ -40788,10 +40827,6 @@ if (document.getElementById("manageApps")) {
           this.msgSave = "The default license period cannot be less than 0 days.";
           return;
         }
-        if (!this.fileFormats.includes(this.appData.FileFormat.trim())) {
-          this.msgSave = "Please choose a file format from the provided options.";
-          return;
-        }
         if (this.appData.DownloadFilename.trim() === "") {
           this.msgSave = "You must provide the filename your licenses for this app will be downloaded as.";
           return;
@@ -40825,7 +40860,7 @@ if (document.getElementById("manageApps")) {
           setTimeout(() => {
             this.appSelectedID = j.Data;
             this.showApp();
-            this.setUIState();
+            this.setState();
             this.msgSave = "";
             this.msgLoadType = "";
             this.submitting = false;

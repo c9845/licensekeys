@@ -6,7 +6,8 @@
 
 //version is the version number of the ts/js code. This may not match the app's 
 //version if the ts/js code has not changed.
-export const version: string = "3.2.0";
+export const version: string = "4.0.0";
+console.log("JS Version:", version);
 
 //Set JS version in GUI if element exists. AKA, on the diagnostics page. Setting the
 //version is done this way, instead of in <script> tag like other apps, because this

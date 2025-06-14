@@ -1135,9 +1135,9 @@ func writeReadVerify(f licensefile.File, publicKey []byte) (err error) {
 // an app with the correct associated data. This generates the actual filename a license
 // will be downloaded as.
 func replaceFilenamePlaceholders(filename string, licenseID int64, appName string) string {
-	filename = strings.ReplaceAll(filename, "{licenseID}", strconv.FormatInt(licenseID, 10))
+	filename = strings.ReplaceAll(filename, "{license-id}", strconv.FormatInt(licenseID, 10))
 
-	filename = strings.ReplaceAll(filename, "{appName}", appName)
+	filename = strings.ReplaceAll(filename, "{app-name}", appName)
 
 	return filename
 }

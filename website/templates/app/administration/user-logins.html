@@ -30,7 +30,7 @@
                                             <div class="form-group">
                                                 <div class="row">
                                                     <label class="form-label col-sm-6">User:</label>
-                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                         <select class="form-select" v-model.number="userID" v-bind:disabled="apiKeyID > 0">
                                                             <option value="0">All users.</option>
                                                             <template v-if="usersRetrieved">
@@ -47,7 +47,7 @@
                                             <div class="form-group">
                                                 <div class="row">
                                                     <label class="form-label col-sm-6">Max Rows Returned:</label>
-                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                         <input class="form-control" type="number" min="1" step="1" v-model.number="rows">
                                                     </div>
                                                 </div>

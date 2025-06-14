@@ -42,8 +42,9 @@ export interface apiKey {
     Description: string,
     K: string,
 
-    CreateCharge: boolean,
-    RefundCharge: boolean,
+    CreateLicense: boolean,
+    RevokeLicense: boolean,
+    DownloadLicense: boolean,
 
     //JOINed fields
     CreatedByUsername: string,

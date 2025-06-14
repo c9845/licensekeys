@@ -1,5 +1,5 @@
 :root {
-    --version: "3.2.0";
+    --version: "4.0.0";
 
     --header-margin-bottom: 1.5rem;
 
@@ -170,14 +170,6 @@ control. This allows us to change spacing app-wide without changing HTML.*/
 whitespace*/
 .form-group:last-child {
     margin-bottom: 0;
-}
-
-/*align label text and input (yes/no button, input, select) better when displayed
-side-by-side. this especially helps when there is a description blockquote since there
-ends up being less whitespace between title text and description, grouping these two
-pieces together better and providing better separation from a previous .form-group*/
-.form-group .row {
-    align-items: baseline;
 }
 
 

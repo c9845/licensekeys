@@ -1,5 +1,3 @@
-{{$showDevHeader := .Development}}
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -14,30 +12,46 @@
 		<main>
 			<div class="container">
 				<div class="row justify-content-center">
-                   <div class="col-12 col-lg-8" id="manageAPIKeys">
+                   <div class="col-12 col-lg-8 col-xl-6" id="manageAPIKeys">
 
                         <!-- lookup an API key, only shown when viewing/editing -->
                         <div class="card" v-if="!addingNew" v-cloak>
                             <div class="card-header">
                                 <h5>API Keys</h5>
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setUIState">
+                                    <button class="btn btn-outline-primary btn-sm" v-on:click="setState">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="form-group">
-                                    <label>Key:</label>
-                                    <select class="form-select" v-model.number="apiKeySelectedID" v-on:change="showAPIKey">
-                                        <option v-if="!keysRetrieved">Loading...</option>
-                                        <template v-else>
-                                            <option value="0" disabled>Please choose.</option>
-                                            <option v-for="(i, index) in keys" :key="index" v-bind:value="i.ID">[[i.Description]] <span v-if="!i.Active">(inactive)</span></option>
-                                        </template>
-                                    </select>
-                                </div>
-                                <div class="alert" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
+                                <form>
+                                    <fieldset>
+                                        <div class="form-group">
+                                            <label class="form-label">Key:</label>
+                                            <select class="form-select" v-model.number="apiKeySelectedID" v-on:change="showAPIKey">
+                                                <template v-if="!keysRetrieved">
+                                                    <option value="" disabled selected>Loading...</option>
+                                                </template>
+                                                <template v-else-if="keys.length === 0">
+                                                    <option value="0" disabled selected>No API Keys exist.</option>
+                                                </template>
+                                                <template v-else>
+                                                    <option value="0" disabled selected>Please choose.</option>
+                                                    <option 
+                                                        v-for="k in keys"
+                                                        :key="k.ID"
+                                                        v-bind:value="k.ID"
+                                                    >
+                                                        [[k.Description]]
+                                                    </option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </fieldset>
+                                </form>
+
+                                <div class="alert mb-0" v-show="msgLoad.length > 0" v-bind:class="msgLoadType" v-cloak>
                                     [[msgLoad]]
                                 </div>
                             </div>
@@ -48,92 +62,171 @@
                             <div class="card-header">
                                 <h5>[[addEditCardTitle]]</h5>
                                 <div class="card-header-btn">
-                                    <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setUIState">
-                                        <i class="fas fa-search" v-cloak></i>
-                                    </button>
+                                    <template v-if="addingNew">
+                                        <button class="btn btn-outline-primary btn-sm" v-if="addingNew" v-on:click="setState">
+                                            <i class="fas fa-search" v-cloak></i>
+                                        </button>
+                                    </template>
+                                    <template v-else-if="keyData.Active">
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">Tasks</button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <button 
+                                                        class="dropdown-item text-danger" 
+                                                        type="button"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modal-revokeAPIKey"
+                                                    >
+                                                        Revoke
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!-- Always shown; adding or viewing/editing. -->
-                                <section>
-                                    <div class="form-group">
-                                        <label>Description:</label>
-                                        <input type="text" class="form-control" minlength="3" maxlength="100" v-model.trim="keyData.Description" v-bind:readonly="keyData.ID > 0">
-                                    </div>
-                                </section>
+                                <form>
+                                    <!-- Always shown, adding for viewing/editing. -->
+                                    <fieldset v-bind:disabled="submitting">
+                                        <div class="form-group">
+                                            <label class="form-label">Description:</label>
+                                            <input class="form-control" type="text" minlength="3" maxlength="100" v-model.trim="keyData.Description" v-bind:readonly="keyData.ID > 0">
+                                        </div>
+                                    </fieldset>
+                                    
+                                    <!-- Only shown when viewing/editing, aka after key has been generated. -->
+                                    <fieldset v-if="keyData.K !== '' && keyData.K !== undefined">
+                                        <hr class="divider">
+                                        <div class="form-group">
+                                            <label class="form-label">Key:</label>
+                                            <input class="form-control font-monospace" type="text" v-model="keyData.K" readonly>
+                                        </div>
+                                    </fieldset>
 
-                                <!-- Only shown when viewing/editing, aka after key has been generated. -->
-                                <section v-if="keyData.K !== '' && keyData.K !== undefined">
+                                    <!-- API Key permissions -->
                                     <hr class="divider">
+                                    <fieldset>
+                                        <h5>
+                                            <span class="text-secondary pointer" data-bs-toggle="tooltip" data-bs-title="'Click to show/hide descriptions.'" v-on:click="hidePermissionDescriptions = !hidePermissionDescriptions">
+                                                <span v-if="hidePermissionDescriptions" class="fas fa-angle-double-down"></span>
+                                                <span v-else                            class="fas fa-angle-double-up"></span>
+                                            </span>
+                                            Permissions:
+                                        </h5>
 
-                                    <div class="form-group">
-                                        <label>Key:</label>
-                                        <input type="text" class="form-control text-monospace" v-model="keyData.K" readonly>
-                                    </div>
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">CreateLicense:</label>
+                                                <div class="col-sm-6 d-flex justify-content-end align-items-start">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="CreateLicense" id="CreateLicense-true" autocomplete="off" v-model="keyData.CreateLicense" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="CreateLicense-true">Yes</label>
+                                                      
+                                                        <input class="btn-check" type="radio" name="CreateLicense" id="CreateLicense-false" autocomplete="off" v-model="keyData.CreateLicense" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="CreateLicense-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>Create a new license.</p>
+                                                <p><code>/api/v1/licenses/add/</code></p>
+                                                <p><code>/api/v1/licenses/renew/</code></p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">RevokeLicense:</label>
+                                                <div class="col-sm-6 d-flex justify-content-end align-items-start">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="RevokeLicense" id="RevokeLicense-true" autocomplete="off" v-model="keyData.RevokeLicense" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="RevokeLicense-true">Yes</label>
+                                                      
+                                                        <input class="btn-check" type="radio" name="RevokeLicense" id="RevokeLicense-false" autocomplete="off" v-model="keyData.RevokeLicense" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="RevokeLicense-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>Revoke/Disable a license.</p>
+                                                        <p><code>/api/v1/licenses/disable/</code></p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <label class="form-label col-sm-6">DownloadLicense:</label>
+                                                <div class="col-sm-6 d-flex justify-content-end align-items-start">
+                                                    <div class="btn-group" role="group">
+                                                        <input class="btn-check" type="radio" name="DownloadLicense" id="DownloadLicense-true" autocomplete="off" v-model="keyData.DownloadLicense" v-bind:value="true">
+                                                        <label class="btn btn-secondary" for="DownloadLicense-true">Yes</label>
+                                                      
+                                                        <input class="btn-check" type="radio" name="DownloadLicense" id="DownloadLicense-false" autocomplete="off" v-model="keyData.DownloadLicense" v-bind:value="false">
+                                                        <label class="btn btn-secondary" for="DownloadLicense-false">No</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <blockquote class="description description-secondary" v-bind:class="{'hide': hidePermissionDescriptions}">
+                                                        <p>Revoke/Disable a license.</p>
+                                                        <p><code>/api/v1/licenses/download/</code></p>
+                                                    </blockquote>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                </form>
 
-                                </section>
-                                
-                                <!-- 
-                                    API key permissions. 
-                                    - Settable when creating an API key.
-                                    - Only viewable after an API key has been created.
-                                -->
-                                <section></section>
-
-                                <div class="alert" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
+                                <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>
                                     [[msgSave]]
                                 </div>
                             </div> <!-- end .card-body-->
                             <div class="card-footer">
-                                <template v-if="addingNew">
-                                    <button 
-                                        class="btn btn-primary" 
-                                        type="button" 
-                                        v-on:click="createKey" 
-                                        v-bind:disabled="submitting"
-                                    >
-                                        Create
-                                    </button>
-                                </template>
-                                <template v-else>
-                                    <div class="btn-group">
-                                        <!-- There is no use for the Save button right now. -->
-                                        <!--
-                                        <button 
-                                            class="btn btn-primary" 
-                                            type="button" 
-                                            v-on:click="update"
-                                            v-bind:disabled="submitting || showRevokeConfirm"
-                                        >
-                                            Save
-                                        </button>
-                                        -->
-                                        
-                                        <button 
-                                            class="btn btn-outline-danger" 
-                                            type="button" 
-                                            v-on:click="handleRevokeConfirm()"
-                                            v-bind:disabled="showRevokeConfirm"
-                                        >
-                                            Revoke
-                                        </button>
-                                        <button 
-                                            v-if="showRevokeConfirm" 
-                                            class="btn btn-danger" 
-                                            type="button" 
-                                            v-on:click="revoke"
-                                        >
-                                            Confirm
-                                        </button>
-                                    </div>
-                                </template>
-                            </div> <!-- end .card-footer -->
+                                <button class="btn btn-primary" type="button" v-on:click="createOrUpdate" v-bind:disabled="submitting">Create</button>
+                            </div>
                         </div> <!-- end .card for viewing/editing/adding-->
 
                     </div>
                 </div>
             </div>
         </main>
+
+        <!-- modal to revoke an API key -->
+        <div class="modal fade" id="modal-revokeAPIKey">
+            <div class="modal-dialog">
+                <div class="modal-content border-danger">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger">Revoke API Key</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <blockquote class="description description-danger">
+                            Revoking an API Key means it can no longer be used. Revoked API Keys cannot be reactivated. Are you sure you want to do this?
+                        </blockquote>
+                    
+                        <div class="alert mt-3 mb-0" v-show="msg.length > 0" v-bind:class="msgType" v-cloak>
+                            [[msg]]
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-start">
+                        <div class="btn-group">
+                            <button class="btn btn-danger"    type="button" v-on:click="revoke" v-bind:disabled="submitting">Revoke</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 		{{template "footer"}}
 		{{template "html_scripts" .}}

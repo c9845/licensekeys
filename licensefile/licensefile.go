@@ -53,19 +53,6 @@ const (
 	FileFormat = "json"
 )
 
-// Reference functions. These are defined here so we can easily identify the
-// functionality used without having to read through the codebase.
-var (
-	keypairAlgo     = ed25519.GenerateKey
-	signAlgo        = ed25519.Sign
-	verifyAlgo      = ed25519.Verify
-	fingerpringAlgo = sha512.Sum512
-	encodingAlgo    = base64.StdEncoding.EncodeToString
-	decodingAlgo    = base64.StdEncoding.DecodeString
-	marshalFunc     = json.Marshal
-	unmarshalFunc   = json.Unmarshal
-)
-
 // File defines the format of data stored in a license key file. This is the body of
 // the text file.
 //
@@ -110,7 +97,7 @@ type File struct {
 // GenerateKeypair creates and return a new private and public key pair.
 func GenerateKeypair() (private, public []byte, err error) {
 	//Generate key pair.
-	pubKey, privKey, err := keypairAlgo(rand.Reader)
+	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return
 	}
@@ -152,7 +139,7 @@ func (f *File) Fingerprint() (fingerprint string, err error) {
 	}
 
 	//Encode.
-	fingerprint = encodingAlgo(b)
+	fingerprint = base64.StdEncoding.EncodeToString(b)
 	return
 }
 
@@ -173,7 +160,7 @@ func (f *File) fingerprint() (fingerprint []byte, err error) {
 	}
 
 	//Hash the license.
-	h := fingerpringAlgo(b)
+	h := sha512.Sum512(b)
 	fingerprint = []byte(h[:])
 	return
 }
@@ -196,10 +183,10 @@ func (f *File) Sign(privateKey []byte) (err error) {
 	}
 
 	//Sign the fingerprint.
-	sig := signAlgo(x509Key.(ed25519.PrivateKey), fingerprint[:])
+	sig := ed25519.Sign(x509Key.(ed25519.PrivateKey), fingerprint[:])
 
 	//Encode the signature in a human readable format.
-	sigTxt := encodingAlgo(sig)
+	sigTxt := base64.StdEncoding.EncodeToString(sig)
 
 	//Set the signature in the license file.
 	f.Signature = sigTxt
@@ -221,7 +208,7 @@ func (f *File) Sign(privateKey []byte) (err error) {
 // be used as it was parsed/unmarshalled.
 func (f File) Verify(publicKey []byte) (err error) {
 	//Decode the signature.
-	sig, err := decodingAlgo(f.Signature)
+	sig, err := base64.StdEncoding.DecodeString(f.Signature)
 	if err != nil {
 		return
 	}
@@ -244,7 +231,7 @@ func (f File) Verify(publicKey []byte) (err error) {
 	}
 
 	//Verify the signature.
-	valid := verifyAlgo(x509Key.(ed25519.PublicKey), fingerprint[:], sig)
+	valid := ed25519.Verify(x509Key.(ed25519.PublicKey), fingerprint[:], sig)
 	if !valid {
 		err = ErrBadSignature
 		return
@@ -284,13 +271,13 @@ func (f *File) Write(out io.Writer) (err error) {
 
 // Marshal encodes the File as JSON.
 func (f *File) Marshal() (b []byte, err error) {
-	b, err = marshalFunc(f)
+	b, err = json.MarshalIndent(f, "", "  ")
 	return
 }
 
 // Unmarshal decodes JSON into File.
 func (f *File) Unmarshal(b []byte) (err error) {
-	err = unmarshalFunc(b, &f)
+	err = json.Unmarshal(b, &f)
 	return
 }
 

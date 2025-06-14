@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"log"
 	"strings"
 
 	"github.com/c9845/licensekeys/v4/timestamps"
@@ -42,8 +43,8 @@ type App struct {
 	//DownloadFilename is the name of the license file when downloaded. This defaults
 	//to "appname-license.txt" but can be customized using {} placeholders.
 	//Placeholders:
-	// - {appName} is replaced with the app's name, in lowercase and with spaces replaced by underscores.
-	// - {licenseID} is replaced with the license's ID.
+	// - {app-name} is replaced with the app's name, in lowercase and with spaces replaced by underscores.
+	// - {license-id} is replaced with the license's ID.
 	DownloadFilename string
 }
 
@@ -189,26 +190,25 @@ func (a *App) Insert(ctx context.Context) (err error) {
 
 // GetApps returns the list of apps optionally filtered by active apps only.
 func GetApps(ctx context.Context, activeOnly bool) (aa []App, err error) {
-	//Build WHERE clauses
-	wheres := []string{}
-	b := sqldb.Bindvars{}
-	if activeOnly {
-		w := `(` + TableApps + `.Active = ?)`
-		wheres = append(wheres, w)
-		b = append(b, activeOnly)
-	}
-
 	//Build query.
 	q := `
 		SELECT ` + TableApps + `.* 
-		FROM ` + TableApps + ` 
-		WHERE ` + strings.Join(wheres, " AND ") + `
-		ORDER BY ` + TableApps + `.Active DESC, ` + TableApps + `.Name ASC
-	`
+		FROM ` + TableApps
+
+	b := sqldb.Bindvars{}
+	if activeOnly {
+		q += ` WHERE (` + TableApps + `.Active = ?)`
+		b = append(b, true)
+	}
+
+	q += ` ORDER BY ` + TableApps + `.Active DESC, ` + TableApps + `.Name ASC`
 
 	//Run query.
 	c := sqldb.Connection()
 	err = c.SelectContext(ctx, &aa, q, b...)
+	if err != nil {
+		log.Println(q)
+	}
 	return
 }
 

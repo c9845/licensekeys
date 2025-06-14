@@ -42,7 +42,7 @@ if (document.getElementById("manageApps")) {
                 appData: {
                     Name: "",
                     DaysToExpiration: 365,
-                    FileFormat: this.defaultFileFormat,
+                    FileFormat: "json",
                     DownloadFilename: "",
                     ShowLicenseID: true,
                     ShowAppName: true,
@@ -131,18 +131,19 @@ if (document.getElementById("manageApps")) {
 
                 //Clear related card's data. Since we are adding a new app the other cards
                 //should be blank.
+                //TODO: fix or remove.
                 this.deselectApp()
 
                 return;
             },
 
             //resetForm sets the add form back to a clean state.
-            //This is called in setUIState.
+            //This is called in setState.
             resetForm: function () {
                 this.appData = {
                     Name: "",
                     DaysToExpiration: 365,
-                    FileFormat: this.defaultFileFormat,
+                    FileFormat: "json",
                     DownloadFilename: "",
                     ShowLicenseID: true,
                     ShowAppName: true,
@@ -237,10 +238,6 @@ if (document.getElementById("manageApps")) {
                     this.msgSave = "The default license period cannot be less than 0 days.";
                     return
                 }
-                if (!this.fileFormats.includes(this.appData.FileFormat.trim())) {
-                    this.msgSave = "Please choose a file format from the provided options.";
-                    return;
-                }
                 if (this.appData.DownloadFilename.trim() === "") {
                     this.msgSave = "You must provide the filename your licenses for this app will be downloaded as.";
                     return;
@@ -297,7 +294,7 @@ if (document.getElementById("manageApps")) {
                             //"select" this app.
                             this.appSelectedID = j.Data;
                             this.showApp();
-                            this.setUIState();
+                            this.setState();
 
                             this.msgSave = "";
                             this.msgLoadType = "";

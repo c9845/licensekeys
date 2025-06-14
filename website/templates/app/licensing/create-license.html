@@ -193,7 +193,7 @@
                                                             <i class="fa-solid fa-question-circle"></i>
                                                         </span>
                                                     </label>
-                                                    <div class="col-sm-6 d-flex flex-row-reverse">
+                                                    <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                                         <div class="btn-group" role="group">
                                                             <input class="btn-check" type="radio" v-bind:name="f.Name" v-bind:id="f.Name + '-true'" autocomplete="off" v-model="f.BoolValue" v-bind:value="true">
                                                             <label class="btn btn-secondary" v-bind:for="f.Name + '-true'">Yes</label>
@@ -296,7 +296,7 @@
                                 <div class="form-group">
                                     <div class="row">
                                         <label class="form-label col-sm-6">Return License File:</label>
-                                        <div class="col-sm-6 d-flex flex-row-reverse">
+                                        <div class="col-sm-6 d-flex justify-content-end align-items-start">
                                             <div class="btn-group" role="group">
                                                 <input class="btn-check" type="radio" name="returnLicenseFile" id="returnLicenseFile-true" autocomplete="off" v-model="returnLicenseFile" v-bind:value="true">
                                                 <label class="btn btn-secondary" for="returnLicenseFile-true">Yes</label>

@@ -40,6 +40,9 @@ if (document.getElementById("manageAPIKeys")) {
                 keyData: {
                     Description: "",
                     K: "",
+                    CreateLicense: false,
+                    RevokeLicense: false,
+                    DownloadLicense: false,
                 } as apiKey,
 
                 //Form submission stuff.
@@ -100,6 +103,70 @@ if (document.getElementById("manageAPIKeys")) {
                 return;
             },
 
+            //setState handles setting the GUI state to the "add" or "lookup/edit" 
+            //state.
+            //
+            //This is called when a user clicks the add or view buttons in the card
+            //header or when a new user is saved.
+            setState: function () {
+                //User clicked on "lookup/edit" button, user wants to see "lookup" UI.
+                if (this.addingNew) {
+                    this.addingNew = !this.addingNew;
+                    return;
+                }
+
+                //User clicked on "add" button, user wants to see "add" UI. Clear 
+                //any existing user data so that the inputs are reset to a blank state
+                //for saving of a new user.
+                this.addingNew = !this.addingNew;
+                this.resetForm();
+
+                this.msgSave = "";
+                this.msgSaveType = "";
+
+                return;
+            },
+
+            //resetForm resets the inputs and toggles when showing the "add user"
+            //GUI, or after a user is added and we empty all the inputs.
+            resetForm: function () {
+                this.keyData = {
+                    Description: "",
+                    K: "",
+                    CreateLicense: false,
+                    RevokeLicense: false,
+                    DownloadLicense: false,
+                } as apiKey;
+                this.userSelectedID = 0;
+
+                return;
+            },
+
+            //showAPIKey populates the "lookup" GUI with data about an API key chosen
+            //from the select menu.
+            showAPIKey: function () {
+                //Make sure an API key was selected.
+                if (this.apiKeySelectedID < 1) {
+                    return;
+                }
+
+                //Get the API key's data from the list of API keys we retrieved.
+                for (let k of (this.keys as apiKey[])) {
+                    if (k.ID !== this.apiKeySelectedID) {
+                        continue;
+                    }
+
+                    //Save the chosen API key for displaying in the GUI.
+                    this.keyData = k;
+                    break;
+                }
+
+                //Set the API key ID in other Vue objects.
+                modalRevokeAPIKey.setKeyData(this.apiKeySelectedID);
+
+                return;
+            },
+
             //createKey adds/generates a new API key.
             createKey: function () {
                 //Validate.
@@ -144,7 +211,7 @@ if (document.getElementById("manageAPIKeys")) {
                             this.submitting = false;
 
                             //Select this just created key.
-                            this.apiKeySelectedID = j.Data.ID;
+                            this.apiKeySelectedID = j.Data;
 
                             //Show the key for copying.
                             this.addingNew = false;
