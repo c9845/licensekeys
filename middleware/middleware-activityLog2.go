@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/c9845/licensekeys/v4/apikeys"
 	"github.com/c9845/licensekeys/v4/db"
 	"github.com/c9845/licensekeys/v4/users"
-	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"
 )
 

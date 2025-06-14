@@ -62,9 +62,12 @@ export interface app {
 
     Name: string,
     DaysToExpiration: number,  //the number of days to add on to "today" to calculate a default expiration date of a license
-    FileFormat: string,  //yaml, json, etc.
+
     ShowLicenseID: boolean, //if the ID field of a created license file will be populated/non-zero.
     ShowAppName: boolean, //if the Application field of a created license file will be populated/non-blank.
+
+    FileFormat: string,  //json.
+
     DownloadFilename: string,
 }
 
@@ -171,8 +174,12 @@ export interface keyPair {
     Name: string,
     PrivateKey: string, //should NEVER be returned
     PublicKey: string, //returned so user can copy-paste into their app's code
-    AlgorithmType: string, //ecdsa, rsa, etc.
     PrivateKeyEncrypted: boolean, //whether the private key is stored in plaintext or encrypted
+
+    KeypairAlgo: string, //ed25519.
+    FingerprintAlgo: string, //sha512.
+    EncodingAlgo: string, //base64
+
     IsDefault: boolean, //if this is the default keypair for the app
 }
 
@@ -185,7 +192,8 @@ export interface license {
     CreatedByUserID: number,
     CreatedByAPIKeyID: number,
 
-    KeyPairID: number, //used for identifying the keypair used to sign the license
+    AppID: number,
+    KeyPairID: number,
     ContactName: string,
     CompanyName: string,
     PhoneNumber: string,
@@ -199,19 +207,22 @@ export interface license {
     Verified: boolean, //after a license is generated, we "read" it like a client app would and make sure it is valid before allowing it to be downloaded
 
     AppName: string, //a copy of the value of this field at the time the license was created since it is part of the signature and we need it to redownload a license.
-    FileFormat: string, //yaml, json, etc.; copied from app when license is created
     ShowLicenseID: boolean,
     ShowAppName: boolean,
+    FileFormat: string, //json
 
     //Calculated fields
     Expired: boolean, //used when showing license data so we don't need to compare dates client side
+    DatetimeCreatedInTZ: string,
+    IssueDateInTZ: string,
+    Timezone: string,
 
     //JOINed fields
-    KeyPairAlgoType: string,
+    KeyPairAlgo: string,
+    FingerprintAlgo: string,
+    EncodingAlgo: string,
     CreatedByUsername: string,
     CreatedByAPIKeyDescription: string,
-    AppID: number,
-    AppFileFormat: string,
     AppDownloadFilename: string,
     RenewedFromLicenseID: number | null, //null when this license wasn't created by a renewal.
     RenewedToLicenseID: number | null, //null when license hasn't been renewed.

@@ -3,8 +3,8 @@ Package config handles configuration of the app. The configuration can simply be
 a default, or a config file can be provided. The config data is used for low-level
 settings of the app and can be used elsewhere in this app.
 
-The config file is in yaml format for easy readability. However, the file does not
-need to end in the yaml extension.
+The config file is in JSON format for easy readability. However, the file does not
+need to end in the .json extension.
 
 This package must not import any other packages from within this app to prevent
 import loops (besides minor utility packages).
@@ -28,6 +28,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -39,7 +40,6 @@ import (
 	"time"
 
 	"github.com/c9845/licensekeys/v4/version"
-	"gopkg.in/yaml.v3"
 
 	//Needed to support timezone being set in config and system running this app not
 	//having a list of IANA timezones. For example, if running in a docker scratch
@@ -58,25 +58,25 @@ const DefaultConfigFileName = "licensekeys.conf"
 // kicked out. We would rather check for the negative number here and provide a nicer
 // error message.
 type File struct {
-	DBPath        string `yaml:"DBPath"`        //The path the the database file.
-	DBJournalMode string `yaml:"DBJournalMode"` //Sets the mode for writing to the database file; delete or wal.
+	DBPath        string //The path the the database file.
+	DBJournalMode string //Sets the mode for writing to the database file; delete or wal.
 
-	WebFilesStore string `yaml:"WebFilesStore"` //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
-	WebFilesPath  string `yaml:"WebFilesPath"`  //The absolute path to the directory storing the app's HTML, CSS and JS files.
-	UseLocalFiles bool   `yaml:"UseLocalFiles"` //Serve third-party CSS and JS files from this app's files or from an internet CDN.
-	Host          string `yaml:"Host"`          //The host the app listens on. Default is 127.0.0.1, aka localhost. Set to server's IP, or 0.0.0.0, to be able to access app directly on host:port without a proxy.
-	Port          int    `yaml:"Port"`          //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
+	WebFilesStore string //Where HTML, CSS, and JS will be sourced and served from; on-disk, on-disk-memory, or embedded.
+	WebFilesPath  string //The absolute path to the directory storing the app's HTML, CSS and JS files.
+	UseLocalFiles bool   //Serve third-party CSS and JS files from this app's files or from an internet CDN.
+	Host          string //The host the app listens on. Default is 127.0.0.1, aka localhost. Set to server's IP, or 0.0.0.0, to be able to access app directly on host:port without a proxy.
+	Port          int    //The port the app serves on. An HTTPS terminating proxy should redirect port 80 here.
 
-	LoginLifetimeHours        float64 `yaml:"LoginLifetimeHours"`        //The time a user will remain logged in for.
-	TwoFactorAuthLifetimeDays int     `yaml:"TwoFactorAuthLifetimeDays"` //The time between when a 2FA token will be required. -1 requires it upon each login.
+	LoginLifetimeHours        float64 //The time a user will remain logged in for.
+	TwoFactorAuthLifetimeDays int     //The time between when a 2FA token will be required. -1 requires it upon each login.
 
-	Timezone                string `yaml:"Timezone"`                //Timezone in IANA format for displaying dates and times.
-	MinPasswordLength       int    `yaml:"MinPasswordLength"`       //The shortest length a new password can be.
-	PrivateKeyEncryptionKey string `yaml:"PrivateKeyEncryptionKey"` //The key used to encrypt/decrypt the private keys stored in the db. This was if the db is compromised, the keys cannot be used. If not provided, private keys are stored in plaintext. Must be 16, 24, or 32 characters.
+	Timezone                string //Timezone in IANA format for displaying dates and times.
+	MinPasswordLength       int    //The shortest length a new password can be.
+	PrivateKeyEncryptionKey string //The key used to encrypt/decrypt the private keys stored in the db. This was if the db is compromised, the keys cannot be used. If not provided, private keys are stored in plaintext. Must be 16, 24, or 32 characters.
 
 	//undocumented, not for end-user usage
 	//Make sure each of these fields is in nonPublishedFields to prevent logging.
-	Development bool `yaml:"Development"` //shows header in app that app is in development, uses non minified CSS & JSS, enabled some debugging, extra logging, etc.
+	Development bool //shows header in app that app is in development, uses non minified CSS & JSS, enabled some debugging, extra logging, etc.
 }
 
 // nonPublishedFields is the list of config fields that we do not advertise to end
@@ -128,9 +128,7 @@ func newDefaultConfig() (f File, err error) {
 		return
 	}
 
-	//Paths are always forward slashed in YAML so random parsing errors don't occur
-	//(like "did not find expected hexdecimal number" when path string is surrounded
-	//by double quotes, on Windows).
+	//Paths are always forward slashed in JSON to prevent odd errors.
 	dbPath := filepath.ToSlash(filepath.Join(workingDir, "licensekeys.db"))
 
 	f = File{
@@ -239,8 +237,8 @@ func Read(path string, print bool) (err error) {
 			return innerErr
 		}
 
-		//Parse the file as yaml.
-		innerErr = yaml.Unmarshal(f, &cfg)
+		//Parse the file as JSON.
+		innerErr = json.Unmarshal(f, &cfg)
 		if innerErr != nil {
 			return innerErr
 		}
@@ -292,8 +290,8 @@ func Read(path string, print bool) (err error) {
 
 // write writes a config to a file at the provided path.
 func (conf *File) write(path string) (err error) {
-	//Marshal to yaml.
-	y, err := yaml.Marshal(conf)
+	//Marshal to JSON.
+	y, err := json.Marshal(conf)
 	if err != nil {
 		return
 	}
@@ -301,18 +299,18 @@ func (conf *File) write(path string) (err error) {
 	//Remove non-published fields. Using struct tags "-" does not work for us since
 	//we want to be able read these fields from a file if they exist, we just don't
 	//want to tell every user about them.
-	yamlLinesBefore := strings.Split(string(y), "\n")
-	yamlLinesAfter := []string{}
-	for _, l := range yamlLinesBefore {
+	linesBefore := strings.Split(string(y), "\n")
+	linesAfter := []string{}
+	for _, l := range linesBefore {
 		key, _, _ := strings.Cut(l, ":")
 
 		if slices.Contains(nonPublishedFields, key) {
 			continue
 		}
 
-		yamlLinesAfter = append(yamlLinesAfter, l)
+		linesAfter = append(linesAfter, l)
 	}
-	y = []byte(strings.Join(yamlLinesAfter, "\n"))
+	y = []byte(strings.Join(linesAfter, "\n"))
 
 	//Create the file.
 	file, err := os.Create(path)
@@ -326,7 +324,7 @@ func (conf *File) write(path string) (err error) {
 	file.WriteString("#Generated config file for licensekeys.\n")
 	file.WriteString("#Generated at: " + time.Now().UTC().Format(time.RFC3339) + "\n")
 	file.WriteString("#Generated by version: " + version.V + "\n")
-	file.WriteString("#This file is in YAML format.\n")
+	file.WriteString("#This file is in JSON format.\n")
 	file.WriteString("\n")
 	file.WriteString("#***Do not delete this file!***\n")
 	file.WriteString("#***Do not change the PrivateKeyEncryptionKey field's value after you have created private keys; any existing private keys will become unusable.!***\n")

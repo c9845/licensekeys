@@ -45,7 +45,7 @@ type KeyPair struct {
 
 	//Diagnostic information.
 	KeypairAlgo     string //key pair type. Ex: ed25519.
-	FingerprintAlgo string //hash function used to hash license data before signing. Ex.: SHA512
+	FingerprintAlgo string //hash function used to hash license data before signing. Ex.: sha512
 	EncodingAlgo    string //method for encoding fingerprint. Ex: base64.
 
 	//Default sets whether or not this keypair is the default keypair to use when
@@ -100,6 +100,9 @@ func GetKeyPairByName(ctx context.Context, name string) (k KeyPair, err error) {
 func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize.
 	k.Name = strings.TrimSpace(k.Name)
+	k.KeypairAlgo = strings.ToLower(k.KeypairAlgo)
+	k.FingerprintAlgo = strings.ToLower(k.FingerprintAlgo)
+	k.EncodingAlgo = strings.ToLower(k.EncodingAlgo)
 
 	//Validate.
 	if k.Name == "" {
@@ -149,9 +152,9 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 		k.PrivateKey,
 		k.PublicKey,
 		k.PrivateKeyEncrypted,
-		k.KeypairAlgo,
-		k.FingerprintAlgo,
-		k.EncodingAlgo,
+		strings.ToLower(k.KeypairAlgo),
+		strings.ToLower(k.FingerprintAlgo),
+		strings.ToLower(k.EncodingAlgo),
 		k.IsDefault, //typically false, but will be true if this is the first active keypair for app
 	}
 	colString, valString, err := cols.ForInsert()

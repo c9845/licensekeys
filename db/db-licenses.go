@@ -64,11 +64,14 @@ type License struct {
 	//be verified as authentic with the respective public key.
 	Verified bool
 
-	//Fields copied from app when license is created.
+	//Fields copied from app when license is created. This data has to be copied
+	//because it could be used/included in a license file, and therefore a signature
+	//would be based off of its presence. If the settings for the app changes, we
+	//don't want license to become invalid or signature to change.
 	AppName       string
-	FileFormat    string
 	ShowLicenseID bool
 	ShowAppName   bool
+	FileFormat    string
 
 	//Calculated fields
 	Expired             bool   //true if Expire date is greater than current date
@@ -112,9 +115,9 @@ const (
 			Verified INTEGER NOT NULL DEFAULT 0,
 
 			AppName TEXT NOT NULL,
-			FileFormat TEXT NOT NULL,
 			ShowLicenseID INTEGER NOT NULL DEFAULT 0,
 			ShowAppName INTEGER NOT NULL DEFAULT 0,
+			FileFormat TEXT NOT NULL,
 
 			FOREIGN KEY (CreatedByUserID) REFERENCES ` + TableUsers + `(ID),
 			FOREIGN KEY (CreatedByAPIKeyID) REFERENCES ` + TableAPIKeys + `(ID),
@@ -277,9 +280,9 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		"Verified",  //always false when license is first saved until data is read back from db and checked
 
 		"AppName",
-		"FileFormat",
 		"ShowLicenseID",
 		"ShowAppName",
+		"FileFormat",
 	}
 	b := sqldb.Bindvars{
 		l.DatetimeCreated,
@@ -299,9 +302,9 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		false, //Verified
 
 		l.AppName,
-		l.FileFormat,
 		l.ShowLicenseID,
 		l.ShowAppName,
+		l.FileFormat,
 	}
 
 	if l.CreatedByUserID.Int64 > 0 {

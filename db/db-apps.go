@@ -37,7 +37,7 @@ type App struct {
 	ShowAppName   bool //if the Application field of a created license file will be populated/non-blank.
 
 	//Diagnostic info.
-	FileFormat string //the format of text in a license file. Ex.: yaml.
+	FileFormat string //the format of text in a license file. Ex.: JSON.
 
 	//DownloadFilename is the name of the license file when downloaded. This defaults
 	//to "appname-license.txt" but can be customized using {} placeholders.
@@ -78,6 +78,7 @@ func (a *App) Validate(ctx context.Context) (errMsg string, err error) {
 	a.Name = strings.TrimSpace(a.Name)
 	a.DownloadFilename = strings.TrimSpace(a.DownloadFilename)
 	a.DownloadFilename = strings.ReplaceAll(a.DownloadFilename, " ", "_")
+	a.FileFormat = strings.ToLower(a.FileFormat)
 
 	//Validate
 	if a.Name == "" {
@@ -160,7 +161,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 		a.DaysToExpiration,
 		a.ShowLicenseID,
 		a.ShowAppName,
-		a.FileFormat,
+		strings.ToLower(a.FileFormat),
 		a.DownloadFilename,
 	}
 	colString, valString, err := cols.ForInsert()

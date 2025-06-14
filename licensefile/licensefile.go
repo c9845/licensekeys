@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -14,8 +15,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
 // Errors when validating a license key file.
@@ -34,42 +33,41 @@ var (
 // Reference information.
 const (
 	//KeypairAlgo is the algorithm used to generate a public-private key pair that
-	//signs and verifies license files. ED25519 was chosen because it results in the
+	//signs and verifies license files. ed25519 was chosen because it results in the
 	//shortest signatures.
-	KeypairAlgo = "ED25519"
+	KeypairAlgo = "ed25519"
 
-	//FingerprintALgo is the algorithm used to hash the license file data prior to
-	//signing it. SHA512 was chosen because it is modern, does not have proven
+	//FingerprintAlgo is the algorithm used to hash the license file data prior to
+	//signing it. sha512 was chosen because it is modern, does not have proven
 	//weaknesses, and well supported.
-	FingerprintAlgo = "SHA512"
+	FingerprintAlgo = "sha512"
 
 	//EncodingAlgo is the method of encoding the fingerprint and signature into a
 	//human-readbale alphabet that can be used in text files or otherwise. Base64 was
 	//chosen because is results in the shortest signature.
 	EncodingAlgo = "base64"
 
-	//FileFormat is the format of the data in a license file. YAML was chosen for its
-	//simplicity.
-	FileFormat = "yaml"
+	//FileFormat is the format of the data in a license file. JSON was chosen because
+	//it is supported by the golang standard library and has good representation of
+	//numbers, strings, and booleans.
+	FileFormat = "json"
 )
 
-// Reference functions.
+// Reference functions. These are defined here so we can easily identify the
+// functionality used without having to read through the codebase.
 var (
 	keypairAlgo     = ed25519.GenerateKey
+	signAlgo        = ed25519.Sign
+	verifyAlgo      = ed25519.Verify
 	fingerpringAlgo = sha512.Sum512
 	encodingAlgo    = base64.StdEncoding.EncodeToString
 	decodingAlgo    = base64.StdEncoding.DecodeString
-	signAlgo        = ed25519.Sign
-	verifyAlgo      = ed25519.Verify
-	marshalFunc     = yaml.Marshal
-	unmarshalFunc   = yaml.Unmarshal
+	marshalFunc     = json.Marshal
+	unmarshalFunc   = json.Unmarshal
 )
 
 // File defines the format of data stored in a license key file. This is the body of
 // the text file.
-//
-// Struct tags are needed for YAML since otherwise when marshalling the field names
-// will be converted to lowercase.
 //
 // We use a struct with a map, instead of just map, so that we can more easily interact
 // with common fields and store some non-marshalled license data. More simply, having
@@ -78,17 +76,17 @@ type File struct {
 	//Optionally displayed fields per app. These are at the top of the struct
 	//definition so that they will be displayed at the top of the marshalled data just
 	//for ease of human reading of the license key file.
-	LicenseID int64  `yaml:"LicenseID,omitempty"`
-	AppName   string `yaml:"AppName,omitempty"`
+	LicenseID int64  `json:"omitempty"`
+	AppName   string `json:",omitempty"`
 
 	//This data copied from db-license.go and always included in each license key file.
-	CompanyName    string `yaml:"CompanyName"`
-	ContactName    string `yaml:"ContactName"`
-	PhoneNumber    string `yaml:"PhoneNumber"`
-	Email          string `yaml:"Email"`
-	IssueDate      string `yaml:"IssueDate"`      //YYYY-MM-DD
-	IssueTimestamp int64  `yaml:"IssueTimestamp"` //unix timestamp in seconds
-	ExpireDate     string `yaml:"ExpireDate"`     //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
+	CompanyName    string
+	ContactName    string
+	PhoneNumber    string
+	Email          string
+	IssueDate      string //YYYY-MM-DD
+	IssueTimestamp int64  //unix timestamp in seconds
+	ExpireDate     string //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
 
 	//Metadata is any optional data that you want to store in a license file. This
 	//field can store anything, and is typically used for storing information that
@@ -96,17 +94,17 @@ type File struct {
 	//count.
 	//
 	//Called "custom fields" when interfacing with the database. Previously called
-	//"Extras" when interfacing with a license File. "Extras" just sounded ugly.
-	Metadata map[string]any `yaml:"Metadata,omitempty"`
+	//"Metadata" when interfacing with a license File. "Metadata" just sounded ugly.
+	Metadata map[string]any `json:",omitempty"`
 
 	//Signature is the result of signing the hash of File (all of the above fields)
 	//using the private key. The result is stored here and File is output to a text
 	//file known as the complete license key file. This file is distributed to and
 	//imported into your app by the end-user to allow the app's use.
-	Signature string `yaml:"Signature"`
+	Signature string
 
 	//Info used for debugging.
-	readFromPath string //path a license file was read from.
+	readFromPath string `json:"-"` //path a license file was read from.
 }
 
 // GenerateKeypair creates and return a new private and public key pair.
@@ -284,13 +282,13 @@ func (f *File) Write(out io.Writer) (err error) {
 	return
 }
 
-// Marshal encodes the File as YAML.
+// Marshal encodes the File as JSON.
 func (f *File) Marshal() (b []byte, err error) {
 	b, err = marshalFunc(f)
 	return
 }
 
-// Unmarshal decodes YAML into File.
+// Unmarshal decodes JSON into File.
 func (f *File) Unmarshal(b []byte) (err error) {
 	err = unmarshalFunc(b, &f)
 	return

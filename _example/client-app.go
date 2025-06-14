@@ -23,36 +23,41 @@ MCowBQYDK2VwAyEAvzRdvbuQZOOPHTUT+xacIV1u3rvAPiEDMlkLq7RgibE=
 // Note: no extra newlines or whitespace characters.
 // Note: indentation is via two spaces, not tabs.
 const licenseReadFromFile = "" +
-	`LicenseID: 10001
-AppName: App1
-CompanyName: ACME Dynamite
-ContactName: Wyle E Coyote
-PhoneNumber: 123-555-1212
-Email: wyle@example.com
-IssueDate: "2022-05-30"
-IssueTimestamp: 1653941696
-ExpireDate: "2023-05-30"
-Extras:
-  CustomFieldInt: 50
-  CustomFieldString: Hello World
-Signature: K6GyCUnfJLLc4LEE98UFH4kPGUF5rzhqvXrTUYtk4Ut1wq/LPWE3E1CSMfosm6pcGhNIrNKQLtNekrybK4h3Cg==
-`
+	`{ 
+	"LicenseID": 10023,
+	"AppName": "Example",
+	"CompanyName": "ACME Dynamite",
+	"ContactName": "Wyle E Coyote",
+	"PhoneNumber": "123-555-1212",
+	"Email": "wyle@example.com",
+	"IssueDate": "2022-05-07",
+	"IssueTimestamp": 1651958341,
+	"ExpireDate": "2049-09-21",
+	"Metadata": {,
+		"CF_String": "Hello World!",
+		"Custom Boolean": true,
+		"Custom Field Integer": 5,
+		"Decimal": 5.55
+	},
+	"Signature": "GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ===="
+}`
 
 func init() {
 	//Read the license key from a file.
 	//
 	//This code is commented out since we have the file's contents stored as a const
 	//in this example; we do not have to read the file's data from a file.
-	// lic, err := licensefile.Read("/path/to/license.txt", licensefile.FileFormatYAML)
+	// lic, err := licensefile.Read("/path/to/license.txt")
 	// if err != nil {
 	// 	log.Fatal("Could not read file.", err)
 	// 	return
 	// }
 
-	//This code is not necessary when using licencefile.Read().  Read() calls
+	//This code is not necessary when using licencefile.Read(). Read() calls
 	//Unmarshal internally. This is strictly here because the license file for this
 	//example is stored as a const.
-	lic, err := licensefile.Unmarshal([]byte(licenseReadFromFile), licensefile.FileFormatYAML)
+	var lic licensefile.File
+	err := lic.Unmarshal([]byte(licenseReadFromFile))
 	if err != nil {
 		log.Fatalln("Could not unmarshal license file.", err)
 		return
@@ -68,11 +73,7 @@ func init() {
 	//This compares the signature against the license's data using the public key. If
 	//the signature, or any data has in the license file has been altered, the
 	//signature will not be valid.
-	//
-	//The keyPairAlgorithm (RSA, ECDSA, ED25519) is needed to use the correct
-	//function for handling the signature. You could use one of the Verify...()
-	//functions instead.
-	err = lic.VerifySignature([]byte(publicKey), licensefile.KeyPairAlgoED25519)
+	err = lic.Verify([]byte(publicKey))
 	if err == licensefile.ErrBadSignature {
 		//License is invalid, signature does not match the license's data. Either the
 		//license has been tampered with (data or signature) or an incorrect public
@@ -118,7 +119,7 @@ func init() {
 	log.Println("License verified!")
 	log.Println("License ID:", lic.LicenseID)
 
-	if i, err := lic.ExtraAsInt("CustomFieldInt"); err != nil {
+	if i, err := lic.MetadataAsInt("CustomFieldInt"); err != nil {
 		log.Fatalln("Error reading custom field as integer...", err)
 		return
 	} else {

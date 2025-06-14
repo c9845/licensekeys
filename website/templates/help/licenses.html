@@ -19,28 +19,31 @@
                             </div>
                             <div class="card-body">
                                 <section>
-                                    <p>Licenses are JSON or YAML formatted text files in a standardized format, with customization, and a signature of the file's data for verifying authenticity.</p>
+                                    <p>Licenses are JSON formatted text files in a standardized format, with customization, and a signature of the file's data for verifying authenticity.</p>
                                 </section>
                                 <hr class="divider">
 
                                 <section>
                                     <h5>Example License:</h5>
 <pre>
-    LicenseID: 10023
-    AppName: Example
-    CompanyName: ACME Dynamite
-    ContactName: Wyle E Coyote
-    PhoneNumber: 123-555-1212
-    Email: wyle@example.com
-    IssueDate: "2022-05-07"
-    IssueTimestamp: 1651958341
-    ExpireDate: "2049-09-21"
-    Metadata:
-      CF_String: Hello World!
-      Custom Boolean: true
-      Custom Field Integer: 5
-      Decimal: 5.55
-    Signature: GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ====
+    { 
+        "LicenseID": 10023,
+        "AppName": "Example",
+        "CompanyName": "ACME Dynamite",
+        "ContactName": "Wyle E Coyote",
+        "PhoneNumber": "123-555-1212",
+        "Email": "wyle@example.com",
+        "IssueDate": "2022-05-07",
+        "IssueTimestamp": 1651958341,
+        "ExpireDate": "2049-09-21",
+        "Metadata": {,
+            "CF_String": "Hello World!",
+            "Custom Boolean": true,
+            "Custom Field Integer": 5,
+            "Decimal": 5.55
+        },
+        "Signature": "GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ===="
+    }
 </pre>
                                 </section>
                                 <hr class="divider">
@@ -52,19 +55,12 @@
                                 <hr class="divider">
 
                                 <section>
-                                    <h5>File Format:</h5>
-                                    <p>The format for data stored in a license file can be JSON or YAML. The format is set for each app. Neither format is better than the other, just use whatever format is best for your needs.</p>
-                                </section>
-                                <hr class="divider">
-
-                                <section>
                                     <h5>Download Filename:</h5>
                                     <p>The default filename a license will be downloaded as is set to the app's name in lowercase. However, you can set the filename to something else per your needs. The filename can use placeholders, as noted below, to add license-specific information to the filename.</p>
 
                                     <ul>
                                         <li><code>{licenseID}</code> - The license's ID number will be added to the filename.</li>
                                         <li><code>{appName}</code> - The name of the app the license is for will be added to the filename.</li>
-                                        <li><code>{ext}</code> - Use the file format (JSON or YAML).</li>
                                     </ul>
                                 </section>
 

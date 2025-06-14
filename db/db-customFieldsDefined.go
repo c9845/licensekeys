@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/c9845/licensekeys/v4/timestamps"
 	"github.com/c9845/sqldb/v3"
-	"golang.org/x/exp/slices"
 	"gopkg.in/guregu/null.v3"
 )
 

@@ -35,22 +35,25 @@ A license key is a human readable text file with a signature verifying its authe
   * Signature ensures that if anything is changed in the file, the license will be invalid.
   * Standardized format with custom fields added as needed.
 
-```yaml 
-    LicenseID: 10023
-    AppName: Example
-    CompanyName: ACME Dynamite
-    ContactName: Wyle E Coyote
-    PhoneNumber: 123-555-1212
-    Email: wyle@example.com
-    IssueDate: "2022-05-07"
-    IssueTimestamp: 1651958341
-    ExpireDate: "2049-09-21"
-    Extras:
-      CF_String: Hello World!
-      Custom Boolean: true
-      Custom Field Integer: 5
-      Decimal: 5.55
-    Signature: GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ====
+```json
+ { 
+    "LicenseID": 10023,
+    "AppName": "Example",
+    "CompanyName": "ACME Dynamite",
+    "ContactName": "Wyle E Coyote",
+    "PhoneNumber": "123-555-1212",
+    "Email": "wyle@example.com",
+    "IssueDate": "2022-05-07",
+    "IssueTimestamp": 1651958341,
+    "ExpireDate": "2049-09-21",
+    "Metadata": {,
+      "CF_String": "Hello World!",
+      "Custom Boolean": true,
+      "Custom Field Integer": 5,
+      "Decimal": 5.55
+    },
+    "Signature": "GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ===="
+ }
 ```
 
 # Details
@@ -59,9 +62,10 @@ A license key is a human readable text file with a signature verifying its authe
 * SQLite database.
 * Define any number of applications to generate licenses for.
 * Each application can have one or more public-private key pairs for key rotation, development versus production, etc. 
-* Key pairs can be RSA, ECDSA, or ED25519.
+* Key pairs can are ED25519.
 * Private keys can be encrypted at rest.
-* License key files can be either JSON or YAML formatted.
+* License key files are JSON formatted.
+* Signatures are based on an SHA-512 hash of the license file's contents.
 * Customize each license with custom fields set when a license is created.
 * API to create and retrieve licenses.
 * User permissions and audit logging.
@@ -104,13 +108,13 @@ Please also see the example in the `_example/client-app.go`.
 
 ```golang
 //Read the license file.
-lic, err := licensefile.Read("/path/to/license.txt", licensefile.FileFormatYAML)
+lic, err := licensefile.Read("/path/to/license.txt")
 if err != nil {
   //Handle error reading file (file doesn't exist, corrupt, etc.)
 }
 
 //Verify the signature.
-err = lic.VerifySignature([]byte(publicKey), licensefile.KeyPairAlgoED25519)
+err = lic.Verify([]byte(publicKey))
 if err == licensefile.ErrBadSignature {
   //Handle invalid license file.
 } else if err != nil {
