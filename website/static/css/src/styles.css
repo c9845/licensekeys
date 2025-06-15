@@ -15,7 +15,7 @@
 .page-header,
 .page-footer {
     background-color: var(--background-gray);
-    border-color: var(--blue);
+    border-color: var(--bs-blue);
     border-style: solid;
     border-width: 0;
 }
