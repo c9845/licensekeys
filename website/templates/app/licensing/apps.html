@@ -64,10 +64,25 @@
                             <div class="card-body">
                                 <form>
                                     <!-- App's ID is shown for use with API. -->
-                                    <fieldset v-if="appSelectedID > 0 && !addingNew" disabled v-cloak>
+                                    <fieldset v-if="appSelectedID > 0 && !addingNew" v-cloak>
                                         <div class="form-group">
-                                            <label class="form-label">ID:</label>
-                                            <input class="form-control" type="number" v-model.number="appData.ID">
+                                            <label class="form-label">Public ID:</label>
+                                            <div class="input-group">
+                                                <input 
+                                                    class="form-control font-monospace" 
+                                                    type="text" 
+                                                    disabled 
+                                                    v-model.number="appData.PublicID"
+                                                >
+                                                <button 
+                                                    class="btn btn-outline-secondary" 
+                                                    id="copy-app-public-id" 
+                                                    type="button" 
+                                                    v-on:click="copyPublicID"
+                                                >
+                                                    <i class="fa-solid fa-copy"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </fieldset>
 
@@ -206,7 +221,7 @@
                                         <thead class="no-border-top">
                                             <tr>
                                                 <th class="column-name">Name</th>
-                                                <th class="column-datetime-created">Type</th> <!-- ecdsa, rsa -->
+                                                <th class="column-datetime-created">Created</th>
                                                 <th class="column-tasks one-task"></th> <!-- view details in modal button -->
                                             </tr>
                                         </thead>
@@ -398,13 +413,23 @@
                             <!-- ID is shown for use with API -->
                             <fieldset v-if="keyPairData.ID > 0" v-cloak>
                                 <div class="form-group">
-                                    <label class="form-label">ID:</label>
-                                    <input 
-                                        class="form-control" 
-                                        type="number" 
-                                        v-model.trim="keyPairData.ID"
-                                        disabled
-                                    >
+                                    <label class="form-label">Public ID:</label>
+                                    <div class="input-group">
+                                        <input 
+                                            class="form-control font-monospace" 
+                                            type="text" 
+                                            disabled
+                                            v-model.trim="keyPairData.PublicID"
+                                        >
+                                        <button 
+                                            class="btn btn-outline-secondary" 
+                                            id="copy-keypair-public-id" 
+                                            type="button" 
+                                            v-on:click="copyPublicID"
+                                        >
+                                            <i class="fa-solid fa-copy"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Type:</label>
@@ -443,7 +468,7 @@
         
                                 <div class="form-group" v-if="showPublicKey" v-cloak>
                                     <textarea 
-                                        class="form-control text-monospace" 
+                                        class="form-control font-monospace" 
                                         v-bind:value="keyPairData.PublicKey"
                                         v-bind:rows="publicKeyNumLines"
                                         wrap="off"

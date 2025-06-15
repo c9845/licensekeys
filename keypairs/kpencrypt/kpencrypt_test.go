@@ -1,38 +1,60 @@
-package keypairs
+package kpencrypt
 
 import (
 	"bytes"
 	"testing"
 )
 
-func TestEncryptPrivateKey(t *testing.T) {
-	encryptionKey := "01234567890123456789012345678901"
-	unencryptedData := []byte("This is a private key.")
+func TestNewPassword(t *testing.T) {
+	pw, err := NewPassword()
+	if err != nil {
+		t.Errorf("Error generating new password: %v", err)
+	}
 
-	noncePlusEncrypted, err := encryptPrivateKey(encryptionKey, unencryptedData)
+	if len(pw) != PasswordLength {
+		t.Errorf("Password length is incorrect. Expected %d, got %d", PasswordLength, len(pw))
+	}
+}
+
+func TestEncrypt(t *testing.T) {
+	pw, err := NewPassword()
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	if len(noncePlusEncrypted) == 0 {
+
+	unencryptedData := []byte("This is a private key.")
+
+	encryptedData, err := Encrypt(unencryptedData, pw)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	if len(encryptedData) == 0 {
 		t.Fatal("no encrypted data was returned, this is unexpected")
 		return
 	}
 }
 
 func TestDecryptPrivateKey(t *testing.T) {
-	encryptionKey := "01234567890123456789012345678901"
+	pw, err := NewPassword()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
 	unencryptedData := []byte("This is a private key.")
 
 	//have to encrypt first to test decryption
-	noncePlusEncrypted, err := encryptPrivateKey(encryptionKey, unencryptedData)
+	encryptedData, err := Encrypt(unencryptedData, pw)
 	if err != nil {
-		t.Fatal("Error with encryption.", err)
+		t.Fatal(err)
 		return
 	}
 
 	//decrypt
-	decryptedData, err := DecryptPrivateKey(encryptionKey, noncePlusEncrypted)
+	decryptedData, err := Decrypt(encryptedData, pw)
 	if err != nil {
 		t.Fatal("Error with decryption.", err)
 		return

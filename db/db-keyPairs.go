@@ -12,26 +12,23 @@ import (
 
 //This table stores the public/private keypair used for generating license signatures.
 //
-//Each of your apps can have multiple defined sets of key pairs and signing details
-//for key rotation purposes or when you want to change the data format or signature
-//encoding. Details are not editable once created to prevent issues with already
-//generated licenses using the previous values. Instead, create a new set of signing
-//details.
+//Each of your apps can have multiple defined sets of keypairs for key rotation
+//purposes. Keypairs are not editable once created to prevent issues with already
+//generated licenses using the previous values. Instead, create a new keypair.
+//
+//The private key is optionally encrypted in the database using a password from the
+//config file. While optional, private key encryption should be used.
 //
 //The public key is exportable so that you can place it in your application. Private
 //key are not exportable for security reasons.
 
-//TODO: should private key be stored encrypted in db? This would require setting a
-//password in config file and using it to encrypt/decrypt the private key when it
-//is needed. This prevents the private key from being used if the db is stolen/hacked
-//but only if the password/config file isn't stolen as well.
-
-// TableKeyPairs is the name of the table.
-const TableKeyPairs = "key_pairs"
+// TableKeypairs is the name of the table.
+const TableKeypairs = "key_pairs"
 
 // KeyPair is used to interact with the table.
 type KeyPair struct {
 	ID               int64
+	PublicID         UUID //Used when interacting with the public API only; mainly so public-facing ID isn't just an incrementing number.
 	DatetimeCreated  string
 	DatetimeModified string
 	CreatedByUserID  int64
@@ -58,9 +55,10 @@ type KeyPair struct {
 }
 
 const (
-	createTableKeyPairs = `
-		CREATE TABLE IF NOT EXISTS ` + TableKeyPairs + `(
+	createTableKeypairs = `
+		CREATE TABLE IF NOT EXISTS ` + TableKeypairs + `(
 			ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			PublicID TEXT NOT NULL,
 			DatetimeCreated TEXT DEFAULT CURRENT_TIMESTAMP,
 			DatetimeModified TEXT DEFAULT CURRENT_TIMESTAMP,
 			CreatedByUserID INTEGER DEFAULT NULL,
@@ -87,8 +85,8 @@ const (
 // GetKeyPairByName looks up a key pair by its name.
 func GetKeyPairByName(ctx context.Context, name string) (k KeyPair, err error) {
 	q := `
-		SELECT ` + TableKeyPairs + `.*
-		FROM ` + TableKeyPairs + `
+		SELECT ` + TableKeypairs + `.*
+		FROM ` + TableKeypairs + `
 		WHERE 
 			(Name = ?)
 	`
@@ -133,7 +131,13 @@ func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
 // Insert saves a key pair.
 // You should have already called Validate().
 func (k *KeyPair) Insert(ctx context.Context) (err error) {
+	uuid, err := CreateNewUUID(ctx)
+	if err != nil {
+		return
+	}
+
 	cols := sqldb.Columns{
+		"PublicID",
 		"CreatedByUserID",
 		"Active",
 		"AppID",
@@ -147,6 +151,7 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 		"IsDefault",
 	}
 	b := sqldb.Bindvars{
+		uuid,
 		k.CreatedByUserID,
 		k.Active, //default true
 		k.AppID,
@@ -164,7 +169,7 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 		return
 	}
 
-	q := `INSERT INTO ` + TableKeyPairs + `(` + colString + `) VALUES (` + valString + `)`
+	q := `INSERT INTO ` + TableKeypairs + `(` + colString + `) VALUES (` + valString + `)`
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)
 	if err != nil {
@@ -187,7 +192,7 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 func GetPublicKeyByID(ctx context.Context, id int64) (publicKey string, err error) {
 	q := `
 		SELECT PublicKey 
-		FROM ` + TableKeyPairs + ` 
+		FROM ` + TableKeypairs + ` 
 		WHERE 
 			(ID = ?)
 	`
@@ -203,22 +208,22 @@ func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []KeyPai
 	wheres := []string{}
 	b := sqldb.Bindvars{}
 
-	w := `(` + TableKeyPairs + `.AppID = ?)`
+	w := `(` + TableKeypairs + `.AppID = ?)`
 	wheres = append(wheres, w)
 	b = append(b, appID)
 
 	if activeOnly {
-		w := `(` + TableKeyPairs + `.Active = ?)`
+		w := `(` + TableKeypairs + `.Active = ?)`
 		wheres = append(wheres, w)
 		b = append(b, activeOnly)
 	}
 
 	//Build query.
 	q := `
-		SELECT ` + TableKeyPairs + `.* 
-		FROM ` + TableKeyPairs + ` 
+		SELECT ` + TableKeypairs + `.* 
+		FROM ` + TableKeypairs + ` 
 		WHERE ` + strings.Join(wheres, " AND ") + ` 
-		ORDER BY ` + TableKeyPairs + `.Active DESC, ` + TableKeyPairs + `.Name ASC
+		ORDER BY ` + TableKeypairs + `.Active DESC, ` + TableKeypairs + `.Name ASC
 	`
 
 	//Run query.
@@ -230,7 +235,7 @@ func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []KeyPai
 // Delete marks a keypair as deleted.
 func (k *KeyPair) Delete(ctx context.Context) (err error) {
 	q := `
-		UPDATE ` + TableKeyPairs + ` 
+		UPDATE ` + TableKeypairs + ` 
 		SET 
 			Active = ?,
 			DatetimeModified = ?,
@@ -260,8 +265,8 @@ func (k *KeyPair) Delete(ctx context.Context) (err error) {
 // GetKeyPairByID looks up a key pair by its ID.
 func GetKeyPairByID(ctx context.Context, id int64) (k KeyPair, err error) {
 	q := `
-		SELECT ` + TableKeyPairs + `.*
-		FROM ` + TableKeyPairs + `
+		SELECT ` + TableKeypairs + `.*
+		FROM ` + TableKeypairs + `
 		WHERE 
 			(ID = ?)
 	`
@@ -291,7 +296,7 @@ func (k *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 
 	//Set all keypairs for this app as non default.
 	q := `
-		UPDATE ` + TableKeyPairs + `
+		UPDATE ` + TableKeypairs + `
 		SET IsDefault = ?
 		WHERE 
 			(AppID = ?)
@@ -314,7 +319,7 @@ func (k *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 
 	//Mark this keypair as the default.
 	q = `
-		UPDATE ` + TableKeyPairs + ` 
+		UPDATE ` + TableKeypairs + ` 
 		SET IsDefault = ?
 		WHERE ID = ?
 	`
@@ -343,12 +348,12 @@ func (k *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 func GetDefaultKeyPair(ctx context.Context, appID int64) (k KeyPair, err error) {
 	//Base query.
 	q := `
-		SELECT ` + TableKeyPairs + `.* 
-		FROM ` + TableKeyPairs + `
+		SELECT ` + TableKeypairs + `.* 
+		FROM ` + TableKeypairs + `
 		WHERE
-			(` + TableKeyPairs + `.AppID = ?)
+			(` + TableKeypairs + `.AppID = ?)
 			AND
-			(` + TableKeyPairs + `.IsDefault = ?)
+			(` + TableKeypairs + `.IsDefault = ?)
 	`
 
 	//Run query.

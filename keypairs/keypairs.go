@@ -7,18 +7,14 @@ public key can be exported for placement in your app's code.
 package keypairs
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/c9845/licensekeys/v4/config"
 	"github.com/c9845/licensekeys/v4/db"
+	"github.com/c9845/licensekeys/v4/keypairs/kpencrypt"
 	"github.com/c9845/licensekeys/v4/licensefile"
 	"github.com/c9845/licensekeys/v4/users"
 	"github.com/c9845/output"
@@ -93,13 +89,13 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//here if the length is incorrect.
 	if len(config.Data().PrivateKeyEncryptionKey) > 0 {
 		encryptionKey := config.Data().PrivateKeyEncryptionKey
-		encryptedPrivateKey, err := encryptPrivateKey(encryptionKey, privateKey)
+		encryptedPrivateKey, err := kpencrypt.Encrypt(privateKey, encryptionKey)
 		if err != nil {
 			output.Error(err, "Could not save key pair. The private key could not be encrypted. Please contact an administrator.", w)
 			return
 		}
 
-		k.PrivateKey = hex.EncodeToString(encryptedPrivateKey)
+		k.PrivateKey = string(encryptedPrivateKey)
 		k.PrivateKeyEncrypted = true
 	}
 
@@ -124,84 +120,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//Return full data for new key pair. We need this to show the public key and set
 	//the "Set As Default" gui state correctly.
 	output.InsertOKWithData(k, w)
-}
-
-// encryptPrivateKey encrypts a private key with the encryption key provided in the
-// config file. This performs AES encryption. This returns a []byte since the input
-// unencrypted data is also a []byte; we just keep the type the same for ease of use
-// elsewhere.
-//
-// The encryption key must be 16, 24, or 32 characters long. The encryptionKey is a
-// string since that is how it is stored in the config file and we can handle the
-// conversion inside this func as needed.
-//
-// The resulting encryptedPrivateKey includes the nonce, at the start of the
-// encrypted data, since it is needed to decrypt the data.
-//
-// https://pkg.go.dev/crypto/cipher#example-NewGCM-Encrypt
-func encryptPrivateKey(encryptionKey string, unencryptedPrivateKey []byte) (encryptedPrivateKey []byte, err error) {
-	//Not using a salt here since the encryptionKey must be exactly 32 characters
-	//long and we tell the user this when setting the key in the config file. Plus,
-	//a salt isn't really helpful since this codebase is open source and the salt
-	//could be found easily.
-
-	block, err := aes.NewCipher([]byte(encryptionKey))
-	if err != nil {
-		return
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return
-	}
-
-	nonce := make([]byte, aesgcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
-	if err != nil {
-		return
-	}
-
-	//The nonce will be included at the beginning of the encrypted private key
-	encryptedPrivateKey = aesgcm.Seal(nonce, nonce, unencryptedPrivateKey, nil)
-	return
-}
-
-// DecryptPrivateKey decrypts the private key stored in the database using the
-// encryption key provided in the config file. This returns a []byte since the input
-// unencrypted data is also a []byte; we just keep the type the same for ease of use
-// elsewhere.
-//
-// The encryption key must be 16, 24, or 32 characters long. The encryptionKey is a
-// string since that is how it is stored in the config file and we can handle the
-// conversion inside this func as needed.
-//
-// This func is only used when signing a newly created license file. Once a license
-// key file has been created, the signature is stored in the db and we just retrieve
-// it when a license key file needs to be downloaded.
-//
-// https://pkg.go.dev/crypto/cipher#example-NewGCM-Decrypt
-func DecryptPrivateKey(encryptionKey string, encryptedPrivateKey []byte) (unecryptedPrivKey []byte, err error) {
-	//Not using a salt here since the encryptionKey must be exactly 32 characters
-	//long and we tell the user this when setting the key in the config file. Plus,
-	//a salt isn't really helpful since this codebase is open source and the salt
-	//could be found easily.
-
-	block, err := aes.NewCipher([]byte(encryptionKey))
-	if err != nil {
-		return
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return
-	}
-
-	//Get the nonce from the beginning of the encrypted private key. Reset the
-	//encrypted private key to not include the nonce
-	l := aesgcm.NonceSize()
-	nonce, encryptedPrivateKey := encryptedPrivateKey[:l], encryptedPrivateKey[l:]
-	unecryptedPrivKey, err = aesgcm.Open(nil, nonce, encryptedPrivateKey, nil)
-	return
 }
 
 // Get returns the list of keypairs for an app. You can optionally filter by active

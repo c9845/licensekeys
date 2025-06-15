@@ -7,7 +7,6 @@ package license
 import (
 	"bytes"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"log"
@@ -21,7 +20,7 @@ import (
 	"github.com/c9845/licensekeys/v4/apikeys"
 	"github.com/c9845/licensekeys/v4/config"
 	"github.com/c9845/licensekeys/v4/db"
-	"github.com/c9845/licensekeys/v4/keypairs"
+	"github.com/c9845/licensekeys/v4/keypairs/kpencrypt"
 	"github.com/c9845/licensekeys/v4/licensefile"
 	"github.com/c9845/licensekeys/v4/timestamps"
 	"github.com/c9845/licensekeys/v4/users"
@@ -346,20 +345,22 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//Decrypt the private key, if needed.
 	privateKey := []byte(kp.PrivateKey)
 	if kp.PrivateKeyEncrypted {
-		encKey := config.Data().PrivateKeyEncryptionKey
+		encryptionKey := config.Data().PrivateKeyEncryptionKey
 
-		pk, err := hex.DecodeString(kp.PrivateKey)
+		decryptedPrivateKey, err := kpencrypt.Decrypt([]byte(kp.PrivateKey), encryptionKey)
 		if err != nil {
-			output.Error(err, "Could not decrypt private key to sign license data (1).", w)
+			output.Error(err, "Could not decrypt private key to sign license.", w)
 			return
 		}
 
-		decryptedPrivKey, err := keypairs.DecryptPrivateKey(encKey, pk)
-		if err != nil {
-			output.Error(err, "Could not decrypt private key to sign license data (2).", w)
-			return
-		}
-		privateKey = decryptedPrivKey
+		privateKey = decryptedPrivateKey
+	}
+
+	//Calculate fingerprint just for saving to database.
+	fingerprint, err := f.CalculateFingerprint()
+	if err != nil {
+		output.Error(err, "Could not calculate fingerprint.", w)
+		return
 	}
 
 	//Sign the license file.
@@ -369,7 +370,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Save the signature
+	//Save the signature.
+	l.Fingerprint = fingerprint
 	l.Signature = f.Signature
 	err = l.SaveSignature(r.Context(), tx)
 	if err != nil {
@@ -507,6 +509,10 @@ func One(w http.ResponseWriter, r *http.Request) {
 		db.TableAPIKeys + ".Description AS CreatedByAPIKeyDescription",
 
 		"julianday(" + db.TableLicenses + ".ExpireDate) < julianday('now') AS Expired",
+
+		db.TableKeypairs + ".KeypairAlgo",
+		db.TableKeypairs + ".FingerprintAlgo",
+		db.TableKeypairs + ".EncodingAlgo",
 
 		//Note the mismatch table and column. This is because we want "what license
 		//was this license renewed TO" and "what license was this license renewed
@@ -660,7 +666,7 @@ func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File,
 
 	//Set optional fields.
 	if l.ShowLicenseID {
-		f.LicenseID = l.ID
+		f.LicenseID = l.PublicID.String()
 	}
 	if l.ShowAppName {
 		f.AppName = l.AppName
@@ -976,20 +982,15 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 	//Decrypt the private key, if needed.
 	privateKey := []byte(kp.PrivateKey)
 	if kp.PrivateKeyEncrypted {
-		encKey := config.Data().PrivateKeyEncryptionKey
+		encryptionKey := config.Data().PrivateKeyEncryptionKey
 
-		pk, err := hex.DecodeString(kp.PrivateKey)
+		decryptedPrivateKey, err := kpencrypt.Decrypt([]byte(kp.PrivateKey), encryptionKey)
 		if err != nil {
-			output.Error(err, "Could not decrypt private key to sign license data (1).", w)
+			output.Error(err, "Could not decrypt private key to sign license.", w)
 			return
 		}
 
-		decryptedPrivKey, err := keypairs.DecryptPrivateKey(encKey, pk)
-		if err != nil {
-			output.Error(err, "Could not decrypt private key to sign license data (2).", w)
-			return
-		}
-		privateKey = decryptedPrivKey
+		privateKey = decryptedPrivateKey
 	}
 
 	//Sign the license file.

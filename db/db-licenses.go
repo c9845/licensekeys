@@ -15,15 +15,16 @@ import (
 )
 
 //This table keeps a record of each license that was generated and the common data
-//for each license. A license is created once, and the signature is generated once,
-//so we need to keep a copy of each piece of data included in a license so that a
-//license can be downloaded at any time in the future. The signature is NOT created
-//each time a license is downloaded. This is done so that each time a license is
-//downloaded, it is the exact same. Doing this stops us from needing to recreate the
-//signature each time and keeping a record of each.
+//for each license.
 //
-//You would use the data in this table in conjunction with the custom_field_results
-//table to "rebuild" a license to allow for redownloading it.
+// A license is created once, and the signature is generated once, so we need to keep
+// a copy of each piece of data included in a license so that a license can be
+// downloaded at any time in the future. The signature is NOT recalculated each time
+// a license is downloaded to (1) prevent extra work, and (2) because it should not
+// be changing.
+//
+// You would use the data in this table in conjunction with the custom_field_results
+// table to "rebuild" a license to allow for redownloading it.
 
 // TableLicenses is the name of the table.
 const TableLicenses = "licenses"
@@ -31,6 +32,7 @@ const TableLicenses = "licenses"
 // License is used to interact with the table.
 type License struct {
 	ID               int64
+	PublicID         UUID //Used when interacting with the public API only; mainly so public-facing ID isn't just an incrementing number.
 	DatetimeCreated  string
 	DatetimeModified string
 	Active           bool
@@ -49,6 +51,10 @@ type License struct {
 	IssueDate      string //yyyy-mm-dd, set by server, UTC timezone.
 	IssueTimestamp int64  //unix timestamp in seconds
 	ExpireDate     string //yyyy-mm-dd, set by input type=date in GUI so timezone is dependent on user's location.
+
+	//Fingerprint is a hash of a license file's data, and is what is signed with the
+	//private key to generate the signature.
+	Fingerprint string
 
 	//The signature generated using the private key from the keypair. This is
 	//generated once when the license is first created using the the common
@@ -94,6 +100,7 @@ const (
 	createTableLicenses = `
 		CREATE TABLE IF NOT EXISTS ` + TableLicenses + `(
 			ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			PublicID TEXT NOT NULL,
 			DatetimeCreated TEXT DEFAULT CURRENT_TIMESTAMP,
 			DatetimeModified TEXT DEFAULT CURRENT_TIMESTAMP,
 			Active INTEGER NOT NULL DEFAULT 1,
@@ -111,6 +118,7 @@ const (
 			IssueTimestamp INT NOT NULL,
 			ExpireDate TEXT NOT NULL,
 
+			Fingerprint TEXT NOT NULL,
 			Signature TEXT NOT NULL,
 			Verified INTEGER NOT NULL DEFAULT 0,
 
@@ -121,7 +129,7 @@ const (
 
 			FOREIGN KEY (CreatedByUserID) REFERENCES ` + TableUsers + `(ID),
 			FOREIGN KEY (CreatedByAPIKeyID) REFERENCES ` + TableAPIKeys + `(ID),
-			FOREIGN KEY (KeyPairID) REFERENCES ` + TableKeyPairs + `(ID)
+			FOREIGN KEY (KeyPairID) REFERENCES ` + TableKeypairs + `(ID)
 		)
 	`
 )
@@ -262,7 +270,14 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		return errors.New("cannot determine how license is being added")
 	}
 
+	uuid, err := CreateNewUUID(ctx)
+	if err != nil {
+		return
+	}
+	l.PublicID = uuid
+
 	cols := sqldb.Columns{
+		"PublicID",
 		"DatetimeCreated",
 		"Active",
 
@@ -285,6 +300,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		"FileFormat",
 	}
 	b := sqldb.Bindvars{
+		l.PublicID,
 		l.DatetimeCreated,
 		true, //Active
 
@@ -341,7 +357,9 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
-		SET Signature = ?
+		SET 
+			Fingerprint = ?,
+			Signature = ?
 		WHERE 
 			(ID = ?)
 	`
@@ -352,7 +370,7 @@ func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, l.Signature, l.ID)
+	_, err = stmt.ExecContext(ctx, l.Fingerprint, l.Signature, l.ID)
 	return
 }
 
@@ -394,8 +412,8 @@ func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, colum
 	q := `
 		SELECT ` + cols + ` 
 		FROM ` + TableLicenses + ` 
-		JOIN ` + TableKeyPairs + ` ON ` + TableKeyPairs + `.ID=` + TableLicenses + `.KeyPairID 
-		JOIN ` + TableApps + ` ON ` + TableApps + `.ID=` + TableKeyPairs + `.AppID
+		JOIN ` + TableKeypairs + ` ON ` + TableKeypairs + `.ID=` + TableLicenses + `.KeyPairID 
+		JOIN ` + TableApps + ` ON ` + TableApps + `.ID=` + TableKeypairs + `.AppID
 
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrFrom ON rrFrom.FromLicenseID = ` + TableLicenses + `.ID
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrTo   ON rrTo.ToLicenseID = ` + TableLicenses + `.ID
@@ -404,7 +422,7 @@ func GetLicenses(ctx context.Context, appID, limit int64, activeOnly bool, colum
 	wheres := []string{}
 	b := sqldb.Bindvars{}
 	if appID > 0 {
-		w := `(` + TableKeyPairs + `.AppID = ?)`
+		w := `(` + TableKeypairs + `.AppID = ?)`
 		wheres = append(wheres, w)
 		b = append(b, appID)
 	}
@@ -445,8 +463,8 @@ func GetLicense(ctx context.Context, licenseID int64, columns sqldb.Columns) (l 
 		FROM ` + TableLicenses + ` 
 		LEFT JOIN ` + TableUsers + ` ON ` + TableUsers + `.ID = ` + TableLicenses + `.CreatedByUserID 
 		LEFT JOIN ` + TableAPIKeys + ` ON ` + TableAPIKeys + `.ID = ` + TableLicenses + `.CreatedByAPIKeyID 
-		JOIN ` + TableKeyPairs + ` ON ` + TableKeyPairs + `.ID = ` + TableLicenses + `.KeyPairID 
-		JOIN ` + TableApps + ` ON ` + TableApps + `.ID = ` + TableKeyPairs + `.AppID 
+		JOIN ` + TableKeypairs + ` ON ` + TableKeypairs + `.ID = ` + TableLicenses + `.KeyPairID 
+		JOIN ` + TableApps + ` ON ` + TableApps + `.ID = ` + TableKeypairs + `.AppID 
 		
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrFrom ON rrFrom.FromLicenseID = ` + TableLicenses + `.ID
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrTo   ON rrTo.ToLicenseID = ` + TableLicenses + `.ID

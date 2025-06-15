@@ -93,7 +93,7 @@ func TestFingerprint(t *testing.T) {
 		},
 	}
 
-	_, err := f.fingerprint()
+	_, err := f.calculateFingerprint()
 	if err != nil {
 		t.Fatal("Error during hashing", err)
 		return
@@ -278,5 +278,96 @@ func TestWriteRead(t *testing.T) {
 	if f2.CompanyName != f.CompanyName {
 		t.Fatal("Incorrectly read written file.")
 		return
+	}
+}
+
+func TestLikeThirdPartyApp(t *testing.T) {
+	//Create a File.
+	f := File{
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "CompanyName",
+		ContactName:    "Mike Smith",
+		PhoneNumber:    "123-123-1234",
+		Email:          "test@example.com",
+		IssueDate:      "1990-01-02",
+		IssueTimestamp: 1550027702,
+		ExpireDate:     "2006-01-02",
+	}
+
+	//Fingerprint, for diagnostics.
+	fFingerprint, err := f.CalculateFingerprint()
+	if err != nil {
+		t.Fatal("Could not calc original fingerprint", err)
+		return
+	}
+
+	//Sign the File.
+	priv, pub, err := GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	err = f.Sign(priv)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	//Write the File to a file.
+	filename := "license-key-server-test-*.txt"
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal("could not get current dir", err)
+		return
+	}
+
+	x, err := os.CreateTemp(dir, filename)
+	if err != nil {
+		t.Fatal("Error creating temp file", err)
+		return
+	}
+	defer os.Remove(x.Name())
+
+	err = f.Write(x)
+	if err != nil {
+		t.Fatal("Error writing", err)
+		return
+	}
+	x.Close()
+
+	//Read the text file.
+	rereadFile, err := os.ReadFile(x.Name())
+	if err != nil {
+		t.Fatal("could not reread file", err)
+		return
+	}
+
+	//Parse as JSON.
+	var f2 File
+	err = f2.Unmarshal(rereadFile)
+	if err != nil {
+		t.Fatal("Could not unmarshal.", err)
+		return
+	}
+
+	//Calc fingerprint, again.
+	f2Fingerprint, err := f2.CalculateFingerprint()
+	if err != nil {
+		t.Fatal("Could not calc fingerprint for reread", err)
+		return
+	}
+
+	//Verify signature.
+	err = f2.Verify(pub)
+	if err != nil {
+		t.Fatal("Could not verify reread file.", err)
+		return
+	}
+
+	//Make sure fingerprints match.
+	if fFingerprint != f2Fingerprint {
+		t.Fatal("Fingerprints dont match!!!!!")
 	}
 }

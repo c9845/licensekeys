@@ -27,9 +27,7 @@ file templates, the type defined below, validation, and diagnostics.
 package config
 
 import (
-	"crypto/rand"
-	"crypto/sha512"
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -40,6 +38,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c9845/licensekeys/v4/keypairs/kpencrypt"
 	"github.com/c9845/licensekeys/v4/version"
 	"gopkg.in/yaml.v3"
 
@@ -190,9 +189,9 @@ func Read(path string, print bool) (err error) {
 		log.Println("WARNING! (config) Using built-in default config; path to config file was not provided.")
 
 		//Get default config.
-		defaultConfig, innerErr := newDefaultConfig()
-		if innerErr != nil {
-			return innerErr
+		defaultConfig, err := newDefaultConfig()
+		if err != nil {
+			return err
 		}
 		cfg = defaultConfig
 
@@ -210,21 +209,25 @@ func Read(path string, print bool) (err error) {
 		log.Println("WARNING! (config) Config does not exist, creating default config at:", absPath)
 
 		//Get default config.
-		defaultConfig, innerErr := newDefaultConfig()
-		if innerErr != nil {
-			return innerErr
+		defaultConfig, err := newDefaultConfig()
+		if err != nil {
+			return err
 		}
 		cfg = defaultConfig
 
 		//Get a random key to encrypt key pair private keys when they are stored
 		//to the db. We prefer to store private keys encrypted in the db for data
 		//security.
-		cfg.PrivateKeyEncryptionKey = getRandomEncryptionKey()
+		pw, err := kpencrypt.NewPassword()
+		if err != nil {
+			return err
+		}
+		cfg.PrivateKeyEncryptionKey = pw
 
 		//Save the default config to the file noted in the provided path.
-		innerErr = cfg.write(path)
-		if innerErr != nil {
-			return innerErr
+		err = cfg.write(path)
+		if err != nil {
+			return err
 		}
 
 		//Unset the os.IsNotExist error since we created the file.
@@ -236,15 +239,15 @@ func Read(path string, print bool) (err error) {
 		log.Println("Using config from file:", absPath)
 
 		//Read the file at the path.
-		f, innerErr := os.ReadFile(path)
-		if innerErr != nil {
-			return innerErr
+		f, err := os.ReadFile(path)
+		if err != nil {
+			return err
 		}
 
 		//Parse the file as yaml.
-		innerErr = yaml.Unmarshal(f, &cfg)
-		if innerErr != nil {
-			return innerErr
+		err = yaml.Unmarshal(f, &cfg)
+		if err != nil {
+			return err
 		}
 
 		//Print the config, if needed, as it was parsed from the file. This logs
@@ -265,14 +268,17 @@ func Read(path string, print bool) (err error) {
 
 	//Create the directories for storing files, if needed.
 	err = cfg.createDirectories()
+	if err != nil {
+		return err
+	}
 
 	//Save the config to this package for use elsewhere in the app.
 	parsedConfig = cfg
 
 	//Handle timezone configuration.
-	loc, innerErr := time.LoadLocation(cfg.Timezone)
-	if innerErr != nil {
-		return innerErr
+	loc, err := time.LoadLocation(cfg.Timezone)
+	if err != nil {
+		return err
 	}
 	tzLoc = loc
 
@@ -384,11 +390,11 @@ func (conf *File) validate() (err error) {
 	if conf.DBPath == "" {
 		conf.DBPath = defaults.DBPath
 	}
-	_, innerErr := os.Stat(conf.DBPath)
-	if innerErr != nil && !os.IsNotExist(innerErr) {
+	_, err = os.Stat(conf.DBPath)
+	if err != nil && !os.IsNotExist(err) {
 		//Don't handle non existing database file here, it will be logged and
 		//handled in main.go and database file will be created.
-		return fmt.Errorf("config: DBPath could not be validated %w", innerErr)
+		return fmt.Errorf("config: DBPath could not be validated %w", err)
 	}
 
 	if conf.DBJournalMode == "" {
@@ -460,10 +466,14 @@ func (conf *File) validate() (err error) {
 		log.Printf("WARNING! (config) MinPasswordLength is invalid. The value must be greater than %d. Defaulting to %d.", defaults.MinPasswordLength, conf.MinPasswordLength)
 	}
 
+	conf.PrivateKeyEncryptionKey = strings.ToLower(conf.PrivateKeyEncryptionKey)
 	if conf.PrivateKeyEncryptionKey == "" {
 		log.Println("WARNING! (config) Private key encryption is disabled.")
-	} else if len(conf.PrivateKeyEncryptionKey) != 32 {
-		err = errors.New("config: PrivateKeyEncryptionKey must be 16, 24, or 32 characters long, 32 is recommended")
+	} else if _, err = hex.DecodeString(conf.PrivateKeyEncryptionKey); err != nil {
+		err = fmt.Errorf("config: PrivateKeyEncryptionKey must be lowercase hexidecimal, %w", err)
+		return
+	} else if !kpencrypt.IsCorrectLength(conf.PrivateKeyEncryptionKey) {
+		err = fmt.Errorf("config: PrivateKeyEncryptionKey must be %d characters long, is %d characters", kpencrypt.PasswordLengthHex, len(conf.PrivateKeyEncryptionKey))
 		return
 	}
 
@@ -505,30 +515,6 @@ func (conf File) print(path string) {
 // config file data.
 func Data() File {
 	return parsedConfig
-}
-
-// getRandomEncryptionKey returns a string used for encrypting the private key of a key
-// pair.
-func getRandomEncryptionKey() (encKey string) {
-	//By default, use the longest length key per aes.NewCypher.
-	const l = 32
-
-	//Generate random string.
-	r := make([]byte, l)
-	_, err := rand.Read(r)
-	if err == nil {
-		encKey = base64.StdEncoding.EncodeToString(r)[:l]
-		return
-	}
-
-	//Error occured with rand.Read, default to using a hash of the current nanosecond
-	//time. This isn't as secure but is a good second option versus just returning an
-	//error and an empty encryption key.
-	t := time.Now().Format(time.RFC3339Nano)
-	s := sha512.Sum512([]byte(t))
-	encKey = base64.StdEncoding.EncodeToString(s[:])[:l]
-
-	return
 }
 
 // createDirectories creates the directories noted in a config file if needed.

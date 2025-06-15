@@ -11,13 +11,6 @@ import (
 )
 
 //Apps stores the applications you generate license keys for.
-//
-//Each app defines a format for the license file used when creating the signature
-//and saving the license file. This is saved with each license file's data in case
-//changes are made in the future. This ensures that a license file can be
-//redownloaded at any time and remain the same as it was previously. Changing these
-//fields isn't often used, but is useful in cases where you update your app to handle
-//a change for some reason.
 
 // TableApps is the name of the table.
 const TableApps = "apps"
@@ -25,6 +18,7 @@ const TableApps = "apps"
 // App is used to interact with the table.
 type App struct {
 	ID               int64
+	PublicID         UUID //Used when interacting with the public API only; mainly so public-facing ID isn't just an incrementing number.
 	DatetimeCreated  string
 	DatetimeModified string
 	CreatedByUserID  int64
@@ -52,6 +46,7 @@ const (
 	createTableApps = `
 		CREATE TABLE IF NOT EXISTS ` + TableApps + `(
 			ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			PublicID TEXT NOT NULL,
 			DatetimeCreated TEXT DEFAULT CURRENT_TIMESTAMP,
 			DatetimeModified TEXT DEFAULT CURRENT_TIMESTAMP,
 			CreatedByUserID INTEGER NOT NULL,
@@ -145,7 +140,14 @@ func GetAppByID(ctx context.Context, id int64) (a App, err error) {
 
 // Insert saves an app. You should have already called Validate().
 func (a *App) Insert(ctx context.Context) (err error) {
+	uuid, err := CreateNewUUID(ctx)
+	if err != nil {
+		log.Println("asfsafas", err)
+		return
+	}
+
 	cols := sqldb.Columns{
+		"PublicID",
 		"CreatedByUserID",
 		"Active",
 		"Name",
@@ -156,6 +158,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 		"DownloadFilename",
 	}
 	b := sqldb.Bindvars{
+		uuid,
 		a.CreatedByUserID,
 		a.Active,
 		a.Name,
@@ -174,12 +177,14 @@ func (a *App) Insert(ctx context.Context) (err error) {
 	c := sqldb.Connection()
 	stmt, err := c.PrepareContext(ctx, q)
 	if err != nil {
+		log.Println(q, b)
 		return
 	}
 	defer stmt.Close()
 
 	res, err := stmt.ExecContext(ctx, b...)
 	if err != nil {
+
 		return
 	}
 

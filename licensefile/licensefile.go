@@ -6,10 +6,10 @@ import (
 	"crypto/sha512"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"os"
@@ -53,20 +53,16 @@ const (
 	FileFormat = "json"
 )
 
-// File defines the format of data stored in a license key file. This is the body of
-// the text file.
-//
-// We use a struct with a map, instead of just map, so that we can more easily interact
-// with common fields and store some non-marshalled license data. More simply, having
-// a struct is just nicer for interacting with.
+// File is the format of a license key file. This is the contents of the textual
+// license file.
 type File struct {
-	//Optionally displayed fields per app. These are at the top of the struct
-	//definition so that they will be displayed at the top of the marshalled data just
-	//for ease of human reading of the license key file.
-	LicenseID int64  `json:",omitempty"`
+	//Optionally displayed fields per app's settings (see db-apps.go). These are at
+	//the top of the struct definition so that they will be displayed at the top of
+	//the text file just for ease of a human reading of the license key file.
+	LicenseID string `json:",omitempty"` //UUID, the PublicID.
 	AppName   string `json:",omitempty"`
 
-	//This data copied from db-license.go and always included in each license key file.
+	//This data copied from db-license.go and is always included in each license file.
 	CompanyName    string
 	ContactName    string
 	PhoneNumber    string
@@ -76,18 +72,18 @@ type File struct {
 	ExpireDate     string //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
 
 	//Data is any optional data that you want to store in a license file. This
-	//field can store anything, and is typically used for storing information that
-	//enables certain functionality within your app. For example, a maximum user
+	//map can store anything, and is typically used for storing information that
+	//enables certain functionality within your app, for example, a maximum user
 	//count.
 	//
-	//Called "custom fields" when interfacing with the database. Previously called
-	//"Metadata" when interfacing with a license File. "Metadata" just sounded ugly.
+	//Called "custom fields" when interfacing with this app's database.
 	Data map[string]any `json:",omitempty"`
 
-	//Signature is the result of signing the hash of File (all of the above fields)
-	//using the private key. The result is stored here and File is output to a text
-	//file known as the complete license key file. This file is distributed to and
-	//imported into your app by the end-user to allow the app's use.
+	//Signature is the result of signing a fingerprint (hash) of File using a private
+	//key.
+	//
+	//This value is added to a File before it is written to an actual license file.
+	//When verifying a license file, make sure to strip this value out first.
 	Signature string
 
 	//Info used for debugging.
@@ -127,50 +123,49 @@ func GenerateKeypair() (private, public []byte, err error) {
 	return
 }
 
-// Fingerprint returns the checksum/hash of a license's data in a human readable
-// format. This is typically used when activating a license.
+// CalculateFingerprint hashes the File's data as it appears in JSON (since that is
+// the file format we use for actual license files and what third-party apps will
+// read the license file as when verifying) and is the value that is signed by a
+// private key to create the File's Signature.
 //
-// The fingerprint is returned as base64 encoded SHA512.
-func (f *File) Fingerprint() (fingerprint string, err error) {
-	//Calculate the fingerprint as a []byte.
-	b, err := f.fingerprint()
-	if err != nil {
-		return
-	}
+// The fingerprint is returned as base64 encoded sha512.
+func (f *File) CalculateFingerprint() (fingerprint string, err error) {
+	//Calculate the fingerprint, as []byte.
+	fpb, err := f.calculateFingerprint()
 
 	//Encode.
-	fingerprint = base64.StdEncoding.EncodeToString(b)
+	fingerprint = hex.EncodeToString(fpb[:])
+
 	return
 }
 
-// Fingerprint returns the checksum/hash of a license's data as a []byte. This is used
-// when signing or verifying a license.
-//
-// The fingerprint is returned as base64 encoded SHA512.
-func (f *File) fingerprint() (fingerprint []byte, err error) {
-	//Make sure the Signature field is blank prior hashing since the Signature is
-	//based upon the fingerprint.
+// calculateFingerprint hashes the File's data and returns it as a []byte for use in
+// Sign and Verify.
+func (f *File) calculateFingerprint() (fingerprint []byte, err error) {
+	//Make sure the Signature field is empty. It is never included in a fingerprint.
 	f.Signature = ""
 
-	//Encode the struct as bytes.
+	//Encode the File's contents as JSON, just like it would be encoded in an
+	//actual textual license file.
 	b, err := f.Marshal()
 	if err != nil {
-		err = fmt.Errorf("file format required to marshal data before hashing, %w", err)
 		return
 	}
 
-	//Hash the license.
+	//Calculate the fingerprint, as []byte.
 	h := sha512.Sum512(b)
-	fingerprint = []byte(h[:])
+	fingerprint = h[:]
 	return
 }
 
-// Sign creates a signature for a license file. The signature is set in the provided
-// File's Signature field. The private key must be decrypted, if needed, prior to
-// being provided. The signature will be encoded in base64.
+// Sign creates a signature for File by signing the File's fingerprint. The File's
+// Signature field will be populated since it needs to be included when the File is
+// marshalled and written to a textual license file.
+//
+// The private key must be decrypted, if needed, prior to being provided.
 func (f *File) Sign(privateKey []byte) (err error) {
-	//Create fingerprint of license. This is what we actually sign.
-	fingerprint, err := f.fingerprint()
+	//Create fingerprint of File.
+	fingerprint, err := f.calculateFingerprint()
 	if err != nil {
 		return
 	}
@@ -193,8 +188,8 @@ func (f *File) Sign(privateKey []byte) (err error) {
 	return
 }
 
-// Verify checks if a File's signature is valid by checking it against the license's
-// fingerprint using the public key.
+// Verify checks if a File is a valid license by checking the signature against the
+// File's other data using the publicKey.
 //
 // This DOES NOT check if a File is expired. You should call Expired() on the File
 // after calling this func.
@@ -207,18 +202,18 @@ func (f *File) Sign(privateKey []byte) (err error) {
 // hashing and verification but we don't want to modify the original File so it can
 // be used as it was parsed/unmarshalled.
 func (f File) Verify(publicKey []byte) (err error) {
+	//Strip the signature out of the File since the signature is not based upon itself.
+	sigTxt := f.Signature
+	f.Signature = ""
+
 	//Decode the signature.
-	sig, err := base64.StdEncoding.DecodeString(f.Signature)
+	sig, err := base64.StdEncoding.DecodeString(sigTxt)
 	if err != nil {
 		return
 	}
 
-	//Remove signature from license so we can hash the license file's data. Signature
-	//is based on all data in license file but itself!
-	f.Signature = ""
-
-	//Create fingerprint of license. This is what we actually sign.
-	fingerprint, err := f.fingerprint()
+	//Create fingerprint of File.
+	fingerprint, err := f.calculateFingerprint()
 	if err != nil {
 		return
 	}

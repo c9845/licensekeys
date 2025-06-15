@@ -9,6 +9,7 @@ import { createApp } from "vue";
 import { msgTypes, apiBaseURL, defaultTimeout } from "./common";
 import { get, post, handleRequestErrors, getJSON, handleAPIErrors } from "./fetch";
 import { keyPair } from "./types";
+import { Tooltip } from "bootstrap";
 
 //Manage the list of key pairs.
 export var listKeyPairs: any; //must be "any", not "ComponentPublicInstance" to remove errors when calling functions (methods) of this Vue instance.
@@ -405,6 +406,30 @@ if (document.getElementById("modal-manageKeyPair")) {
                         return;
                     });
                 return;
+            },
+
+            //copyPublicID copies the public ID being displayed to the browser's
+            //clipboard. This is run when the user clicks the "copy" button next to
+            //the public ID.
+            copyPublicID: async function () {
+                try {
+                    await navigator.clipboard.writeText(this.keyPairData.PublicID);
+
+                    //Show tooltip that public ID was copied for a few seconds.
+                    let tooltipElem = document.getElementById("copy-keypair-public-id") as Element;
+                    let tooltip = new Tooltip(tooltipElem, {
+                        title: "Copied!",
+                        trigger: "click",
+                    });
+                    tooltip.show();
+
+                    setTimeout(() => {
+                        tooltip.dispose();
+                    }, 3000);
+                }
+                catch (err) {
+                    console.log("could not copy public ID", err)
+                }
             }
         }
     }).mount("#modal-manageKeyPair")

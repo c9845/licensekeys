@@ -6,6 +6,7 @@ require (
 	github.com/c9845/hashfs v1.0.0
 	github.com/c9845/output v1.1.0
 	github.com/c9845/sqldb/v3 v3.0.4
+	github.com/gofrs/uuid/v5 v5.3.2
 	github.com/gorilla/mux v1.8.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/justinas/alice v1.2.0

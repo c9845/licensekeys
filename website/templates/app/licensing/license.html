@@ -85,8 +85,8 @@
                                 <!-- Common info. -->
                                 <section>
                                     <dl class="row mb-0">
-                                        <dt class="col-sm-4 text-truncate">ID:</dt>
-                                        <dd class="col-sm-8">{{$licenseID}}</dd>
+                                        <dt class="col-sm-4 text-truncate">Public ID:</dt>
+                                        <dd class="col-sm-8 font-monospace">[[licenseData.PublicID]]</dd>
                                         <dt class="col-sm-4 text-truncate">App:</dt>
                                         <dd class="col-sm-8">[[licenseData.AppName]]</dd>
                                         <dt class="col-sm-4 text-truncate">Company:</dt>
@@ -132,6 +132,12 @@
                                         <dd class="col-sm-8 whitespace-no-wrap ellipsis" v-bind:title="licenseData.DatetimeCreated + ' (UTC)'">[[licenseData.DatetimeCreatedInTZ]]</dd>
                                         <dt class="col-sm-4 text-truncate">File Format:</dt>
                                         <dd class="col-sm-8">[[licenseData.FileFormat.toUpperCase()]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Keypair Algo:</dt>
+                                        <dd class="col-sm-8">[[licenseData.KeypairAlgo.toLowerCase()]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Fingerprint Algo:</dt>
+                                        <dd class="col-sm-8">[[licenseData.FingerprintAlgo.toLowerCase()]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Encoding Algo:</dt>
+                                        <dd class="col-sm-8">[[licenseData.EncodingAlgo.toLowerCase()]]</dd>
                                     </dl>
                                 </section>
                             </div>

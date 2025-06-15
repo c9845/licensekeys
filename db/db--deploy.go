@@ -18,7 +18,7 @@ var DeployQueries = []string{
 	createTableAppSettings,
 
 	createTableApps,
-	createTableKeyPairs,
+	createTableKeypairs,
 	createTableCustomFieldsDefined,
 	createTableCustomFieldResults,
 	createTableLicenses,

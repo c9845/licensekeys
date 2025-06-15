@@ -369,6 +369,30 @@ if (document.getElementById("manageApps")) {
                 return;
 
             },
+
+            //copyPublicID copies the public ID being displayed to the browser's
+            //clipboard. This is run when the user clicks the "copy" button next to
+            //the public ID.
+            copyPublicID: async function () {
+                try {
+                    await navigator.clipboard.writeText(this.appData.PublicID);
+
+                    //Show tooltip that public ID was copied for a few seconds.
+                    let tooltipElem = document.getElementById("copy-app-public-id") as Element;
+                    let tooltip = new Tooltip(tooltipElem, {
+                        title: "Copied!",
+                        trigger: "click",
+                    });
+                    tooltip.show();
+
+                    setTimeout(() => {
+                        tooltip.dispose();
+                    }, 3000);
+                }
+                catch (err) {
+                    console.log("could not copy public ID", err)
+                }
+            }
         },
 
         mounted() {
