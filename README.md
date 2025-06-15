@@ -46,10 +46,10 @@ A license key is a human readable text file with a signature verifying its authe
     "IssueDate": "2022-05-07",
     "IssueTimestamp": 1651958341,
     "ExpireDate": "2049-09-21",
-    "Metadata": {,
-      "CF_String": "Hello World!",
-      "Custom Boolean": true,
-      "Custom Field Integer": 5,
+    "Data": {
+      "String": "Hello World!",
+      "Boolean": true,
+      "Integer": 5,
       "Decimal": 5.55
     },
     "Signature": "GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ===="

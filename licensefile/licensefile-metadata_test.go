@@ -2,20 +2,20 @@ package licensefile
 
 import "testing"
 
-func TestMetadataAsInt(t *testing.T) {
+func TestDataAsInt(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":   1,
 			"notanint": "testing",
 		},
 	}
 
 	//get field that does exist
-	i, err := f.MetadataAsInt("exists")
+	i, err := f.DataAsInt("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -26,7 +26,7 @@ func TestMetadataAsInt(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	i, err = f.MetadataAsInt("doesnotexist")
+	i, err = f.DataAsInt("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -37,7 +37,7 @@ func TestMetadataAsInt(t *testing.T) {
 	}
 
 	//get not an int field
-	i, err = f.MetadataAsInt("notanint")
+	i, err = f.DataAsInt("notanint")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return
@@ -48,20 +48,20 @@ func TestMetadataAsInt(t *testing.T) {
 	}
 }
 
-func TestMetadataAsFloat(t *testing.T) {
+func TestDataAsFloat(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":    1.234,
 			"notafloat": "testing",
 		},
 	}
 
 	//get field that does exist
-	x, err := f.MetadataAsFloat("exists")
+	x, err := f.DataAsFloat("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -72,7 +72,7 @@ func TestMetadataAsFloat(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	x, err = f.MetadataAsFloat("doesnotexist")
+	x, err = f.DataAsFloat("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -83,7 +83,7 @@ func TestMetadataAsFloat(t *testing.T) {
 	}
 
 	//get not a float field
-	x, err = f.MetadataAsFloat("notafloat")
+	x, err = f.DataAsFloat("notafloat")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return
@@ -94,20 +94,20 @@ func TestMetadataAsFloat(t *testing.T) {
 	}
 }
 
-func TestMetadataAsString(t *testing.T) {
+func TestDataAsString(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":     "hello-world",
 			"notastring": 1,
 		},
 	}
 
 	//get field that does exist
-	s, err := f.MetadataAsString("exists")
+	s, err := f.DataAsString("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -118,7 +118,7 @@ func TestMetadataAsString(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	s, err = f.MetadataAsString("doesnotexist")
+	s, err = f.DataAsString("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -129,7 +129,7 @@ func TestMetadataAsString(t *testing.T) {
 	}
 
 	//get not a string field
-	s, err = f.MetadataAsString("notastring")
+	s, err = f.DataAsString("notastring")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return
@@ -140,20 +140,20 @@ func TestMetadataAsString(t *testing.T) {
 	}
 }
 
-func TestMetadataAsBool(t *testing.T) {
+func TestDataAsBool(t *testing.T) {
 	//build fake File with file format, hash type, and encoding type set
 	f := File{
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
 	}
 
 	//get field that does exist
-	b, err := f.MetadataAsBool("exists")
+	b, err := f.DataAsBool("exists")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -164,7 +164,7 @@ func TestMetadataAsBool(t *testing.T) {
 	}
 
 	//get field that doesn't exist
-	b, err = f.MetadataAsBool("doesnotexist")
+	b, err = f.DataAsBool("doesnotexist")
 	if err != ErrFieldDoesNotExist {
 		t.Fatal("Error about non-existant field should have occured.")
 		return
@@ -175,7 +175,7 @@ func TestMetadataAsBool(t *testing.T) {
 	}
 
 	//get not a string field
-	b, err = f.MetadataAsBool("notabool")
+	b, err = f.DataAsBool("notabool")
 	if err == nil {
 		t.Fatal("Expected type assertion error.")
 		return

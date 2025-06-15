@@ -20,7 +20,7 @@ func TestSign(t *testing.T) {
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
@@ -52,7 +52,7 @@ func TestVerify(t *testing.T) {
 		CompanyName: "CompanyName",
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},
@@ -86,7 +86,7 @@ func TestFingerprint(t *testing.T) {
 	f := File{
 		CompanyName: "test1",
 		ContactName: "test2",
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"extraString": "string",
 			"extraInt":    1,
 			"extraBool":   true,
@@ -110,7 +110,7 @@ func TestExpired(t *testing.T) {
 		PhoneNumber: "123-123-1234",
 		Email:       "test@example.com",
 		ExpireDate:  futureDate.Format("2006-01-02"),
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"exists":   true,
 			"notabool": 1,
 		},

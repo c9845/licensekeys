@@ -667,27 +667,27 @@ func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File,
 	}
 
 	//Add the custom field results as a map to the file.
-	metadata := make(map[string]any, len(cfr))
+	d := make(map[string]any, len(cfr))
 	for _, f := range cfr {
 		switch f.CustomFieldType {
 		case db.CustomFieldTypeInteger:
-			metadata[f.CustomFieldName] = f.IntegerValue.Int64
+			d[f.CustomFieldName] = f.IntegerValue.Int64
 		case db.CustomFieldTypeDecimal:
-			metadata[f.CustomFieldName] = f.DecimalValue.Float64
+			d[f.CustomFieldName] = f.DecimalValue.Float64
 		case db.CustomFieldTypeText:
-			metadata[f.CustomFieldName] = f.TextValue.String
+			d[f.CustomFieldName] = f.TextValue.String
 		case db.CustomFieldTypeBoolean:
-			metadata[f.CustomFieldName] = f.BoolValue.Bool
+			d[f.CustomFieldName] = f.BoolValue.Bool
 		case db.CustomFieldTypeMultiChoice:
-			metadata[f.CustomFieldName] = f.MultiChoiceValue.String
+			d[f.CustomFieldName] = f.MultiChoiceValue.String
 		case db.CustomFieldTypeDate:
-			metadata[f.CustomFieldName] = f.DateValue.String
+			d[f.CustomFieldName] = f.DateValue.String
 		default:
 			//This should never be hit since we validated field types when they
 			//were saved/defined.
 		}
 	}
-	f.Metadata = metadata
+	f.Data = d
 
 	return
 }

@@ -24,23 +24,23 @@ MCowBQYDK2VwAyEAvzRdvbuQZOOPHTUT+xacIV1u3rvAPiEDMlkLq7RgibE=
 // Note: indentation is via two spaces, not tabs.
 const licenseReadFromFile = "" +
 	`{ 
-	"LicenseID": 10023,
-	"AppName": "Example",
-	"CompanyName": "ACME Dynamite",
-	"ContactName": "Wyle E Coyote",
-	"PhoneNumber": "123-555-1212",
-	"Email": "wyle@example.com",
-	"IssueDate": "2022-05-07",
-	"IssueTimestamp": 1651958341,
-	"ExpireDate": "2049-09-21",
-	"Metadata": {,
-		"CF_String": "Hello World!",
-		"Custom Boolean": true,
-		"Custom Field Integer": 5,
-		"Decimal": 5.55
-	},
-	"Signature": "GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ===="
-}`
+		"LicenseID": 10023,
+		"AppName": "Example",
+		"CompanyName": "ACME Dynamite",
+		"ContactName": "Wyle E Coyote",
+		"PhoneNumber": "123-555-1212",
+		"Email": "wyle@example.com",
+		"IssueDate": "2022-05-07",
+		"IssueTimestamp": 1651958341,
+		"ExpireDate": "2049-09-21",
+		"Data": {,
+			"String": "Hello World!",
+			"Boolean": true,
+			"Integer": 5,
+			"Decimal": 5.55
+		},
+		"Signature": "GBDAEIIAYPGNFZPDUQHMJ2WDQ4NETOLA4EZZVJ2LWVXIRGBZ6SKGMULV3ESAEIIA2QXHQ2HXLSIF7CUWZVLILT4FNKKDXHOLALM5QV3HQV5K4QWMVICQ===="
+	}`
 
 func init() {
 	//Read the license key from a file.
@@ -119,7 +119,7 @@ func init() {
 	log.Println("License verified!")
 	log.Println("License ID:", lic.LicenseID)
 
-	if i, err := lic.MetadataAsInt("CustomFieldInt"); err != nil {
+	if i, err := lic.DataAsInt("CustomFieldInt"); err != nil {
 		log.Fatalln("Error reading custom field as integer...", err)
 		return
 	} else {

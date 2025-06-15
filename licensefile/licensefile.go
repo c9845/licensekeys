@@ -63,7 +63,7 @@ type File struct {
 	//Optionally displayed fields per app. These are at the top of the struct
 	//definition so that they will be displayed at the top of the marshalled data just
 	//for ease of human reading of the license key file.
-	LicenseID int64  `json:"omitempty"`
+	LicenseID int64  `json:",omitempty"`
 	AppName   string `json:",omitempty"`
 
 	//This data copied from db-license.go and always included in each license key file.
@@ -75,14 +75,14 @@ type File struct {
 	IssueTimestamp int64  //unix timestamp in seconds
 	ExpireDate     string //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
 
-	//Metadata is any optional data that you want to store in a license file. This
+	//Data is any optional data that you want to store in a license file. This
 	//field can store anything, and is typically used for storing information that
 	//enables certain functionality within your app. For example, a maximum user
 	//count.
 	//
 	//Called "custom fields" when interfacing with the database. Previously called
 	//"Metadata" when interfacing with a license File. "Metadata" just sounded ugly.
-	Metadata map[string]any `json:",omitempty"`
+	Data map[string]any `json:",omitempty"`
 
 	//Signature is the result of signing the hash of File (all of the above fields)
 	//using the private key. The result is stored here and File is output to a text

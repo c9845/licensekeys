@@ -154,7 +154,7 @@
                         </div>
                     </div> <!-- end .col for view/edit/add -->
 
-                    <!-- column for key pairs & custom fields/metadata fields -->
+                    <!-- column for key pairs & custom fields/data fields -->
                     <div class="col-12 col-md-7">
                         
                         <!-- card for key pairs -->
@@ -264,7 +264,7 @@
                             </div> <!-- end .card-body -->
                         </div> <!-- end .card for key pairs-->
                         
-                        <!-- card for custom field/metadata types -->
+                        <!-- card for custom field/data types -->
                         <div class="card" id="listCustomFieldsDefined">
                             <div class="card-header">
                                 <div class="card-title">
@@ -280,7 +280,7 @@
                                                 <i v-if="collapseUI" class="fas fa-angle-double-down"></i>
                                                 <i v-else            class="fas fa-angle-double-up"></i>
                                             </span>
-                                            <span class="title">Metadata Fields</span>
+                                            <span class="title">Data Fields</span>
                                         </span>
                                     </h5>
                                 </div>
@@ -301,7 +301,7 @@
                                 <section>
                                     <blockquote class="description description-secondary">
                                         <p v-if="appSelectedID < 1">Choose an app first.</p>
-                                        <p v-else v-cloak>Metadata fields allow you to provide additional data in your licenses for enabling features, limiting user count, etc.</p>
+                                        <p v-else v-cloak>Data fields allow you to provide additional data in your licenses for enabling features, limiting user count, etc.</p>
                                     </blockquote>
                                 </section>
                                 
@@ -479,8 +479,8 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <span v-if="adding">Add Metadata Field</span>
-                            <span v-else       >Edit Metadata Field</span>
+                            <span v-if="adding">Add Data Field</span>
+                            <span v-else       >Edit Data Field</span>
                         </h5>
                         <div>
                             <button 
@@ -496,7 +496,7 @@
                     </div>
                     <div class="modal-body">
                         <blockquote class="description description-secondary">
-                            <p>Metadata fields store additional information in your license files. Define fields for the maximum user count, enabling features, setting support levels, etc.</p>
+                            <p>Data fields store additional information in your license files. Define fields for the maximum user count, enabling features, setting support levels, etc.</p>
                         </blockquote>
                         <hr class="divider">
                         

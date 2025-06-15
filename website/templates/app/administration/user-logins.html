@@ -31,7 +31,7 @@
                                                 <div class="row">
                                                     <label class="form-label col-sm-6">User:</label>
                                                     <div class="col-sm-6 d-flex justify-content-end align-items-start">
-                                                        <select class="form-select" v-model.number="userID" v-bind:disabled="apiKeyID > 0">
+                                                        <select class="form-select" v-model.number="userID">
                                                             <option value="0">All users.</option>
                                                             <template v-if="usersRetrieved">
                                                                 <option v-for="u in users" :key="u.ID" v-bind:value="u.ID">[[u.Username]]</option>
