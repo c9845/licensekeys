@@ -123,31 +123,17 @@ func GenerateKeypair() (private, public []byte, err error) {
 	return
 }
 
-// CalculateFingerprint hashes the File's data as it appears in JSON (since that is
-// the file format we use for actual license files and what third-party apps will
-// read the license file as when verifying) and is the value that is signed by a
-// private key to create the File's Signature.
+// calculateFingerprint hashes File's data after marshalling File to JSON. []bytes
+// are returned for use in Sign() and Verify().
 //
-// The fingerprint is returned as base64 encoded sha512.
-func (f *File) CalculateFingerprint() (fingerprint string, err error) {
-	//Calculate the fingerprint, as []byte.
-	fpb, err := f.calculateFingerprint()
-
-	//Encode.
-	fingerprint = hex.EncodeToString(fpb[:])
-
-	return
-}
-
-// calculateFingerprint hashes the File's data and returns it as a []byte for use in
-// Sign and Verify.
+// Hash algorithm is SHA512.
 func (f *File) calculateFingerprint() (fingerprint []byte, err error) {
-	//Make sure the Signature field is empty. It is never included in a fingerprint.
+	//Make sure the Signature field is empty. The Signature is never included in a
+	//fingerprint, the Signature is based upon the fingerprint.
 	f.Signature = ""
 
-	//Encode the File's contents as JSON, just like it would be encoded in an
-	//actual textual license file.
-	b, err := f.Marshal()
+	//Encode File as JSON, just like it would be encoded in an actual license file.
+	b, err := f.marshal()
 	if err != nil {
 		return
 	}
@@ -155,6 +141,20 @@ func (f *File) calculateFingerprint() (fingerprint []byte, err error) {
 	//Calculate the fingerprint, as []byte.
 	h := sha512.Sum512(b)
 	fingerprint = h[:]
+	return
+}
+
+// CalculateFingerprint hashes File's data after marshalling File to JSON. A string
+// is returned.
+//
+// Hash algorithm is SHA512 and the result is hex encoded.
+func (f *File) CalculateFingerprint() (fingerprint string, err error) {
+	//Calculate the fingerprint, as []byte.
+	fpb, err := f.calculateFingerprint()
+
+	//Encode.
+	fingerprint = hex.EncodeToString(fpb[:])
+
 	return
 }
 
@@ -185,6 +185,78 @@ func (f *File) Sign(privateKey []byte) (err error) {
 
 	//Set the signature in the license file.
 	f.Signature = sigTxt
+	return
+}
+
+// Write writes a File to out. This is used to output the complete license key file.
+// This can be used to write the File to a buffer, as is done when creating a license
+// key file, write the File back to the browser as html, or write the File to an actual
+// filesystem file.
+//
+// For use with a buffer:
+//
+//	//b := bytes.Buffer{}
+//	//err := f.Write(&b)
+//
+// Writing to an http.ResponseWriter:
+//
+//	//func handler(w http.ResponseWriter, r *http.Request) {
+//	//  //...
+//	//  err := f.Write(w)
+//	//}
+func (f *File) Write(out io.Writer) (err error) {
+	//Marshal to bytes.
+	b, err := f.marshal()
+	if err != nil {
+		return
+	}
+
+	//Write.
+	_, err = out.Write(b)
+	return
+}
+
+// FromFile reads a license file from a file and parses it into a File. The file at
+// the given path must have contents in JSON format.
+func FromFile(path string) (f File, err error) {
+	//Check if a file exists at the provided path.
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		return
+	}
+
+	//Read the file at the provided path.
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	//Unmarshal the file's contents.
+	err = f.unmarshal(contents)
+	if err != nil {
+		return
+	}
+
+	//Save the path to the license file since we know the file exists. This is used
+	//for debugging.
+	f.readFromPath = path
+	return
+}
+
+// FromBytes reads a license file from a []byte, for when a license file was read from
+// a text file already, was stored in bytes in a database column, or another time. The
+// []byte must represent JSON.
+func FromBytes(b []byte) (f File, err error) {
+	err = f.unmarshal(b)
+	return
+}
+
+// FromString reads a license file from a string, for when a license file was read from
+// a test file already, was stored in a textual database column, or another time. The
+// string must represent JSON.
+func FromString(s string) (f File, err error) {
+	//Unmarshal the file's contents.
+	err = f.unmarshal([]byte(s))
 	return
 }
 
@@ -236,79 +308,23 @@ func (f File) Verify(publicKey []byte) (err error) {
 	return
 }
 
-// Write writes a File to out. This is used to output the complete license key file.
-// This can be used to write the File to a buffer, as is done when creating a license
-// key file, write the File back to the browser as html, or write the File to an actual
-// filesystem file.
+// marshal encodes the File as JSON.
 //
-// For use with a buffer:
-//
-//	//b := bytes.Buffer{}
-//	//err := f.Write(&b)
-//
-// Writing to an http.ResponseWriter:
-//
-//	//func handler(w http.ResponseWriter, r *http.Request) {
-//	//  //...
-//	//  err := f.Write(w)
-//	//}
-func (f *File) Write(out io.Writer) (err error) {
-	//Marshal to bytes.
-	b, err := f.Marshal()
-	if err != nil {
-		return
-	}
-
-	//Write.
-	_, err = out.Write(b)
-	return
-}
-
-// Marshal encodes the File as JSON.
-func (f *File) Marshal() (b []byte, err error) {
+// This func is defined so we don't need to use json.MarshalIndent everywhere and so
+// that we can be certain we are using the same marshalling everywhere (calculating
+// fingerprint and writing File to a text file).
+func (f *File) marshal() (b []byte, err error) {
 	b, err = json.MarshalIndent(f, "", "  ")
 	return
 }
 
-// Unmarshal decodes JSON into File.
-func (f *File) Unmarshal(b []byte) (err error) {
+// unmarshal decodes JSON into File.
+//
+// This func is defined so we don't need to use json.Unmarshall everywhere and so
+// that we can be certain we are using the same unmarshalling everywhere (reading
+// File from a file, []byte, or string).
+func (f *File) unmarshal(b []byte) (err error) {
 	err = json.Unmarshal(b, &f)
-	return
-}
-
-// Read reads a license key file from the given path, unmarshals it, and returns it's
-// data as a File. This checks if the file exists and the data is of the correct
-// format.
-//
-// If you do not need to read a license from a file, unmarshal the license data into
-// a File or create a File in some other manner, then call Verify().
-//
-// This DOES NOT check if the license key file itself (the contents of the file and
-// the signature) is valid nor does this check if the license is expired. You should
-// call Verify() and Expired() on the returned File immediately after calling this
-// func.
-func Read(path string) (f File, err error) {
-	//Check if a file exists at the provided path.
-	_, err = os.Stat(path)
-	if os.IsNotExist(err) {
-		return
-	}
-
-	//Read the file at the provided path.
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		return
-	}
-
-	//Unmarshal the file's contents.
-	err = f.Unmarshal(contents)
-	if err != nil {
-		return
-	}
-
-	//Save the path to the license file since we know the file exists. This is used
-	//for debugging.
-	f.readFromPath = path
 	return
 }
 

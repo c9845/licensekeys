@@ -1121,8 +1121,7 @@ func writeReadVerify(f licensefile.File, publicKey []byte) (err error) {
 	}
 
 	//"Read" the license file.
-	var reread licensefile.File
-	err = reread.Unmarshal(b.Bytes())
+	reread, err := licensefile.FromBytes(b.Bytes())
 	if err != nil {
 		return
 	}

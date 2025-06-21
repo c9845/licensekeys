@@ -1,6 +1,8 @@
 package licensefile
 
 import (
+	"bytes"
+	"encoding/hex"
 	"os"
 	"testing"
 	"time"
@@ -14,19 +16,53 @@ func TestGenerateKeyPair(t *testing.T) {
 	}
 }
 
-func TestSign(t *testing.T) {
-	//build fake File with file format, hash type, and encoding type set
+func TestCalculateFingerprint(t *testing.T) {
 	f := File{
-		CompanyName: "CompanyName",
+		CompanyName: "ACME Dynamite, Co.",
+		ContactName: "Wyle E. Coyote",
 		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
+		Email:       "coyote@example.com",
 		Data: map[string]any{
-			"exists":   true,
-			"notabool": 1,
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
+		},
+	}
+	fpb, err := f.calculateFingerprint()
+	if err != nil {
+		t.Fatal("Could not calculate fingerprint, bytes.", err)
+		return
+	}
+
+	fps, err := f.CalculateFingerprint()
+	if err != nil {
+		t.Fatal("Could not calculate fingerprint, string.", err)
+		return
+	}
+
+	fpbs := hex.EncodeToString(fpb[:])
+	if fps != fpbs {
+		t.Fatal("Encoding error")
+		return
+	}
+
+	//Write File to a text file, and compare hashes: hash of text file vs text file's
+	//contents.
+}
+
+func TestSign(t *testing.T) {
+	f := File{
+		CompanyName: "ACME Dynamite, Co.",
+		ContactName: "Wyle E. Coyote",
+		PhoneNumber: "123-123-1234",
+		Email:       "coyote@example.com",
+		Data: map[string]any{
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
 		},
 	}
 
-	//Test with ed25519 key pair.
 	priv, _, err := GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
@@ -45,20 +81,18 @@ func TestSign(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	//Build fake File with file format, hash type, and encoding type set.
-	//Note, no expiration date. VerifySignature() doesn't do any checking
-	//of the expiration date!
 	f := File{
-		CompanyName: "CompanyName",
+		CompanyName: "ACME Dynamite, Co.",
+		ContactName: "Wyle E. Coyote",
 		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
+		Email:       "coyote@example.com",
 		Data: map[string]any{
-			"exists":   true,
-			"notabool": 1,
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
 		},
 	}
 
-	//Test with ED25519 key pair.
 	priv, pub, err := GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
@@ -80,22 +114,23 @@ func TestVerify(t *testing.T) {
 		t.Fatal("Error with verify (see code comments!).", err)
 		return
 	}
-}
 
-func TestFingerprint(t *testing.T) {
-	f := File{
-		CompanyName: "test1",
-		ContactName: "test2",
-		Data: map[string]any{
-			"extraString": "string",
-			"extraInt":    1,
-			"extraBool":   true,
-		},
+	//Test with a bad public key.
+	_, pubWrong, err := GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	err = f.Verify(pubWrong)
+	if err == nil {
+		t.Fatal("Verified with WRONG public key!! Not good!!")
+		return
 	}
 
-	_, err := f.calculateFingerprint()
-	if err != nil {
-		t.Fatal("Error during hashing", err)
+	//Test with missing public key.
+	err = f.Verify([]byte(""))
+	if err == nil {
+		t.Fatal("Verified with MISSING public key!! Not good!!")
 		return
 	}
 }
@@ -269,7 +304,7 @@ func TestWriteRead(t *testing.T) {
 	}
 
 	//Read...
-	f2, err := Read(x.Name())
+	f2, err := FromFile(x.Name())
 	if err != nil {
 		t.Fatal("Error reading", err)
 		return
@@ -281,34 +316,33 @@ func TestWriteRead(t *testing.T) {
 	}
 }
 
-func TestLikeThirdPartyApp(t *testing.T) {
+func TestLikeThirdPartyGolangApp(t *testing.T) {
 	//Create a File.
 	f := File{
 		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
 		AppName:        "test app",
-		CompanyName:    "CompanyName",
-		ContactName:    "Mike Smith",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
 		PhoneNumber:    "123-123-1234",
-		Email:          "test@example.com",
+		Email:          "coyote@example.com",
 		IssueDate:      "1990-01-02",
 		IssueTimestamp: 1550027702,
 		ExpireDate:     "2006-01-02",
+		Data: map[string]any{
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
+		},
 	}
 
-	//Fingerprint, for diagnostics.
-	fFingerprint, err := f.CalculateFingerprint()
-	if err != nil {
-		t.Fatal("Could not calc original fingerprint", err)
-		return
-	}
-
-	//Sign the File.
+	//Create keypair.
 	priv, pub, err := GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
 
+	//Sign.
 	err = f.Sign(priv)
 	if err != nil {
 		t.Fatal(err)
@@ -337,37 +371,87 @@ func TestLikeThirdPartyApp(t *testing.T) {
 	}
 	x.Close()
 
-	//Read the text file.
-	rereadFile, err := os.ReadFile(x.Name())
-	if err != nil {
-		t.Fatal("could not reread file", err)
-		return
-	}
+	//Verify using the just-saved text file.
+	t.Run("ReadFromFile", func(t *testing.T) {
+		reread, err := FromFile(x.Name())
+		if err != nil {
+			t.Fatal("Could not read from file.", err)
+			return
+		}
 
-	//Parse as JSON.
-	var f2 File
-	err = f2.Unmarshal(rereadFile)
-	if err != nil {
-		t.Fatal("Could not unmarshal.", err)
-		return
-	}
+		err = reread.Verify(pub)
+		if err != nil {
+			t.Fatal("Could not verify from file.", err)
+			return
+		}
+	})
 
-	//Calc fingerprint, again.
-	f2Fingerprint, err := f2.CalculateFingerprint()
-	if err != nil {
-		t.Fatal("Could not calc fingerprint for reread", err)
-		return
-	}
+	//Verify using the just-saved text file, but read the file manually.
+	t.Run("ReadFromFileManually", func(t *testing.T) {
+		txtFile, err := os.ReadFile(x.Name())
+		if err != nil {
+			t.Fatal("Could not open file.", err)
+			return
+		}
 
-	//Verify signature.
-	err = f2.Verify(pub)
-	if err != nil {
-		t.Fatal("Could not verify reread file.", err)
-		return
-	}
+		rereadFromBytes, err := FromBytes(txtFile)
+		if err != nil {
+			t.Fatal("Could not read from bytes.", err)
+			return
+		}
 
-	//Make sure fingerprints match.
-	if fFingerprint != f2Fingerprint {
-		t.Fatal("Fingerprints dont match!!!!!")
-	}
+		err = rereadFromBytes.Verify(pub)
+		if err != nil {
+			t.Fatal("Could not verify from bytes.", err)
+			return
+		}
+
+		rereadFromString, err := FromString(string(txtFile))
+		if err != nil {
+			t.Fatal("Could not read from string.", err)
+			return
+		}
+
+		err = rereadFromString.Verify(pub)
+		if err != nil {
+			t.Fatal("Could not verify from string.", err)
+			return
+		}
+	})
+
+	//Verify without wring the license to an actual text file.
+	t.Run("VerifyWithoutTextFile", func(t *testing.T) {
+		b := bytes.Buffer{}
+		err = f.Write(&b)
+		if err != nil {
+			t.Fatal("Could not write to buffer.", err)
+			return
+		}
+
+		bb := b.Bytes()
+		bbf, err := FromBytes(bb)
+		if err != nil {
+			t.Fatal("Could not reread from bytes.", err)
+			return
+		}
+
+		err = bbf.Verify(pub)
+		if err != nil {
+			t.Fatal("Could not verify from bytes.", err)
+			return
+		}
+
+		bs := b.String()
+		bsf, err := FromString(bs)
+		if err != nil {
+			t.Fatal("Could not reread from string.", err)
+			return
+		}
+
+		err = bsf.Verify(pub)
+		if err != nil {
+			t.Fatal("Could not verify from string.", err)
+			return
+		}
+	})
 }
