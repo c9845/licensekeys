@@ -43,8 +43,9 @@
                         <!-- renewal notices -->
                         <div v-if="licenseDataRetrieved && (licenseData.RenewedFromLicenseID !== null || licenseData.RenewedToLicenseID !== null)" v-cloak>
                             <div class="alert alert-primary">
-                                <span v-if="licenseData.RenewedFromLicenseID !== null">This license was renewed from license <a v-bind:href="'?id=' + licenseData.RenewedFromLicenseID">[[licenseData.RenewedFromLicenseID]]</a>.</span>
-                                <span v-if="licenseData.RenewedToLicenseID !== null"  >This license was renewed to license <a v-bind:href="'?id=' + licenseData.RenewedToLicenseID">[[licenseData.RenewedToLicenseID]]</a>.</span>
+                                <!-- default underline of link just didnt look great -->
+                                <span v-if="licenseData.RenewedFromLicenseID !== null">This license was renewed from license <a class="text-decoration-none" v-bind:href="'?id=' + licenseData.RenewedFromLicenseID">[[licenseData.RenewedFromLicenseID]]</a>.</span>
+                                <span v-if="licenseData.RenewedToLicenseID !== null"  >This license was renewed to license <a class="text-decoration-none" v-bind:href="'?id=' + licenseData.RenewedToLicenseID">[[licenseData.RenewedToLicenseID]]</a>.</span>
                             </div>
                         </div>
                     </div>
@@ -98,7 +99,7 @@
                                         <dt class="col-sm-4 text-truncate">Email:</dt>
                                         <dd class="col-sm-8">[[licenseData.Email]]</dd>
                                         <dt class="col-sm-4 text-truncate">Expiration Date:</dt>
-                                        <dd class="col-sm-8">[[licenseData.ExpireDate]]</dd>
+                                        <dd class="col-sm-8">[[licenseData.ExpirationDate]]</dd>
                                         <dt class="col-sm-4 text-truncate">Issue Date:</dt>
                                         <dd class="col-sm-8 whitespace-no-wrap ellipsis">[[licenseData.IssueDateInTZ]]</dd>
                                         <dt class="col-sm-4 text-truncate">Created By:</dt>
@@ -138,6 +139,10 @@
                                         <dd class="col-sm-8">[[licenseData.FingerprintAlgo.toLowerCase()]]</dd>
                                         <dt class="col-sm-4 text-truncate">Encoding Algo:</dt>
                                         <dd class="col-sm-8">[[licenseData.EncodingAlgo.toLowerCase()]]</dd>
+                                        <dt class="col-sm-4 text-truncate">App Public ID:</dt>
+                                        <dd class="col-sm-8 font-monospace">[[licenseData.AppPublicID]]</dd>
+                                        <dt class="col-sm-4 text-truncate">Keypair Public ID:</dt>
+                                        <dd class="col-sm-8 font-monospace">[[licenseData.KeypairPublicID]]</dd>
                                     </dl>
                                 </section>
                             </div>
@@ -419,11 +424,11 @@
                             <fieldset v-bind:disabled="submitting">
                                 <div class="form-group">
                                     <label clas="form-label">Current Expiration Date:</label>
-                                    <input class="form-control" type="date" v-model.trim="currentExpireDate" disabled>
+                                    <input class="form-control" type="date" v-model.trim="currentExpirationDate" disabled>
                                 </div>
                                 <div class="form-group">
                                     <label clas="form-label">New Expiration Date:</label>
-                                    <input class="form-control" type="date" v-model.trim="newExpireDate" v-bind:min="minDate">
+                                    <input class="form-control" type="date" v-model.trim="newExpirationDate" v-bind:min="minDate">
                                 </div>
                             </fieldset>
                         </form>

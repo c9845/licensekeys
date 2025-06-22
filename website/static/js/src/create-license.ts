@@ -26,7 +26,6 @@ if (document.getElementById("createLicense")) {
                 //Apps a license can be created for.
                 apps: [] as app[],
                 appsRetrieved: false,
-                appSelectedID: 0,
 
                 //Keypairs for chosen app.
                 keyPairs: [] as keyPair[],
@@ -55,12 +54,13 @@ if (document.getElementById("createLicense")) {
 
                 //Data for license being created.
                 licenseData: {
+                    AppID: 0,
                     KeyPairID: 0, //From chosen/default keypair for app.
                     CompanyName: "",
                     ContactName: "",
                     PhoneNumber: "",
                     Email: "",
-                    ExpireDate: "", //By default, this is set to "today" plus the app's DaysToExpiration.
+                    ExpirationDate: "", //By default, this is set to "today" plus the app's DaysToExpiration.
                 } as license,
 
                 //Form submissing stuff.
@@ -125,7 +125,7 @@ if (document.getElementById("createLicense")) {
             //to pick it.
             getKeyPairs: function () {
                 let data: Object = {
-                    appID: this.appSelectedID,
+                    appID: this.licenseData.AppID,
                     activeOnly: true,
                 };
                 fetch(get(this.urls.getKeyPairs, data))
@@ -169,7 +169,7 @@ if (document.getElementById("createLicense")) {
             //for the chosen app.
             getCustomFields: function () {
                 let data: Object = {
-                    appID: this.appSelectedID,
+                    appID: this.licenseData.AppID,
                     activeOnly: true,
                 };
                 fetch(get(this.urls.getCustomFields, data))
@@ -227,14 +227,14 @@ if (document.getElementById("createLicense")) {
                 return;
             },
 
-            //setExpireDate sets the default expiration date for the license to 
+            //setExpirationDate sets the default expiration date for the license to 
             //today's date plus the app's DaysToExpiration value. 
             //
             //This is called when an app is chosen from the select menu.
-            setExpireDate: function () {
+            setExpirationDate: function () {
                 for (let a of (this.apps as app[])) {
-                    if (a.ID === this.appSelectedID) {
-                        this.licenseData.ExpireDate = todayPlus(a.DaysToExpiration);
+                    if (a.ID === this.licenseData.AppID) {
+                        this.licenseData.ExpirationDate = todayPlus(a.DaysToExpiration);
                         break;
                     }
                 }
@@ -266,7 +266,7 @@ if (document.getElementById("createLicense")) {
             create: function () {
                 //Validate.
                 this.msgType = msgTypes.danger;
-                if (this.appSelectedID < 1) {
+                if (this.licenseData.AppID < 1) {
                     this.msg = "You must choose an app.";
                     return;
                 }
@@ -294,7 +294,7 @@ if (document.getElementById("createLicense")) {
                     this.msg = "The email address you provided is not valid.";
                     return;
                 }
-                if (this.licenseData.ExpireDate.trim() === "") {
+                if (this.licenseData.ExpirationDate.trim() === "") {
                     this.msg = "You must provide an expiration date for the license.";
                     return;
                 }
@@ -487,7 +487,7 @@ if (document.getElementById("createLicense")) {
             //submit a file.
             buildAPIExample: function () {
                 //Validate.
-                if (this.appSelectedID < 1 || this.licenseData.KeyPairID < 1 || !this.fieldsRetrieved) {
+                if (this.licenseData.AppID < 1 || this.licenseData.KeyPairID < 1 || !this.fieldsRetrieved) {
                     return;
                 }
 
@@ -533,13 +533,13 @@ if (document.getElementById("createLicense")) {
                     "-X POST",
                     "-H 'Content-type: application/x-www-form-urlencoded'",
                     "-H 'Authorization: Bearer " + this.apiKeySelected + "'",
-                    "-d appID='" + this.appSelectedID + "'",
+                    "-d appID='" + this.licenseData.AppID + "'",
                     "-d keyPairID='" + this.licenseData.KeyPairID + "'",
                     "-d companyName='" + this.licenseData.CompanyName + "'",
                     "-d contactName='" + this.licenseData.ContactName + "'",
                     "-d phoneNumber='" + this.licenseData.PhoneNumber + "'",
                     "-d email='" + this.licenseData.Email + "'",
-                    "-d expireDate='" + this.licenseData.ExpireDate + "'",
+                    "-d expirationDate='" + this.licenseData.ExpirationDate + "'",
                     "-d fields=" + cfEncoded + "",
                 ];
 

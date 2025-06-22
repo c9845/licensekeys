@@ -4,11 +4,8 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha512"
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"io"
 	"math"
@@ -28,29 +25,6 @@ var (
 	//should really never be returned since the only time these funcs are used are
 	//with an existing license's data.
 	ErrMissingExpirationDate = errors.New("missing expire date")
-)
-
-// Reference information.
-const (
-	//KeypairAlgo is the algorithm used to generate a public-private key pair that
-	//signs and verifies license files. ed25519 was chosen because it results in the
-	//shortest signatures.
-	KeypairAlgo = "ed25519"
-
-	//FingerprintAlgo is the algorithm used to hash the license file data prior to
-	//signing it. sha512 was chosen because it is modern, does not have proven
-	//weaknesses, and well supported.
-	FingerprintAlgo = "sha512"
-
-	//EncodingAlgo is the method of encoding the fingerprint and signature into a
-	//human-readbale alphabet that can be used in text files or otherwise. Base64 was
-	//chosen because is results in the shortest signature.
-	EncodingAlgo = "base64"
-
-	//FileFormat is the format of the data in a license file. JSON was chosen because
-	//it is supported by the golang standard library and has good representation of
-	//numbers, strings, and booleans.
-	FileFormat = "json"
 )
 
 // File is the format of a license key file. This is the contents of the textual
@@ -93,34 +67,27 @@ type File struct {
 }
 
 // GenerateKeypair creates and return a new private and public key pair.
-func GenerateKeypair() (private, public []byte, err error) {
+func GenerateKeypair() (privateKey, publicKey []byte, err error) {
 	//Generate key pair.
-	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return
 	}
 
-	//Encode the private key.
-	x509PrivateKey, err := x509.MarshalPKCS8PrivateKey(privKey)
-	if err != nil {
-		return
-	}
-	pemBlockPrivateKey := &pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: x509PrivateKey,
-	}
-	private = pem.EncodeToMemory(pemBlockPrivateKey)
+	//Encode for storage in database and serving private key to users in GUI.
+	//
+	//Using hex mostly so we don't have to deal with odd padding errors caused by
+	//base64 (StdEncoding vs RawStdEncoding...somehow padding still gets used, or
+	//not ignored, at times). Plus, we use hex for encoding the fingerprint, so we
+	//don't need to add another dependency.
+	privateKey = make([]byte, hex.EncodedLen(len(priv)))
+	hex.Encode(privateKey, priv)
 
-	//Encode the public key.
-	x509PublicKey, err := x509.MarshalPKIXPublicKey(pubKey)
-	if err != nil {
-		return
-	}
-	pemBlockPublicKey := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: x509PublicKey,
-	}
-	public = pem.EncodeToMemory(pemBlockPublicKey)
+	publicKey = make([]byte, hex.EncodedLen(len(pub)))
+	hex.Encode(publicKey, pub)
+
+	//Used to use PEM encoding, PKCS#8 and PKIX here. Moved to hex encoding for ease
+	//of not having to decode PEM all the time.  Maybe make format configurable?
 
 	return
 }
@@ -166,6 +133,9 @@ func (f File) CalculateFingerprint() (fingerprint string, err error) {
 	fpb, err := f.calculateFingerprint()
 
 	//Encode.
+	//
+	//Hex encoding is used since that is the standard representation of SHA-512. See
+	//sha256sum or related commandline tools.
 	fingerprint = hex.EncodeToString(fpb[:])
 
 	return
@@ -183,22 +153,15 @@ func (f *File) Sign(privateKey []byte) (err error) {
 		return
 	}
 
-	//Decode the private key for use. This is not decrypting the private key!
-	pemBlock, _ := pem.Decode(privateKey)
-	if pemBlock == nil {
-		err = errors.New("licensefile.Sign: no private key provided or key was not valid")
-		return
-	}
-	x509Key, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
-	if err != nil {
-		return
-	}
+	//Decode private key.
+	priv := make([]byte, hex.DecodedLen(len(privateKey)))
+	hex.Decode(priv, privateKey)
 
-	//Sign the fingerprint.
-	sig := ed25519.Sign(x509Key.(ed25519.PrivateKey), fingerprint[:])
+	//Sign.
+	sig := ed25519.Sign(priv, fingerprint)
 
 	//Encode the signature in a human readable format.
-	sigTxt := base64.StdEncoding.EncodeToString(sig)
+	sigTxt := hex.EncodeToString(sig)
 
 	//Set the signature in the license file.
 	f.Signature = sigTxt
@@ -290,13 +253,21 @@ func FromString(s string) (f File, err error) {
 // This uses a COPY of the File since we need to remove the Signature field prior to
 // hashing and verification but we don't want to modify the original File so it can
 // be used as it was parsed/unmarshalled.
+//
+// Verifying with a third-party tool:
+//  1. https://cyphr.me/ed25519_tool/ed.html
+//     - Msg Encoding: hex.
+//     - Message: the fingerprint.
+//     - Key Encoding: hex.
+//     - Public key: the public key.
+//     - Signature: the signature.
 func (f File) Verify(publicKey []byte) (err error) {
 	//Strip the signature out of the File since the signature is not based upon itself.
 	sigTxt := f.Signature
 	f.Signature = ""
 
 	//Decode the signature.
-	sig, err := base64.StdEncoding.DecodeString(sigTxt)
+	sig, err := hex.DecodeString(sigTxt)
 	if err != nil {
 		return
 	}
@@ -307,20 +278,12 @@ func (f File) Verify(publicKey []byte) (err error) {
 		return
 	}
 
-	//Decode the public key.
-	pemBlock, _ := pem.Decode(publicKey)
-	if pemBlock == nil {
-		err = errors.New("licensefile.Verify: no public key provided or key was not valid")
-		return
-	}
+	//Decode public key.
+	pub := make([]byte, hex.DecodedLen(len(publicKey)))
+	hex.Decode(pub, publicKey)
 
-	x509Key, err := x509.ParsePKIXPublicKey(pemBlock.Bytes)
-	if err != nil {
-		return
-	}
-
-	//Verify the signature.
-	valid := ed25519.Verify(x509Key.(ed25519.PublicKey), fingerprint[:], sig)
+	//Verify.
+	valid := ed25519.Verify(pub, fingerprint, sig)
 	if !valid {
 		err = ErrBadSignature
 		return

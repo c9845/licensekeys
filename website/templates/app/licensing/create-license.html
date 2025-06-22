@@ -41,7 +41,7 @@
                                     <fieldset>
                                         <div class="form-group">
                                             <label class="form-label">App:</label>
-                                            <select class="form-select" v-model.number="appSelectedID" v-on:change="getKeyPairs(), getCustomFields(), setExpireDate()">
+                                            <select class="form-select" v-model.number="licenseData.AppID" v-on:change="getKeyPairs(), getCustomFields(), setExpirationDate()">
                                                 <template v-if="!appsRetrieved">
                                                     <option value="0">Loading...</option>
                                                 </template>
@@ -57,7 +57,7 @@
 
                                         <div class="form-group">
                                             <label clas="form-label">Key Pair:</label>
-                                            <select class="form-select" v-model.number="licenseData.KeyPairID" v-bind:disabled="appSelectedID === 0">
+                                            <select class="form-select" v-model.number="licenseData.KeyPairID" v-bind:disabled="licenseData.AppID === 0">
                                                 <template v-if="!keyPairsRetrieved">
                                                     <option value="0">Please choose an app first.</option>
                                                 </template>
@@ -95,7 +95,7 @@
                                         <div class="form-group">
                                             <!-- "today" plus the app's DaysToExpiration value. -->
                                             <label class="form-label">Expiration Date:</label>
-                                            <input class="form-control" type="date" v-model.trim="licenseData.ExpireDate" v-bind:min="todayPlusOne()">
+                                            <input class="form-control" type="date" v-model.trim="licenseData.ExpirationDate" v-bind:min="todayPlusOne()">
                                         </div>
                                     </fieldset>
 

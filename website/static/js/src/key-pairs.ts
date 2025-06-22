@@ -160,22 +160,6 @@ if (document.getElementById("modal-manageKeyPair")) {
             }
         },
 
-        computed: {
-            //publicKeyNumLines returns the number of lines in the public key and is
-            //used to set the "rows" attribute on the textarea so that the entire
-            //public key is visible for ease of copying.
-            publicKeyNumLines: function () {
-                if (this.keyPairData.PublicKey === undefined || this.keyPairData.PublicKey.trim() === "") {
-                    return 2; //default safe value
-                }
-
-                //Public key is a bunch of lines of text. To get number of lines,
-                //split it by the newline character \n. Add 1 since the last line
-                //in the public key doesn't end in a new line.
-                return this.keyPairData.PublicKey.split('\n').length;
-            },
-        },
-
         methods: {
             //setKeypairInModal is used to populate the modal with data about a
             //keypair, or to set the modal to a clean state for adding a new keypair.

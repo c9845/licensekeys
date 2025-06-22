@@ -448,7 +448,7 @@ func main() {
 	lics := api.PathPrefix("/licenses").Subrouter()
 	lics.Handle("/", viewLics.ThenFunc(license.One)).Queries("id", "").Methods("GET")
 	lics.Handle("/", viewLics.ThenFunc(license.All)).Methods("GET")
-	lics.Handle("/add/", createLics.ThenFunc(license.Add)).Methods("POST")
+	lics.Handle("/add/", createLics.ThenFunc(license.CreateViaGUI)).Methods("POST")
 	lics.Handle("/download/", viewLics.ThenFunc(license.Download)).Methods("GET")
 	lics.Handle("/history/", viewLics.ThenFunc(license.History)).Methods("GET")
 	lics.Handle("/notes/", viewLics.ThenFunc(license.Notes)).Methods("GET")
@@ -466,7 +466,7 @@ func main() {
 	//that checks permissions for the API key being used to access the endpoint.
 	externalAPI := alice.New(middleware.ExternalAPI, middleware.LogActivity2)
 	extAPI := api.PathPrefix("/v1").Subrouter()
-	extAPI.Handle("/licenses/add/", externalAPI.ThenFunc(license.AddViaAPI)).Methods("POST")
+	extAPI.Handle("/licenses/add/", externalAPI.ThenFunc(license.CreateViaPublicAPI)).Methods("POST")
 	extAPI.Handle("/licenses/download/", externalAPI.ThenFunc(license.Download)).Methods("GET")
 	extAPI.Handle("/licenses/renew/", externalAPI.ThenFunc(license.Renew)).Methods("POST")
 	extAPI.Handle("/licenses/disable/", externalAPI.ThenFunc(license.Disable)).Methods("POST")

@@ -201,7 +201,7 @@ export interface license {
     Email: string,
     IssueDate: string, //yyyy-mm-dd
     IssueTimestamp: number, //unix timestamp in seconds
-    ExpireDate: string, //yyyy-mm-dd
+    ExpirationDate: string, //yyyy-mm-dd
 
     Signature: string, //the encoded signature generated using the private key from the keypair, so we don't have to regernate it each time we want to redownload the license
 

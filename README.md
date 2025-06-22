@@ -44,7 +44,7 @@ A license key is a human readable text file with a signature verifying its authe
     "PhoneNumber": "123-555-1212",
     "Email": "wyle@example.com",
     "IssueDate": "2022-05-07",
-    "ExpireDate": "2049-09-21",
+    "ExpirationDate": "2049-09-21",
     "Data": {
       "String": "Hello World!",
       "Boolean": true,

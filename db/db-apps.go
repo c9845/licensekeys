@@ -35,10 +35,7 @@ type App struct {
 	FileFormat string //the format of text in a license file. Ex.: JSON.
 
 	//DownloadFilename is the name of the license file when downloaded. This defaults
-	//to "appname-license.txt" but can be customized using {} placeholders.
-	//Placeholders:
-	// - {app-name} is replaced with the app's name, in lowercase and with spaces replaced by underscores.
-	// - {license-id} is replaced with the license's ID.
+	//to "appname-license.txt" but can be customized.
 	DownloadFilename string
 }
 
@@ -145,6 +142,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 		log.Println("asfsafas", err)
 		return
 	}
+	a.PublicID = uuid
 
 	cols := sqldb.Columns{
 		"PublicID",
@@ -158,7 +156,7 @@ func (a *App) Insert(ctx context.Context) (err error) {
 		"DownloadFilename",
 	}
 	b := sqldb.Bindvars{
-		uuid,
+		a.PublicID,
 		a.CreatedByUserID,
 		a.Active,
 		a.Name,

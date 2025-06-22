@@ -31,7 +31,7 @@ const licenseReadFromFile = "" +
 		"PhoneNumber": "123-555-1212",
 		"Email": "wyle@example.com",
 		"IssueDate": "2022-05-07",
-		"ExpireDate": "2049-09-21",
+		"ExpirationDate": "2049-09-21",
 		"Data": {,
 			"String": "Hello World!",
 			"Boolean": true,
@@ -108,7 +108,7 @@ func init() {
 	}
 	if expired {
 		//License is expired. Handle as needed.
-		log.Fatalf("License is expired, expired on %s.", lic.ExpireDate)
+		log.Fatalf("License is expired, expired on %s.", lic.ExpirationDate)
 		return
 	}
 

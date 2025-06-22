@@ -238,7 +238,7 @@ if (document.getElementById("manageLicense")) {
 
                 modalNote.setLicenseID(lic.ID);
 
-                modalRenewLicense.setLicenseData(lic.ID, lic.ExpireDate);
+                modalRenewLicense.setLicenseData(lic.ID, lic.ExpirationDate);
 
                 return;
             },
@@ -537,10 +537,10 @@ if (document.getElementById("modal-renewLicense")) {
             return {
                 //Set in setLicenseID().
                 licenseID: 0,
-                currentExpireDate: "",
+                currentExpirationDate: "",
 
                 //Data for new license.
-                newExpireDate: "",
+                newExpirationDate: "",
 
                 //Set to true upon successful renewal api call.
                 renewed: false,
@@ -562,7 +562,7 @@ if (document.getElementById("modal-renewLicense")) {
             //date. We want the min value a user can pick to be after the current
             //expiration date.
             minDate: function () {
-                let ymd = this.currentExpireDate;
+                let ymd = this.currentExpirationDate;
 
                 let split: string[] = ymd.split("-");
                 let yIn: number = parseInt(split[0]);
@@ -590,9 +590,9 @@ if (document.getElementById("modal-renewLicense")) {
             //
             //This is called from manageLicense.setLicenseDataInOtherVueObjects() upon
             //looking up data for the license.
-            setLicenseData: function (licenseID: number, currentExpireDate: string) {
+            setLicenseData: function (licenseID: number, currentExpirationDate: string) {
                 this.licenseID = licenseID;
-                this.currentExpireDate = currentExpireDate;
+                this.currentExpirationDate = currentExpirationDate;
                 return
             },
 
@@ -611,7 +611,7 @@ if (document.getElementById("modal-renewLicense")) {
                     this.msgSave = "Could not determine which license you want to renew.";
                     return;
                 }
-                if (this.newExpireDate === "") {
+                if (this.newExpirationDate === "") {
                     this.msgSave = "You must provide the new expiration date.";
                     return;
                 }
@@ -623,7 +623,7 @@ if (document.getElementById("modal-renewLicense")) {
 
                 let data: Object = {
                     id: this.licenseID,
-                    newExpireDate: this.newExpireDate,
+                    newExpirationDate: this.newExpirationDate,
                 };
                 fetch(post(this.urls.renew, data))
                     .then(handleRequestErrors)

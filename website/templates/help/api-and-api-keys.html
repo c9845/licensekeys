@@ -126,7 +126,7 @@
                                                         <td>The company and/or contact's email address.</td>
                                                     </tr>
                                                     <tr>
-                                                        <td><code>expireDate</code></td>
+                                                        <td><code>expirationDate</code></td>
                                                         <td><span class="badge badge-secondary">string</span></td>
                                                         <td>The date the license will expire, in YYYY-MM-DD format.</td>
                                                     </tr>
@@ -163,7 +163,7 @@
                                             <p class="mb-3">The ID of the new license file, or the license file itself. See the <code>Content-Disposion</code> header for the license file's suggested filename.</p>
                                             
                                             <h6 class="mb-0">Example curl Request:</h6>
-                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/add/' -H 'Authorization:Bearer lks_your-api-key' -d appID='1' -d companyName='ACME Dynamite Corp.' -d contactName='Wyle E. Coyote' -d phoneNumber='555-555-5555' -d email='coyote@example.com' -d expireDate='2050-01-01'</code></p>
+                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/add/' -H 'Authorization:Bearer lks_your-api-key' -d appID='1' -d companyName='ACME Dynamite Corp.' -d contactName='Wyle E. Coyote' -d phoneNumber='555-555-5555' -d email='coyote@example.com' -d expirationDate='2050-01-01'</code></p>
                                         </blockquote>
                                     </div>
 
@@ -231,7 +231,7 @@
                                                         <td>The ID of the license to renew.</td>
                                                     </tr>
                                                     <tr>
-                                                        <td><code>newExpireDate</code></td>
+                                                        <td><code>newExpirationDate</code></td>
                                                         <td><span class="badge badge-secondary">string</span></td>
                                                         <td>The date the license will expire, in YYYY-MM-DD format.</td>
                                                     </tr>
@@ -258,7 +258,7 @@
                                             <p class="mb-3">The ID of the new license file, or the license file itself. See the <code>Content-Disposion</code> header for the license file's suggested filename.</p>
                                             
                                             <h6 class="mb-0">Example curl Request:</h6>
-                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/renew/' -H 'Authorization:Bearer lks_your-api-key' -d id='10001' -d newExpireDate='2051-01-01'</code></p>
+                                            <p><code>curl 'https://lks.example.com/api/v1/licenses/renew/' -H 'Authorization:Bearer lks_your-api-key' -d id='10001' -d newExpirationDate='2051-01-01'</code></p>
                                         </blockquote>
                                     </div>
 

@@ -27,7 +27,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	raw := r.FormValue("data")
 
 	//Parse data into struct.
-	var k db.KeyPair
+	var k db.Keypair
 	err := json.Unmarshal([]byte(raw), &k)
 	if err != nil {
 		output.Error(err, "Could not parse data to add key pair.", w)
@@ -152,7 +152,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	k := db.KeyPair{
+	k := db.Keypair{
 		ID: id,
 	}
 	err := k.Delete(r.Context())
@@ -176,10 +176,10 @@ func Default(w http.ResponseWriter, r *http.Request) {
 
 	//Set the default keypair. This will also set all other keypairs as non-default
 	//to make sure only one keypair is marked as default for the app.
-	k := db.KeyPair{
+	k := db.Keypair{
 		ID: id,
 	}
-	err := k.SetIsDefault(r.Context())
+	err := k.SetAsDefault(r.Context())
 	if err != nil {
 		output.Error(err, "Could not set key pair as default.", w)
 		return

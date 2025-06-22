@@ -94,6 +94,8 @@ type License struct {
 	AppDownloadFilename        string
 	RenewedFromLicenseID       null.Int
 	RenewedToLicenseID         null.Int
+	KeypairPublicID            UUID
+	AppPublicID                UUID
 }
 
 const (
@@ -188,31 +190,31 @@ func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 	l.Email = strings.TrimSpace(l.Email)
 	l.ExpirationDate = strings.TrimSpace(l.ExpirationDate)
 
-	//Determine the parent app or keypair used to create this license with.
-	//Either the key pair ID or app ID must be provided. If the app ID is provided,
-	//then the default key pair will be used.
-	//
-	//If both an AppID and KeyPairID are provided, we default to using the AppID and
-	//look up the default key pair for the app.
-	if l.KeyPairID < 1 && l.AppID < 1 {
-		errMsg = "Could not determine which app or key pair you want to use for the license."
-		return
-	} else if l.KeyPairID == 0 && l.AppID > 0 {
-		//Request provided an app ID. The license is probably being created via
-		//the api, not the GUI. Look up the default keypair for this app.
-		defaultKeypair, innerErr := GetDefaultKeyPair(ctx, l.AppID)
-		if innerErr != nil {
-			err = innerErr
-			return
-		}
-		l.KeyPairID = defaultKeypair.ID
-	} else if l.KeyPairID > 0 && l.AppID > 0 {
-		//This state can occur during an API request to create a license when the
-		//request specifies a key pair ID. When this occurs, we need to look up the
-		//related app ID for use in translating the custom field map to a slice of
-		//structs.
-		_ = "" //just to suppress staticcheck linter warnings
-	}
+	// //Determine the parent app or keypair used to create this license with.
+	// //Either the key pair ID or app ID must be provided. If the app ID is provided,
+	// //then the default key pair will be used.
+	// //
+	// //If both an AppID and KeyPairID are provided, we default to using the AppID and
+	// //look up the default key pair for the app.
+	// if l.KeyPairID < 1 && l.AppID < 1 {
+	// 	errMsg = "Could not determine which app or key pair you want to use for the license."
+	// 	return
+	// } else if l.KeyPairID == 0 && l.AppID > 0 {
+	// 	//Request provided an app ID. The license is probably being created via
+	// 	//the api, not the GUI. Look up the default keypair for this app.
+	// 	defaultKeypair, innerErr := GetDefaultKeyPair(ctx, l.AppID)
+	// 	if innerErr != nil {
+	// 		err = innerErr
+	// 		return
+	// 	}
+	// 	l.KeyPairID = defaultKeypair.ID
+	// } else if l.KeyPairID > 0 && l.AppID > 0 {
+	// 	//This state can occur during an API request to create a license when the
+	// 	//request specifies a key pair ID. When this occurs, we need to look up the
+	// 	//related app ID for use in translating the custom field map to a slice of
+	// 	//structs.
+	// 	_ = "" //just to suppress staticcheck linter warnings
+	// }
 
 	//Validate.
 	if l.CompanyName == "" {
@@ -291,8 +293,9 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		"IssueTimestamp",
 		"ExpirationDate",
 
-		"Signature", //always "" when license is first saved until data is verified
-		"Verified",  //always false when license is first saved until data is read back from db and checked
+		"Fingerprint", //always "" when license is first saved until data is verified.
+		"Signature",   //always "" when license is first saved until data is verified.
+		"Verified",    //always false when license is first saved until data is read back from db and checked.
 
 		"AppName",
 		"ShowLicenseID",
@@ -314,6 +317,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		l.IssueTimestamp,
 		l.ExpirationDate,
 
+		"",    //Fingerprint
 		"",    //Signature
 		false, //Verified
 
@@ -353,8 +357,8 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 	return
 }
 
-// SaveSignature updates a saved license by saving the generated signature.
-func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
+// SaveFingerprintAndSignature updates a saved license by saving the generated signature.
+func (l *License) SaveFingerprintAndSignature(ctx context.Context, tx *sqlx.Tx, fingerprint, signature string) (err error) {
 	q := `
 		UPDATE ` + TableLicenses + ` 
 		SET 
@@ -370,7 +374,7 @@ func (l *License) SaveSignature(ctx context.Context, tx *sqlx.Tx) (err error) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, l.Fingerprint, l.Signature, l.ID)
+	_, err = stmt.ExecContext(ctx, fingerprint, signature, l.ID)
 	return
 }
 
@@ -469,12 +473,46 @@ func GetLicense(ctx context.Context, licenseID int64, columns sqldb.Columns) (l 
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrFrom ON rrFrom.FromLicenseID = ` + TableLicenses + `.ID
 		LEFT JOIN ` + TableRenewalRelationships + ` AS rrTo   ON rrTo.ToLicenseID = ` + TableLicenses + `.ID
 		
-		WHERE ` + TableLicenses + `.ID = ?
+		WHERE 
+			(` + TableLicenses + `.ID = ?)
 	`
 
 	//Run query.
 	c := sqldb.Connection()
 	err = c.GetContext(ctx, &l, q, licenseID)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// GetLicenseByPublicID  looks up a single license's data.
+func GetLicenseByPublicID(ctx context.Context, licensePublicID UUID, columns sqldb.Columns) (l License, err error) {
+	//Build query.
+	cols, err := columns.ForSelect()
+	if err != nil {
+		return
+	}
+
+	q := `
+		SELECT ` + cols + ` 
+		FROM ` + TableLicenses + ` 
+		LEFT JOIN ` + TableUsers + ` ON ` + TableUsers + `.ID = ` + TableLicenses + `.CreatedByUserID 
+		LEFT JOIN ` + TableAPIKeys + ` ON ` + TableAPIKeys + `.ID = ` + TableLicenses + `.CreatedByAPIKeyID 
+		JOIN ` + TableKeypairs + ` ON ` + TableKeypairs + `.ID = ` + TableLicenses + `.KeyPairID 
+		JOIN ` + TableApps + ` ON ` + TableApps + `.ID = ` + TableKeypairs + `.AppID 
+		
+		LEFT JOIN ` + TableRenewalRelationships + ` AS rrFrom ON rrFrom.FromLicenseID = ` + TableLicenses + `.ID
+		LEFT JOIN ` + TableRenewalRelationships + ` AS rrTo   ON rrTo.ToLicenseID = ` + TableLicenses + `.ID
+		
+		WHERE 
+			(` + TableLicenses + `.PublicID = ?)
+	`
+
+	//Run query.
+	c := sqldb.Connection()
+	err = c.GetContext(ctx, &l, q, licensePublicID)
 	if err != nil {
 		return
 	}

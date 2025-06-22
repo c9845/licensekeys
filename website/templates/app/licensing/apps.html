@@ -100,17 +100,7 @@
                                             </div>
                                         </div>
                                         <div class="form-group">
-                                            <label class="form-label">
-                                                License Filename: 
-                                                <!-- TODO: link to page explaining magic replacement codes {}.)-->
-                                                <span 
-                                                    class="help-icon text-secondary" 
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-title="The name of the file a license will be downloaded as. You can use {license-id} and {app-name} as placeholders."
-                                                >
-                                                    <i class="fa-solid fa-question-circle"></i>
-                                                </span>
-                                            </label>
+                                            <label class="form-label">License Filename:</label>
                                             <input class="form-control" type="text" placeholder="my-app-name.lic" v-model.trim="appData.DownloadFilename">
                                         </div>
 
@@ -409,77 +399,51 @@
                         <hr class="divider">
 
                         <form>
-                            <!-- Only show keypair ID when viewing an existing keypair. -->
-                            <!-- ID is shown for use with API -->
-                            <fieldset v-if="keyPairData.ID > 0" v-cloak>
-                                <div class="form-group">
-                                    <label class="form-label">Public ID:</label>
-                                    <div class="input-group">
-                                        <input 
-                                            class="form-control font-monospace" 
-                                            type="text" 
-                                            disabled
-                                            v-model.trim="keyPairData.PublicID"
-                                        >
-                                        <button 
-                                            class="btn btn-outline-secondary" 
-                                            id="copy-keypair-public-id" 
-                                            type="button" 
-                                            v-on:click="copyPublicID"
-                                        >
-                                            <i class="fa-solid fa-copy"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Type:</label>
+                            <!-- Keypair ID is not shown when adding, for obvious reasons. -->
+                            <!-- This ID is needed when using the API, so we show it in the GUI. -->
+                            <div class="form-group" v-if="keyPairData.ID > 0" v-cloak>
+                                <label class="form-label">Public ID:</label>
+                                <div class="input-group">
                                     <input 
-                                        class="form-control" 
+                                        class="form-control font-monospace" 
                                         type="text" 
-                                        v-model.trim="keyPairData.KeypairAlgo"
+                                        v-model.trim="keyPairData.PublicID"
                                         disabled
                                     >
-                                </div>
-
-                                <hr class="divider">
-                            </fieldset>
-
-                            <!-- Fields to set when adding a new keypair. -->
-                            <fieldset v-bind:disabled="submitting">
-                                <div class="form-group">
-                                    <label class="form-label">Name:</label>
-                                    <input 
-                                        class="form-control" 
-                                        type="text" 
-                                        v-model.trim="keyPairData.Name"
+                                    <button 
+                                        class="btn btn-outline-secondary" 
+                                        id="copy-keypair-public-id" 
+                                        type="button" 
+                                        v-on:click="copyPublicID"
                                     >
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
                                 </div>
-                            </fieldset>
+                            </div>
 
-                            <!-- Fields when viewing an existing keypair. -->
-                            <fieldset v-if="keyPairData.ID > 0" v-cloak>
-                                <hr class="divider">
+                            <!-- Name is always shown, but can only be editted when adding. -->
+                            <div class="form-group">
+                                <label class="form-label">Name:</label>
+                                <input 
+                                    class="form-control" 
+                                    type="text" 
+                                    v-model.trim="keyPairData.Name"
+                                    v-bind:disabled="keyPairData.ID > 0"
+                                >
+                            </div>
 
-                                <div class="form-group">
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-outline-primary" type="button" v-on:click="showPublicKey = !showPublicKey">Show Public Key</a>
-                                    </div>
-                                </div>
-        
-                                <div class="form-group" v-if="showPublicKey" v-cloak>
-                                    <textarea 
-                                        class="form-control font-monospace" 
-                                        v-bind:value="keyPairData.PublicKey"
-                                        v-bind:rows="publicKeyNumLines"
-                                        wrap="off"
-                                        disabled 
-                                    ></textarea>
-                                </div>
-    
-                                <div class="alert alert-warning" v-if="!keyPairData.PrivateKeyEncrypted">
-                                    <b>Warning!</b> The private key for this key pair is not encrypted.
-                                </div>
-                            </fieldset>
+                            <!-- Public key is not shown when adding, for obvious reasons. -->
+                            <!-- This is shown so it can be copied for use in a 3rd party app. -->
+                            <div class="form-group" v-if="keyPairData.ID > 0" v-cloak>
+                                <label class="form-label">Public Key:</label>
+                                <textarea 
+                                    class="form-control font-monospace" 
+                                    v-bind:value="keyPairData.PublicKey"
+                                    wrap="off"
+                                    rows="5"
+                                    disabled 
+                                ></textarea>
+                            </div>
                         </form>
 
                         <div class="alert mt-3 mb-0" v-show="msgSave.length > 0" v-bind:class="msgSaveType" v-cloak>

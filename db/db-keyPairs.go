@@ -25,8 +25,8 @@ import (
 // TableKeypairs is the name of the table.
 const TableKeypairs = "key_pairs"
 
-// KeyPair is used to interact with the table.
-type KeyPair struct {
+// Keypair is used to interact with the table.
+type Keypair struct {
 	ID               int64
 	PublicID         UUID //Used when interacting with the public API only; mainly so public-facing ID isn't just an incrementing number.
 	DatetimeCreated  string
@@ -35,7 +35,7 @@ type KeyPair struct {
 	Active           bool
 
 	AppID               int64  //what app this key pair is for
-	Name                string //something descriptive for times when you have multiple key pairs for an app.
+	Name                string //something descriptive for times when you have multiple keypairs for an app.
 	PrivateKey          string `json:"-"` //should never leave this app
 	PublicKey           string //embedded in your application you want to verify the licenses on.
 	PrivateKeyEncrypted bool   //true when private key is encrypted with config file encryption key
@@ -82,8 +82,8 @@ const (
 	`
 )
 
-// GetKeyPairByName looks up a key pair by its name.
-func GetKeyPairByName(ctx context.Context, name string) (k KeyPair, err error) {
+// GetKeypairByName looks up a key pair by its name.
+func GetKeypairByName(ctx context.Context, name string) (k Keypair, err error) {
 	q := `
 		SELECT ` + TableKeypairs + `.*
 		FROM ` + TableKeypairs + `
@@ -97,7 +97,7 @@ func GetKeyPairByName(ctx context.Context, name string) (k KeyPair, err error) {
 }
 
 // Validate handles validation of a key pair before saving.
-func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
+func (k *Keypair) Validate(ctx context.Context) (errMsg string, err error) {
 	//Sanitize.
 	k.Name = strings.TrimSpace(k.Name)
 	k.KeypairAlgo = strings.ToLower(k.KeypairAlgo)
@@ -106,35 +106,36 @@ func (k *KeyPair) Validate(ctx context.Context) (errMsg string, err error) {
 
 	//Validate.
 	if k.Name == "" {
-		errMsg = "You must provide the name for your key pair."
+		errMsg = "You must provide the name for your keypair."
 		return
 	}
 	if k.AppID < 1 {
-		errMsg = "Could not determine which app you are adding a key pair for. Please refresh and try again."
+		errMsg = "Could not determine which app you are adding a keypair for. Please refresh and try again."
 		return
 	}
 
 	//Make sure an active keypair with this name doesn't already exist for this app.
-	existing, err := GetKeyPairByName(ctx, k.Name)
+	existing, err := GetKeypairByName(ctx, k.Name)
 	if err == sql.ErrNoRows {
 		err = nil
 	} else if err != nil {
 		return
 	} else if (existing.Active) && (existing.AppID == k.AppID) {
-		errMsg = "This name is already used for another key pair. Please provide a different name."
+		errMsg = "This name is already used for another keypair. Please provide a different name."
 		return
 	}
 
 	return
 }
 
-// Insert saves a key pair.
+// Insert saves a keypair.
 // You should have already called Validate().
-func (k *KeyPair) Insert(ctx context.Context) (err error) {
+func (k *Keypair) Insert(ctx context.Context) (err error) {
 	uuid, err := CreateNewUUID(ctx)
 	if err != nil {
 		return
 	}
+	k.PublicID = uuid
 
 	cols := sqldb.Columns{
 		"PublicID",
@@ -151,7 +152,7 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 		"IsDefault",
 	}
 	b := sqldb.Bindvars{
-		uuid,
+		k.PublicID,
 		k.CreatedByUserID,
 		k.Active, //default true
 		k.AppID,
@@ -187,7 +188,7 @@ func (k *KeyPair) Insert(ctx context.Context) (err error) {
 	return
 }
 
-// GetPublicKeyByID returns the public key for a key pair. This is used to display
+// GetPublicKeyByID returns the public key for a keypair. This is used to display
 // the public key for copying.
 func GetPublicKeyByID(ctx context.Context, id int64) (publicKey string, err error) {
 	q := `
@@ -201,9 +202,9 @@ func GetPublicKeyByID(ctx context.Context, id int64) (publicKey string, err erro
 	return
 }
 
-// GetKeyPairs returns the list of key pairs for an app optionally filtered by
+// GetKeyPairs returns the list of keypairs for an app optionally filtered by
 // active keypairs only.
-func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []KeyPair, err error) {
+func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []Keypair, err error) {
 	//Build WHERE clauses.
 	wheres := []string{}
 	b := sqldb.Bindvars{}
@@ -233,7 +234,7 @@ func GetKeyPairs(ctx context.Context, appID int64, activeOnly bool) (kk []KeyPai
 }
 
 // Delete marks a keypair as deleted.
-func (k *KeyPair) Delete(ctx context.Context) (err error) {
+func (k *Keypair) Delete(ctx context.Context) (err error) {
 	q := `
 		UPDATE ` + TableKeypairs + ` 
 		SET 
@@ -262,8 +263,8 @@ func (k *KeyPair) Delete(ctx context.Context) (err error) {
 	return
 }
 
-// GetKeyPairByID looks up a key pair by its ID.
-func GetKeyPairByID(ctx context.Context, id int64) (k KeyPair, err error) {
+// GetKeypairByID looks up a key pair by its ID.
+func GetKeypairByID(ctx context.Context, id int64) (k Keypair, err error) {
 	q := `
 		SELECT ` + TableKeypairs + `.*
 		FROM ` + TableKeypairs + `
@@ -276,12 +277,26 @@ func GetKeyPairByID(ctx context.Context, id int64) (k KeyPair, err error) {
 	return
 }
 
-// SetIsDefault marks the keypair as the default keypair for the respective app. This
+// GetKeypairByPublicID looks up a key pair by its Public ID.
+func GetKeypairByPublicID(ctx context.Context, kpPublicID UUID) (k Keypair, err error) {
+	q := `
+		SELECT ` + TableKeypairs + `.*
+		FROM ` + TableKeypairs + `
+		WHERE 
+			(PublicID = ?)
+	`
+
+	c := sqldb.Connection()
+	err = c.GetContext(ctx, &k, q, kpPublicID)
+	return
+}
+
+// SetAsDefault marks the keypair as the default keypair for the respective app. This
 // also marks any other keypairs as non-default for the app to ensure only one
 // keypair is marked as default as a time.
-func (k *KeyPair) SetIsDefault(ctx context.Context) (err error) {
+func (k *Keypair) SetAsDefault(ctx context.Context) (err error) {
 	//Lookup details of keypair to get appID to set other keypairs as inactive.
-	*k, err = GetKeyPairByID(ctx, k.ID)
+	*k, err = GetKeypairByID(ctx, k.ID)
 	if err != nil {
 		return
 	}
@@ -344,8 +359,8 @@ func (k *KeyPair) SetIsDefault(ctx context.Context) (err error) {
 	return
 }
 
-// GetDefaultKeyPair retuns the default key pair for an app.
-func GetDefaultKeyPair(ctx context.Context, appID int64) (k KeyPair, err error) {
+// GetDefaultKeypairForAppID retuns the default key pair for an app.
+func GetDefaultKeypairForAppID(ctx context.Context, appID int64) (k Keypair, err error) {
 	//Base query.
 	q := `
 		SELECT ` + TableKeypairs + `.* 
@@ -359,5 +374,23 @@ func GetDefaultKeyPair(ctx context.Context, appID int64) (k KeyPair, err error) 
 	//Run query.
 	c := sqldb.Connection()
 	err = c.GetContext(ctx, &k, q, appID, true)
+	return
+}
+
+// GetDefaultKeypairByAppPublicID retuns the default key pair for an app.
+func GetDefaultKeypairByAppPublicID(ctx context.Context, appPublicID UUID) (k Keypair, err error) {
+	//Base query.
+	q := `
+		SELECT ` + TableKeypairs + `.* 
+		FROM ` + TableKeypairs + `
+		WHERE
+			(` + TableKeypairs + `.AppPublicID = ?)
+			AND
+			(` + TableKeypairs + `.IsDefault = ?)
+	`
+
+	//Run query.
+	c := sqldb.Connection()
+	err = c.GetContext(ctx, &k, q, appPublicID, true)
 	return
 }
