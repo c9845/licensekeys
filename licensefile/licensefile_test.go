@@ -3,7 +3,9 @@ package licensefile
 import (
 	"bytes"
 	"encoding/hex"
+	"log"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -18,16 +20,22 @@ func TestGenerateKeyPair(t *testing.T) {
 
 func TestCalculateFingerprint(t *testing.T) {
 	f := File{
-		CompanyName: "ACME Dynamite, Co.",
-		ContactName: "Wyle E. Coyote",
-		PhoneNumber: "123-123-1234",
-		Email:       "coyote@example.com",
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
+		PhoneNumber:    "123-123-1234",
+		Email:          "coyote@example.com",
+		IssueDate:      "1990-01-02",
+		ExpirationDate: "2006-01-02",
 		Data: map[string]any{
 			"roadrunner":         true,
 			"sticks_of_dynamite": 100,
 			"ouch":               "yes",
 		},
 	}
+
+	//Calculate the fingerprint as []byte and string.
 	fpb, err := f.calculateFingerprint()
 	if err != nil {
 		t.Fatal("Could not calculate fingerprint, bytes.", err)
@@ -40,9 +48,24 @@ func TestCalculateFingerprint(t *testing.T) {
 		return
 	}
 
+	//Make sure []byte and string representations are the same.
 	fpbs := hex.EncodeToString(fpb[:])
 	if fps != fpbs {
 		t.Fatal("Encoding error")
+		return
+	}
+
+	//Set the Signature field and make sure it isn't mistakenly stripped/cleared from
+	//the File.
+	sig := "fake-sig-for-testing"
+	f.Signature = sig
+	_, err = f.CalculateFingerprint()
+	if err != nil {
+		t.Fatal("Could not calculate fingerprint when signature is added.", err)
+		return
+	}
+	if f.Signature != sig {
+		t.Fatal("Signature was modified, should not have been.", f.Signature)
 		return
 	}
 
@@ -52,10 +75,14 @@ func TestCalculateFingerprint(t *testing.T) {
 
 func TestSign(t *testing.T) {
 	f := File{
-		CompanyName: "ACME Dynamite, Co.",
-		ContactName: "Wyle E. Coyote",
-		PhoneNumber: "123-123-1234",
-		Email:       "coyote@example.com",
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
+		PhoneNumber:    "123-123-1234",
+		Email:          "coyote@example.com",
+		IssueDate:      "1990-01-02",
+		ExpirationDate: "2006-01-02",
 		Data: map[string]any{
 			"roadrunner":         true,
 			"sticks_of_dynamite": 100,
@@ -78,14 +105,25 @@ func TestSign(t *testing.T) {
 		t.Fatal("Signature not saved to File.")
 		return
 	}
+
+	//Test providing no private key.
+	err = f.Sign([]byte(""))
+	if err == nil {
+		t.Fatal("Error should have occurred due to missing private key.")
+		return
+	}
 }
 
 func TestVerify(t *testing.T) {
 	f := File{
-		CompanyName: "ACME Dynamite, Co.",
-		ContactName: "Wyle E. Coyote",
-		PhoneNumber: "123-123-1234",
-		Email:       "coyote@example.com",
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
+		PhoneNumber:    "123-123-1234",
+		Email:          "coyote@example.com",
+		IssueDate:      "1990-01-02",
+		ExpirationDate: "2006-01-02",
 		Data: map[string]any{
 			"roadrunner":         true,
 			"sticks_of_dynamite": 100,
@@ -141,13 +179,18 @@ func TestExpired(t *testing.T) {
 	futureDate := time.Now().UTC().AddDate(0, 0, days)
 
 	f := File{
-		CompanyName: "CompanyName",
-		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
-		ExpireDate:  futureDate.Format("2006-01-02"),
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
+		PhoneNumber:    "123-123-1234",
+		Email:          "coyote@example.com",
+		IssueDate:      "1990-01-02",
+		ExpirationDate: futureDate.Format("2006-01-02"),
 		Data: map[string]any{
-			"exists":   true,
-			"notabool": 1,
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
 		},
 	}
 
@@ -163,7 +206,7 @@ func TestExpired(t *testing.T) {
 
 	//Expired license.
 	pastDate := time.Now().UTC().AddDate(0, 0, -days)
-	f.ExpireDate = pastDate.Format("2006-01-02")
+	f.ExpirationDate = pastDate.Format("2006-01-02")
 
 	expired, err = f.Expired()
 	if err != nil {
@@ -176,15 +219,15 @@ func TestExpired(t *testing.T) {
 	}
 
 	//Missing expiration date.
-	f.ExpireDate = ""
+	f.ExpirationDate = ""
 	_, err = f.Expired()
-	if err != ErrMissingExpireDate {
+	if err != ErrMissingExpirationDate {
 		t.Fatal("Error about missing expire date should have occured.")
 		return
 	}
 
 	//Invalid expire date format.
-	f.ExpireDate = "01-02-2023"
+	f.ExpirationDate = "01-02-2023"
 	_, err = f.Expired()
 	if err == nil {
 		t.Fatal("Error about incorrectly formatted expire date should have occured.")
@@ -198,10 +241,19 @@ func TestExpiresIn(t *testing.T) {
 	futureDate := time.Now().UTC().AddDate(0, 0, days)
 
 	f := File{
-		CompanyName: "CompanyName",
-		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
-		ExpireDate:  futureDate.Format("2006-01-02"),
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
+		PhoneNumber:    "123-123-1234",
+		Email:          "coyote@example.com",
+		IssueDate:      "1990-01-02",
+		ExpirationDate: futureDate.Format("2006-01-02"),
+		Data: map[string]any{
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
+		},
 	}
 	diff, err := f.ExpiresIn()
 	if err != nil {
@@ -216,7 +268,7 @@ func TestExpiresIn(t *testing.T) {
 	//Expired license.
 	days = -10
 	pastDate := time.Now().UTC().AddDate(0, 0, days)
-	f.ExpireDate = pastDate.Format("2006-01-02")
+	f.ExpirationDate = pastDate.Format("2006-01-02")
 	diff, err = f.ExpiresIn()
 	if err != nil {
 		t.Fatal(err)
@@ -228,15 +280,15 @@ func TestExpiresIn(t *testing.T) {
 	}
 
 	//Missing expiration date.
-	f.ExpireDate = ""
+	f.ExpirationDate = ""
 	_, err = f.ExpiresIn()
-	if err != ErrMissingExpireDate {
+	if err != ErrMissingExpirationDate {
 		t.Fatal("Error about missing expire date should have occured.")
 		return
 	}
 
 	//Invalid expire date format.
-	f.ExpireDate = "01-02-2023"
+	f.ExpirationDate = "01-02-2023"
 	_, err = f.ExpiresIn()
 	if err == nil {
 		t.Fatal("Error about incorrectly formatted expire date should have occured.")
@@ -250,10 +302,10 @@ func TestExpiresInDays(t *testing.T) {
 	futureDate := time.Now().UTC().AddDate(0, 0, days)
 
 	f := File{
-		CompanyName: "CompanyName",
-		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
-		ExpireDate:  futureDate.Format("2006-01-02"),
+		CompanyName:    "CompanyName",
+		PhoneNumber:    "123-123-1234",
+		Email:          "test@example.com",
+		ExpirationDate: futureDate.Format("2006-01-02"),
 	}
 	daysUntilExpiration, err := f.ExpiresInDays()
 	if err != nil {
@@ -269,7 +321,7 @@ func TestExpiresInDays(t *testing.T) {
 	days = -10
 	pastDate := time.Now().UTC().AddDate(0, 0, days)
 
-	f.ExpireDate = pastDate.Format("2006-01-02")
+	f.ExpirationDate = pastDate.Format("2006-01-02")
 	daysAfterExpiration, err := f.ExpiresInDays()
 	if err != nil {
 		t.Fatal(err)
@@ -290,10 +342,10 @@ func TestWriteRead(t *testing.T) {
 	defer os.Remove(x.Name())
 
 	f := File{
-		CompanyName: "CompanyName",
-		PhoneNumber: "123-123-1234",
-		Email:       "test@example.com",
-		ExpireDate:  "2006-01-02",
+		CompanyName:    "CompanyName",
+		PhoneNumber:    "123-123-1234",
+		Email:          "test@example.com",
+		ExpirationDate: "2006-01-02",
 	}
 
 	//Write...
@@ -316,6 +368,8 @@ func TestWriteRead(t *testing.T) {
 	}
 }
 
+// TestLikeThirdPartyGolangApp runs through the verifying process like a Golang app
+// would do.
 func TestLikeThirdPartyGolangApp(t *testing.T) {
 	//Create a File.
 	f := File{
@@ -326,8 +380,7 @@ func TestLikeThirdPartyGolangApp(t *testing.T) {
 		PhoneNumber:    "123-123-1234",
 		Email:          "coyote@example.com",
 		IssueDate:      "1990-01-02",
-		IssueTimestamp: 1550027702,
-		ExpireDate:     "2006-01-02",
+		ExpirationDate: "2006-01-02",
 		Data: map[string]any{
 			"roadrunner":         true,
 			"sticks_of_dynamite": 100,
@@ -454,4 +507,146 @@ func TestLikeThirdPartyGolangApp(t *testing.T) {
 			return
 		}
 	})
+}
+
+// TestSignAndVerify runs through the signing and verifying process to make sure the
+// entire process creates valid license files.
+func TestSignAndVerify(t *testing.T) {
+	//Filenames.
+	const (
+		privKey = "key--test.priv"
+		pubKey  = "key--test.pub"
+		licFile = "license--test.lic"
+	)
+
+	//Generate a keypair and save to file.
+	privToSave, pubToSave, err := GenerateKeypair()
+	if err != nil {
+		log.Fatalln("Could not generate keypair.", err)
+		return
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("Could not get working dir.", err)
+		return
+	}
+
+	privFile, err := os.Create(filepath.Join(cwd, privKey))
+	if err != nil {
+		log.Fatalln("Could not create private key file.", err)
+		return
+	}
+	defer privFile.Close()
+
+	_, err = privFile.Write(privToSave)
+	if err != nil {
+		log.Fatalln("Could not write private key to file.", err)
+		return
+	}
+
+	pubFile, err := os.Create(filepath.Join(cwd, pubKey))
+	if err != nil {
+		log.Fatalln("Could not create public key file.", err)
+		return
+	}
+	defer pubFile.Close()
+
+	_, err = pubFile.Write(pubToSave)
+	if err != nil {
+		log.Fatalln("Could not write public key to file.", err)
+		return
+	}
+
+	//Define license file data.
+	f := File{
+		LicenseID:      "01977596-fa92-76fa-aff7-ceb6ce883abb",
+		AppName:        "test app",
+		CompanyName:    "ACME Dynamite, Co.",
+		ContactName:    "Wyle E. Coyote",
+		PhoneNumber:    "123-123-1234",
+		Email:          "coyote@example.com",
+		IssueDate:      "1990-01-02",
+		ExpirationDate: "2006-01-02",
+		Data: map[string]any{
+			"roadrunner":         true,
+			"sticks_of_dynamite": 100,
+			"ouch":               "yes",
+		},
+	}
+
+	//Read the private key from file.
+	cwd, err = os.Getwd()
+	if err != nil {
+		log.Fatalln("Could not get working dir.", err)
+		return
+	}
+
+	priv, err := os.ReadFile(filepath.Join(cwd, privKey))
+	if err != nil {
+		log.Fatalln("Could not read private key from file.", err)
+		return
+	}
+
+	//Sign the license file.
+	err = f.Sign(priv)
+	if err != nil {
+		log.Fatalln("Could not sign.", err)
+		return
+	}
+
+	//Write the signed license file to an actual file.
+	lic, err := os.Create(filepath.Join(cwd, licFile))
+	if err != nil {
+		log.Fatalln("Could not create license file.", err)
+		return
+	}
+	defer lic.Close()
+
+	err = f.Write(lic)
+	if err != nil {
+		log.Fatalln("Could not write license to file.", err)
+		return
+	}
+	lic.Close()
+
+	//Print out fingerprint for File, for diagnostics.
+	fp, err := f.CalculateFingerprint()
+	if err != nil {
+		log.Fatalln("Could not calculate File fingerprint for original data.", err)
+		return
+	}
+	log.Println("File Fingerprint, original:", fp)
+
+	//###############################################################################
+	//Read and verify.
+
+	//Read the license file.
+	rereadLic, err := FromFile(filepath.Join(cwd, licFile))
+	if err != nil {
+		log.Fatalln("Could not reread license file.", err)
+		return
+	}
+
+	pub, err := os.ReadFile(filepath.Join(cwd, pubKey))
+	if err != nil {
+		log.Fatalln("Could not read public key from file.", err)
+		return
+	}
+
+	//Verify.
+	err = rereadLic.Verify(pub)
+	if err != nil {
+		log.Fatalln("Could not verify.", err)
+		return
+	}
+
+	//Print out fingerprint for File, for diagnostics.
+	fpReread, err := rereadLic.CalculateFingerprint()
+	if err != nil {
+		log.Fatalln("Could not calculate File fingerprint for reread data.", err)
+		return
+	}
+	log.Println("File Fingerprint, reread:  ", fpReread, "match:", fp == fpReread)
+
 }

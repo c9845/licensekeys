@@ -50,13 +50,13 @@ func AddViaAPI(w http.ResponseWriter, r *http.Request) {
 	keyPairID, _ := strconv.ParseInt(r.FormValue("keyPairID"), 10, 64)
 
 	l := db.License{
-		AppID:       appID,
-		KeyPairID:   keyPairID,
-		CompanyName: r.FormValue("companyName"),
-		ContactName: r.FormValue("contactName"),
-		PhoneNumber: r.FormValue("phoneNumber"),
-		Email:       r.FormValue("email"),
-		ExpireDate:  r.FormValue("expireDate"),
+		AppID:          appID,
+		KeyPairID:      keyPairID,
+		CompanyName:    r.FormValue("companyName"),
+		ContactName:    r.FormValue("contactName"),
+		PhoneNumber:    r.FormValue("phoneNumber"),
+		Email:          r.FormValue("email"),
+		ExpirationDate: r.FormValue("expireDate"),
 	}
 	encoded, err := json.Marshal(l)
 	if err != nil {
@@ -660,8 +660,7 @@ func buildLicense(l db.License, cfr []db.CustomFieldResult) (f licensefile.File,
 		PhoneNumber:    l.PhoneNumber,
 		Email:          l.Email,
 		IssueDate:      l.IssueDate,
-		IssueTimestamp: l.IssueTimestamp,
-		ExpireDate:     l.ExpireDate,
+		ExpirationDate: l.ExpirationDate,
 	}
 
 	//Set optional fields.
@@ -811,13 +810,13 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 		output.ErrorInputInvalid("This license has been disabled and cannot be renewed.", w)
 		return
 	}
-	existingExpireDate, err := time.Parse("2006-01-02", fromLicense.ExpireDate)
+	existingExpirationDate, err := time.Parse("2006-01-02", fromLicense.ExpirationDate)
 	if err != nil {
 		output.Error(err, "Could not confirm if new expiration date is after existing license's expiration date.", w)
 		return
 	}
-	if newExpireDate.Before(existingExpireDate) {
-		output.ErrorInputInvalid("The new expiration date must be after the existing license's expiration date, "+fromLicense.ExpireDate+".", w)
+	if newExpireDate.Before(existingExpirationDate) {
+		output.ErrorInputInvalid("The new expiration date must be after the existing license's expiration date, "+fromLicense.ExpirationDate+".", w)
 		return
 	}
 
@@ -871,7 +870,7 @@ func Renew(w http.ResponseWriter, r *http.Request) {
 
 	//Modify existing license data for new license.
 	toLicense.ID = 0                             //this will be populated with the new license's ID in Insert().
-	toLicense.ExpireDate = newExpireDateStr      //new user provided date.
+	toLicense.ExpirationDate = newExpireDateStr  //new user provided date.
 	toLicense.DatetimeModified = ""              //license hasn't been modified, so unset this to reduce confusion.
 	toLicense.IssueDate = timestamps.YMD()       //
 	toLicense.IssueTimestamp = time.Now().Unix() //

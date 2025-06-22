@@ -50,7 +50,7 @@ type License struct {
 	Email          string //contact info
 	IssueDate      string //yyyy-mm-dd, set by server, UTC timezone.
 	IssueTimestamp int64  //unix timestamp in seconds
-	ExpireDate     string //yyyy-mm-dd, set by input type=date in GUI so timezone is dependent on user's location.
+	ExpirationDate string //yyyy-mm-dd, set by input type=date in GUI so timezone is dependent on user's location.
 
 	//Fingerprint is a hash of a license file's data, and is what is signed with the
 	//private key to generate the signature.
@@ -116,7 +116,7 @@ const (
 			Email TEXT NOT NULL,
 			IssueDate TEXT NOT NULL,
 			IssueTimestamp INT NOT NULL,
-			ExpireDate TEXT NOT NULL,
+			ExpirationDate TEXT NOT NULL,
 
 			Fingerprint TEXT NOT NULL,
 			Signature TEXT NOT NULL,
@@ -186,7 +186,7 @@ func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 	l.ContactName = strings.TrimSpace(l.ContactName)
 	l.PhoneNumber = strings.TrimSpace(l.PhoneNumber)
 	l.Email = strings.TrimSpace(l.Email)
-	l.ExpireDate = strings.TrimSpace(l.ExpireDate)
+	l.ExpirationDate = strings.TrimSpace(l.ExpirationDate)
 
 	//Determine the parent app or keypair used to create this license with.
 	//Either the key pair ID or app ID must be provided. If the app ID is provided,
@@ -236,20 +236,20 @@ func (l *License) Validate(ctx context.Context) (errMsg string, err error) {
 		errMsg = "You must provide an email address."
 		return
 	}
-	if l.ExpireDate == "" {
+	if l.ExpirationDate == "" {
 		errMsg = "You must provide an expiration date for the license."
 		return
 	}
 
 	//Make sure expiration date is in the future.
-	expDate, err := time.Parse("2006-01-02", l.ExpireDate)
+	expDate, err := time.Parse("2006-01-02", l.ExpirationDate)
 	if err != nil {
 		return
 	}
 
 	now := time.Now().UTC() //Need UTC since time.Parse() is using UTC.
 	if !expDate.After(now) {
-		log.Println("license.Validate()", "expireDate", expDate)
+		log.Println("license.Validate()", "ExpirationDate", expDate)
 		log.Println("license.Validate()", "now       ", now)
 
 		errMsg = "The expiration date must be in the future."
@@ -289,7 +289,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		"Email",
 		"IssueDate",
 		"IssueTimestamp",
-		"ExpireDate",
+		"ExpirationDate",
 
 		"Signature", //always "" when license is first saved until data is verified
 		"Verified",  //always false when license is first saved until data is read back from db and checked
@@ -312,7 +312,7 @@ func (l *License) Insert(ctx context.Context, tx *sqlx.Tx) (err error) {
 		l.Email,
 		l.IssueDate,
 		l.IssueTimestamp,
-		l.ExpireDate,
+		l.ExpirationDate,
 
 		"",    //Signature
 		false, //Verified

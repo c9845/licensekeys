@@ -23,11 +23,11 @@ var (
 	// cannot be verified with the given public key.
 	ErrBadSignature = errors.New("signature invalid")
 
-	// ErrMissingExpireDate is returned when trying to check if a license is expires
+	// ErrMissingExpirationDate is returned when trying to check if a license is expires
 	// or in how long it expires via the Expired() or ExpiresIn() funcs. This error
 	//should really never be returned since the only time these funcs are used are
 	//with an existing license's data.
-	ErrMissingExpireDate = errors.New("missing expire date")
+	ErrMissingExpirationDate = errors.New("missing expire date")
 )
 
 // Reference information.
@@ -68,8 +68,7 @@ type File struct {
 	PhoneNumber    string
 	Email          string
 	IssueDate      string //YYYY-MM-DD
-	IssueTimestamp int64  //unix timestamp in seconds
-	ExpireDate     string //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
+	ExpirationDate string //YYYY-MM-DD, in UTC timezone for easiest comparison in DaysUntilExpired()
 
 	//Data is any optional data that you want to store in a license file. This
 	//map can store anything, and is typically used for storing information that
@@ -84,7 +83,10 @@ type File struct {
 	//
 	//This value is added to a File before it is written to an actual license file.
 	//When verifying a license file, make sure to strip this value out first.
-	Signature string
+	//
+	//Omitempty is needed so that "Signature": "" isn't set when calculating
+	//fingerprint; this makes calculating fingerprint manually a bit more intuitive.
+	Signature string `json:",omitempty"`
 
 	//Info used for debugging.
 	readFromPath string `json:"-"` //path a license file was read from.
@@ -127,6 +129,10 @@ func GenerateKeypair() (private, public []byte, err error) {
 // are returned for use in Sign() and Verify().
 //
 // Hash algorithm is SHA512.
+//
+// This uses a COPY of the File since we need to remove the Signature field prior to
+// hashing and we don't want to modify the original File so that if we are calculating
+// the fingerprint on an already signed license, the Signature will be kept.
 func (f *File) calculateFingerprint() (fingerprint []byte, err error) {
 	//Make sure the Signature field is empty. The Signature is never included in a
 	//fingerprint, the Signature is based upon the fingerprint.
@@ -148,7 +154,14 @@ func (f *File) calculateFingerprint() (fingerprint []byte, err error) {
 // is returned.
 //
 // Hash algorithm is SHA512 and the result is hex encoded.
-func (f *File) CalculateFingerprint() (fingerprint string, err error) {
+//
+// This uses a COPY of the File since we need to remove the Signature field prior to
+// hashing and we don't want to modify the original File so that if we are calculating
+// the fingerprint on an already signed license, the Signature will be kept.
+//
+// When comparing the fingerprint generated here to a fingerprint generated using a
+// tool such as Cyberchef, make sure the "Rounds" is set to 160.
+func (f File) CalculateFingerprint() (fingerprint string, err error) {
 	//Calculate the fingerprint, as []byte.
 	fpb, err := f.calculateFingerprint()
 
@@ -172,6 +185,10 @@ func (f *File) Sign(privateKey []byte) (err error) {
 
 	//Decode the private key for use. This is not decrypting the private key!
 	pemBlock, _ := pem.Decode(privateKey)
+	if pemBlock == nil {
+		err = errors.New("licensefile.Sign: no private key provided or key was not valid")
+		return
+	}
 	x509Key, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
 	if err != nil {
 		return
@@ -270,7 +287,7 @@ func FromString(s string) (f File, err error) {
 // so that each step can be handled more deliberately with specific handling of
 // invalid states (i.e.: for more graceful handling).
 //
-// This uses a COPY of the File since need to remove the Signature field prior to
+// This uses a COPY of the File since we need to remove the Signature field prior to
 // hashing and verification but we don't want to modify the original File so it can
 // be used as it was parsed/unmarshalled.
 func (f File) Verify(publicKey []byte) (err error) {
@@ -292,6 +309,11 @@ func (f File) Verify(publicKey []byte) (err error) {
 
 	//Decode the public key.
 	pemBlock, _ := pem.Decode(publicKey)
+	if pemBlock == nil {
+		err = errors.New("licensefile.Verify: no public key provided or key was not valid")
+		return
+	}
+
 	x509Key, err := x509.ParsePKIXPublicKey(pemBlock.Bytes)
 	if err != nil {
 		return
@@ -340,12 +362,12 @@ func (f *File) Expired() (yes bool, err error) {
 	//Make sure a expiration data is provided. It should always be provided since
 	//you would call this func after reading a license file and verifying it's
 	//signature.
-	if strings.TrimSpace(f.ExpireDate) == "" {
-		return false, ErrMissingExpireDate
+	if strings.TrimSpace(f.ExpirationDate) == "" {
+		return false, ErrMissingExpirationDate
 	}
 
 	//Check if license is expired.
-	expDate, err := time.Parse("2006-01-02", f.ExpireDate)
+	expDate, err := time.Parse("2006-01-02", f.ExpirationDate)
 	if err != nil {
 		return
 	}
@@ -363,12 +385,12 @@ func (f *File) ExpiresIn() (d time.Duration, err error) {
 	//Make sure a expiration data is provided. It should always be provided since
 	//you would call this func after reading a license file and verifying it's
 	//signature.
-	if strings.TrimSpace(f.ExpireDate) == "" {
-		return 0, ErrMissingExpireDate
+	if strings.TrimSpace(f.ExpirationDate) == "" {
+		return 0, ErrMissingExpirationDate
 	}
 
 	//Get duration until license is expired.
-	expDate, err := time.Parse("2006-01-02", f.ExpireDate)
+	expDate, err := time.Parse("2006-01-02", f.ExpirationDate)
 	if err != nil {
 		return
 	}
